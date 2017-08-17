@@ -163,7 +163,7 @@ class Adafruit_DAP {
 		//constructors
 		Adafruit_DAP(void) {};
 		~Adafruit_DAP(void) {};
-		bool begin();
+		bool begin(int swclk, int swdio, int nreset);
 			
         void dap_led(int index, int state);
         void dap_connect(void);

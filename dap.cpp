@@ -33,6 +33,10 @@
 #include "dap_config.h"
 #include "dap.h"
 
+int DAP_CONFIG_SWCLK_PIN;
+int DAP_CONFIG_SWDIO_PIN;
+int DAP_CONFIG_nRESET_PIN;
+
 #ifdef DAP_CONFIG_ENABLE_JTAG
 #error JTAG is not supported. If you have a real need for it, please contact me.
 #endif
@@ -939,8 +943,12 @@ static void dap_jtag_idcode(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-void dap_init(void)
+void dap_init(int swclk, int swdio, int nreset)
 {
+  DAP_CONFIG_SWCLK_PIN = swclk;
+  DAP_CONFIG_SWDIO_PIN = swdio;
+  DAP_CONFIG_nRESET_PIN = nreset;
+	
   dap_port  = 0;
   dap_abort = false;
   dap_match_mask = 0;

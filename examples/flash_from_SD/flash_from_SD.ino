@@ -19,7 +19,7 @@ void setup() {
   Serial.begin(9600);
   //while(!Serial);
 
-  dap.begin();
+  dap.begin(9,10,11);
   
     // see if the card is present and can be initialized:
   if (!SD.begin(chipSelect)) {

@@ -42,9 +42,13 @@
 #define DAP_CONFIG_PACKET_SIZE         64
 #define DAP_CONFIG_PACKET_COUNT        1
 
-#define DAP_CONFIG_SWCLK_PIN		9
-#define DAP_CONFIG_SWDIO_PIN		10
-#define DAP_CONFIG_nRESET_PIN		11
+//#define DAP_CONFIG_SWCLK_PIN		9
+//#define DAP_CONFIG_SWDIO_PIN		10
+//#define DAP_CONFIG_nRESET_PIN		11
+
+extern int DAP_CONFIG_SWCLK_PIN;
+extern int DAP_CONFIG_SWDIO_PIN;
+extern int DAP_CONFIG_nRESET_PIN;
 
 #define DAP_CONFIG_SWCLK			   g_APinDescription[DAP_CONFIG_SWCLK_PIN]
 #define DAP_CONFIG_SWDIO			   g_APinDescription[DAP_CONFIG_SWDIO_PIN]
@@ -173,7 +177,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_out(void)
 }
 
 //-----------------------------------------------------------------------------
-static inline void DAP_CONFIG_SETUP(void)
+static inline void DAP_CONFIG_SETUP()
 {
   pinMode(DAP_CONFIG_SWCLK_PIN, INPUT);
   pinMode(DAP_CONFIG_SWDIO_PIN, INPUT_PULLUP);

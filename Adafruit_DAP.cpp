@@ -5,9 +5,9 @@
 static uint8_t hid_buffer[256];
 #define REPORT_SIZE 64
 
-bool Adafruit_DAP::begin()
+bool Adafruit_DAP::begin(int swclk, int swdio, int nreset)
 {
-	dap_init();
+	dap_init(swclk, swdio, nreset);
 }
 
 int Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
