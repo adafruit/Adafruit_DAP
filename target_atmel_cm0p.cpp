@@ -206,7 +206,7 @@ uint32_t dap_m0p::program_start(void)
   return FLASH_START + options.offset;
 }
 
-uint32_t dap_m0p::program(uint32_t addr, uint8_t *buf)
+void dap_m0p::programBlock(uint32_t addr, uint8_t *buf)
 {
     dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
@@ -216,84 +216,16 @@ uint32_t dap_m0p::program(uint32_t addr, uint8_t *buf)
     dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_ER); // Erase Row
     while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
     dap_write_block(addr, buf, FLASH_ROW_SIZE);
-
-    addr += FLASH_ROW_SIZE;
-
-    Serial.print(".");
-    return addr;
 }
 
-
 //-----------------------------------------------------------------------------
-void dap_m0p::verify(void)
+void dap_m0p::readBlock(uint32_t addr, uint8_t *buf)
 {
-  uint32_t addr = FLASH_START + options.offset;
-  uint32_t block_size;
-  uint32_t offs = 0;
-  uint8_t bufb[FLASH_ROW_SIZE];
-  uint8_t *bufa = options.file_data;
-  uint32_t size = options.file_size;
-
-  if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
-    perror_exit("device is locked, unable to verify");
-
-  //bufb = buf_alloc(FLASH_ROW_SIZE);
-
-  while (size)
-  {
-    dap_read_block(addr, bufb, FLASH_ROW_SIZE);
-
-    block_size = (size > FLASH_ROW_SIZE) ? FLASH_ROW_SIZE : size;
-
-    for (int i = 0; i < (int)block_size; i++)
-    {
-      if (bufa[offs + i] != bufb[i])
-      {
-        /*
-        verbose("\nat address 0x%x expected 0x%02x, read 0x%02x\n",
-            addr + i, bufa[offs + i], bufb[i]);
-        buf_free(bufb);
-        */
-        perror_exit("verification failed");
-      }
-    }
-
-    addr += FLASH_ROW_SIZE;
-    offs += FLASH_ROW_SIZE;
-    size -= block_size;
-
-    Serial.print(".");
-  }
-
-  //buf_free(bufb);
-}
-
-/*
-//-----------------------------------------------------------------------------
-void dap_m0p::read(void)
-{
-  uint32_t addr = FLASH_START + options.offset;
-  uint32_t offs = 0;
-  uint8_t *buf = options.file_data;
-  uint32_t size = options.size;
-
   if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
     perror_exit("device is locked, unable to read");
 
-  while (size)
-  {
-    dap_read_block(addr, &buf[offs], FLASH_ROW_SIZE);
-
-    addr += FLASH_ROW_SIZE;
-    offs += FLASH_ROW_SIZE;
-    size -= FLASH_ROW_SIZE;
-
-    verbose(".");
-  }
-
-  save_file(options.name, buf, options.size);
+  dap_read_block(addr, buf, FLASH_ROW_SIZE);
 }
-*/
 
 
 /*

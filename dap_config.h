@@ -35,6 +35,11 @@
 #include "sam.h"
 #include "Arduino.h"
 
+static inline void DAP_CONFIG_SWCLK_TCK_clr(void);
+static inline void DAP_CONFIG_SWCLK_TCK_set(void);
+static inline void DAP_CONFIG_SWDIO_TMS_clr(void);
+static inline void DAP_CONFIG_SWDIO_TMS_set(void);
+
 #define DAP_CONFIG_ENABLE_SWD
 //#define DAP_CONFIG_ENABLE_JTAG
 
@@ -44,17 +49,18 @@
 #define DAP_CONFIG_PACKET_SIZE         64
 #define DAP_CONFIG_PACKET_COUNT        1
 
-//#define DAP_CONFIG_SWCLK_PIN		9
-//#define DAP_CONFIG_SWDIO_PIN		10
-//#define DAP_CONFIG_nRESET_PIN		11
-
 extern int DAP_CONFIG_SWCLK_PIN;
 extern int DAP_CONFIG_SWDIO_PIN;
 extern int DAP_CONFIG_nRESET_PIN;
 
-#define DAP_CONFIG_SWCLK			   g_APinDescription[DAP_CONFIG_SWCLK_PIN]
-#define DAP_CONFIG_SWDIO			   g_APinDescription[DAP_CONFIG_SWDIO_PIN]
-#define DAP_CONFIG_nRESET			   g_APinDescription[DAP_CONFIG_nRESET_PIN]
+
+#if defined(ARDUINO_ARCH_SAMD)
+  // ultra speedy
+extern volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG, *SWCLK_INREG;
+  extern uint32_t           SWCLK_PINMASK;
+extern volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INREG;
+  extern uint32_t           SWDIO_PINMASK;
+#endif
 
 // Set the value to NULL if you want to disable a string
 // DAP_CONFIG_PRODUCT_STR must contain "CMSIS-DAP" to be compatible with the standard
@@ -74,33 +80,30 @@ extern int DAP_CONFIG_nRESET_PIN;
 // This is the frequency produced by dap_clock_test(1) on the SWCLK pin 
 #define DAP_CONFIG_FAST_CLOCK          463000 // Hz
 
-static inline void DAP_gpio_write(int port, int pin, int val) {
-	if(val) PORT->Group[port].OUTSET.reg = (1ul<<pin);
-	else PORT->Group[port].OUTCLR.reg = (1ul<<pin);
-}
-
-static inline uint32_t DAP_gpio_read_bulk(int port){
-	return PORT->Group[port].IN.reg;
-}
-
 /*- Implementations ---------------------------------------------------------*/
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWCLK_TCK_write(int value)
 {
-	DAP_gpio_write(DAP_CONFIG_SWCLK.ulPort, DAP_CONFIG_SWCLK.ulPin, value);
+  if (value == 0)
+    DAP_CONFIG_SWCLK_TCK_clr();
+  else
+    DAP_CONFIG_SWCLK_TCK_set();
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWDIO_TMS_write(int value)
 {
-	DAP_gpio_write(DAP_CONFIG_SWDIO.ulPort, DAP_CONFIG_SWDIO.ulPin, value);
+  if (value == 0)
+    DAP_CONFIG_SWDIO_TMS_clr();
+  else
+    DAP_CONFIG_SWDIO_TMS_set();
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_TDO_write(int value)
 {
-	//DAP_gpio_write(DAP_CONFIG_TDO.ulPort, DAP_CONFIG_TDO.ulPin, value);
+  //DAP_gpio_write(DAP_CONFIG_TDO.ulPort, DAP_CONFIG_TDO.ulPin, value);
 }
 
 //-----------------------------------------------------------------------------
@@ -112,19 +115,27 @@ static inline void DAP_CONFIG_nTRST_write(int value)
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_nRESET_write(int value)
 {
-  DAP_gpio_write(DAP_CONFIG_nRESET.ulPort, DAP_CONFIG_nRESET.ulPin, value);
+  digitalWrite(DAP_CONFIG_nRESET_PIN, value);
 }
 
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_SWCLK_TCK_read(void)
 {
-  return (DAP_gpio_read_bulk(DAP_CONFIG_SWCLK.ulPort) & (1 << DAP_CONFIG_SWCLK.ulPin)) > 0;
+#if defined(ARDUINO_ARCH_SAMD)
+  return (*SWCLK_INREG & SWCLK_PINMASK) != 0;
+#else
+  return digitalRead(DAP_CONFIG_SWCLK_PIN);
+#endif
 }
 
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_SWDIO_TMS_read(void)
 {
-  return (DAP_gpio_read_bulk(DAP_CONFIG_SWDIO.ulPort) & (1 << DAP_CONFIG_SWDIO.ulPin)) > 0;
+#if defined(ARDUINO_ARCH_SAMD)
+  return (*SWDIO_INREG & SWDIO_PINMASK) != 0;
+#else
+  return digitalRead(DAP_CONFIG_SWDIO_PIN);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -151,31 +162,68 @@ static inline int DAP_CONFIG_nTRST_read(void)
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_nRESET_read(void)
 {
-  return (DAP_gpio_read_bulk(DAP_CONFIG_nRESET.ulPort) & (1 << DAP_CONFIG_nRESET.ulPin)) > 0;
+  return digitalRead(DAP_CONFIG_nRESET_PIN);
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWCLK_TCK_set(void)
 {
-  PORT->Group[DAP_CONFIG_SWCLK.ulPort].OUTSET.reg = (1ul<<DAP_CONFIG_SWCLK.ulPin);
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWCLK_OUTSETREG = SWCLK_PINMASK;
+#else
+  digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
+#endif
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWCLK_TCK_clr(void)
 {
-  PORT->Group[DAP_CONFIG_SWCLK.ulPort].OUTCLR.reg = (1ul<<DAP_CONFIG_SWCLK.ulPin);
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWCLK_OUTCLRREG = SWCLK_PINMASK;
+#else
+  digitalWrite(DAP_CONFIG_SWCLK_PIN, LOW);
+#endif
 }
+
+//-----------------------------------------------------------------------------
+static inline void DAP_CONFIG_SWDIO_TMS_set(void)
+{
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWDIO_OUTSETREG = SWDIO_PINMASK;
+#else
+  digitalWrite(DAP_CONFIG_SWDIO_PIN, HIGH);
+#endif
+}
+
+//-----------------------------------------------------------------------------
+static inline void DAP_CONFIG_SWDIO_TMS_clr(void)
+{
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWDIO_OUTCLRREG = SWDIO_PINMASK;
+#else
+  digitalWrite(DAP_CONFIG_SWDIO_PIN, LOW);
+#endif
+}
+
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWDIO_TMS_in(void)
 {
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWDIO_DIRREG &= ~SWDIO_PINMASK; 
+#else
   pinMode(DAP_CONFIG_SWDIO_PIN, INPUT);
+#endif
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_SWDIO_TMS_out(void)
 {
+#if defined(ARDUINO_ARCH_SAMD)
+  *SWDIO_DIRREG |= SWDIO_PINMASK; 
+#else
   pinMode(DAP_CONFIG_SWDIO_PIN, OUTPUT);
+#endif
 }
 
 //-----------------------------------------------------------------------------

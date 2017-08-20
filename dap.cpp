@@ -39,6 +39,15 @@ int DAP_CONFIG_SWCLK_PIN;
 int DAP_CONFIG_SWDIO_PIN;
 int DAP_CONFIG_nRESET_PIN;
 
+#if defined(ARDUINO_ARCH_SAMD)
+  // ultra speedy
+volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG, *SWCLK_INREG;
+  uint32_t           SWCLK_PINMASK;
+volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INREG;
+  uint32_t           SWDIO_PINMASK;
+#endif
+
+
 #ifdef DAP_CONFIG_ENABLE_JTAG
 #error JTAG is not supported. If you have a real need for it, please contact me.
 #endif
@@ -163,15 +172,9 @@ static int dap_retry_count;
 static int dap_match_retry_count;
 static int dap_clock_delay;
 
-//DM TODO: fix these
-/*
 static void (*dap_swd_clock)(int);
 static void (*dap_swd_write)(uint32_t, int);
 static uint32_t (*dap_swd_read)(int);
-*/
-#define dap_swd_write dap_swd_write_slow
-#define dap_swd_read dap_swd_read_slow
-#define dap_swd_clock dap_swd_clock_slow
 
 #ifdef DAP_CONFIG_ENABLE_SWD
 static int dap_swd_turnaround;
@@ -249,9 +252,8 @@ static uint32_t dap_swd_read_slow (int size)
 //-----------------------------------------------------------------------------
 static void dap_swd_clock_fast(int cycles)
 {
-  while (cycles > 0)
+  while (cycles--)
   {
-	cycles--;
     DAP_CONFIG_SWCLK_TCK_clr();
     DAP_CONFIG_SWCLK_TCK_set();
   }
@@ -291,21 +293,17 @@ static void dap_setup_clock(int freq)
 {
   if (freq > DAP_CONFIG_FAST_CLOCK)
   {
-    dap_clock_delay = 1;
-	/* DM TODO: fix these
+    dap_clock_delay = 0;
     dap_swd_clock = dap_swd_clock_fast;
     dap_swd_write = dap_swd_write_fast;
     dap_swd_read = dap_swd_read_fast;
-	*/
   }
   else
   {
     dap_clock_delay = (DAP_CONFIG_DELAY_CONSTANT * 1000) / freq;
-	/* DM TODO: fix these
     dap_swd_clock = dap_swd_clock_slow;
     dap_swd_write = dap_swd_write_slow;
     dap_swd_read = dap_swd_read_slow;
-	*/
   }
 }
 
@@ -950,7 +948,21 @@ void dap_init(int swclk, int swdio, int nreset)
   DAP_CONFIG_SWCLK_PIN = swclk;
   DAP_CONFIG_SWDIO_PIN = swdio;
   DAP_CONFIG_nRESET_PIN = nreset;
-	
+  
+#if defined(ARDUINO_ARCH_SAMD)
+  SWCLK_OUTSETREG = &(PORT_IOBUS->Group[g_APinDescription[swclk].ulPort].OUTSET.reg);
+  SWCLK_OUTCLRREG = &(PORT_IOBUS->Group[g_APinDescription[swclk].ulPort].OUTCLR.reg);
+  SWCLK_DIRREG    = portModeRegister(digitalPinToPort(swclk));
+  SWCLK_INREG     = portInputRegister(digitalPinToPort(swclk));
+  SWCLK_PINMASK   = digitalPinToBitMask(swclk);
+
+  SWDIO_OUTSETREG = &(PORT_IOBUS->Group[g_APinDescription[swdio].ulPort].OUTSET.reg);
+  SWDIO_OUTCLRREG = &(PORT_IOBUS->Group[g_APinDescription[swdio].ulPort].OUTCLR.reg);
+  SWDIO_INREG     = portInputRegister(digitalPinToPort(swdio));
+  SWDIO_DIRREG    = portModeRegister(digitalPinToPort(swdio));
+  SWDIO_PINMASK   = digitalPinToBitMask(swdio);
+#endif
+
   dap_port  = 0;
   dap_abort = false;
   dap_match_mask = 0;

@@ -35,9 +35,10 @@
 static uint8_t hid_buffer[256];
 #define REPORT_SIZE 64
 
-bool Adafruit_DAP::begin(int swclk, int swdio, int nreset)
+bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr)
 {
 	dap_init(swclk, swdio, nreset);
+	perror_exit = perr;
 }
 
 int Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
@@ -69,13 +70,6 @@ void Adafruit_DAP::check(bool cond, char *fmt)
 
 		perror_exit(fmt);
 	}
-}
-
-void Adafruit_DAP::perror_exit(char *text)
-{
-	//dbg_close();
-	Serial.println(text);
-	while(1);
 }
 
 /*- DAP Implementations ---------------------------------------------------------*/
