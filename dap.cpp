@@ -943,7 +943,7 @@ static void dap_jtag_idcode(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-void dap_init(int swclk, int swdio, int nreset)
+bool dap_init(int swclk, int swdio, int nreset)
 {
   DAP_CONFIG_SWCLK_PIN = swclk;
   DAP_CONFIG_SWDIO_PIN = swdio;
@@ -978,6 +978,8 @@ void dap_init(int swclk, int swdio, int nreset)
   dap_setup_clock(DAP_CONFIG_DEFAULT_CLOCK);
 
   DAP_CONFIG_SETUP();
+
+  return true;
 }
 
 //-----------------------------------------------------------------------------
