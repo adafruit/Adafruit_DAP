@@ -41,7 +41,7 @@ bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr)
 	perror_exit = perr;
 }
 
-int Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
+bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
 {
 	//TODO: leaving off here, we can only write 64 bytes at a time
 	char cmd = data[0];
@@ -57,7 +57,7 @@ int Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
 
 	memcpy(data, &hid_buffer[1], size);
 
-	return 0;
+	return true;
 }
 
 void Adafruit_DAP::check(bool cond, char *fmt)
@@ -75,7 +75,7 @@ void Adafruit_DAP::check(bool cond, char *fmt)
 /*- DAP Implementations ---------------------------------------------------------*/
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_led(int index, int state)
+bool Adafruit_DAP::dap_led(int index, int state)
 {
 	uint8_t buf[3];
 
@@ -85,10 +85,11 @@ void Adafruit_DAP::dap_led(int index, int state)
 	dbg_dap_cmd(buf, sizeof(buf), 3);
 
 	check(DAP_OK == buf[0], "DAP_LED failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_connect(void)
+bool Adafruit_DAP::dap_connect(void)
 {
 	uint8_t buf[2];
 
@@ -97,19 +98,21 @@ void Adafruit_DAP::dap_connect(void)
 	dbg_dap_cmd(buf, sizeof(buf), 2);
 
 	check(DAP_PORT_SWD == buf[0], "DAP_CONNECT failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_disconnect(void)
+bool Adafruit_DAP::dap_disconnect(void)
 {
 	uint8_t buf[1];
 
 	buf[0] = ID_DAP_DISCONNECT;
 	dbg_dap_cmd(buf, sizeof(buf), 1);
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_swj_clock(uint32_t clock)
+bool Adafruit_DAP::dap_swj_clock(uint32_t clock)
 {
 	uint8_t buf[5];
 
@@ -121,10 +124,11 @@ void Adafruit_DAP::dap_swj_clock(uint32_t clock)
 	dbg_dap_cmd(buf, sizeof(buf), 5);
 
 	check(DAP_OK == buf[0], "SWJ_CLOCK failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t retry)
+bool Adafruit_DAP::dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t retry)
 {
 	uint8_t buf[6];
 
@@ -137,10 +141,11 @@ void Adafruit_DAP::dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t
 	dbg_dap_cmd(buf, sizeof(buf), 6);
 
 	check(DAP_OK == buf[0], "TRANSFER_CONFIGURE failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_swd_configure(uint8_t cfg)
+bool Adafruit_DAP::dap_swd_configure(uint8_t cfg)
 {
 	uint8_t buf[2];
 
@@ -149,13 +154,15 @@ void Adafruit_DAP::dap_swd_configure(uint8_t cfg)
 	dbg_dap_cmd(buf, sizeof(buf), 2);
 
 	check(DAP_OK == buf[0], "SWD_CONFIGURE failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_get_debugger_info(void)
+bool Adafruit_DAP::dap_get_debugger_info(char *str)
 {
 	uint8_t buf[100];
-	char str[500] = "";
+
+	str[0] = 0;
 
 	buf[0] = ID_DAP_INFO;
 	buf[1] = DAP_INFO_VENDOR;
@@ -195,14 +202,12 @@ void Adafruit_DAP::dap_get_debugger_info(void)
 
 	strcat(str, ")");
 
-	//verbose("Debugger: %s\n", str);
-	Serial.println(str);
-
 	check(buf[1] & DAP_PORT_SWD, "SWD support required");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_reset_target(void)
+bool Adafruit_DAP::dap_reset_target(void)
 {
 	uint8_t buf[1];
 
@@ -210,10 +215,11 @@ void Adafruit_DAP::dap_reset_target(void)
 	dbg_dap_cmd(buf, sizeof(buf), 1);
 
 	check(DAP_OK == buf[0], "RESET_TARGET failed");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_reset_target_hw(void)
+bool Adafruit_DAP::dap_reset_target_hw(void)
 {
 	uint8_t buf[7];
 
@@ -236,6 +242,7 @@ void Adafruit_DAP::dap_reset_target_hw(void)
 	buf[5] = 0;
 	buf[6] = 0;
 	dbg_dap_cmd(buf, sizeof(buf), 7);
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -268,7 +275,7 @@ uint32_t Adafruit_DAP::dap_read_reg(uint8_t reg)
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_write_reg(uint8_t reg, uint32_t data)
+bool Adafruit_DAP::dap_write_reg(uint8_t reg, uint32_t data)
 {
 	uint8_t buf[8];
 
@@ -293,6 +300,7 @@ void Adafruit_DAP::dap_write_reg(uint8_t reg, uint32_t data)
 		Serial.print(buf[1]);
 		perror_exit(")");
 	}
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -303,14 +311,15 @@ uint32_t Adafruit_DAP::dap_read_word(uint32_t addr)
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_write_word(uint32_t addr, uint32_t data)
+bool Adafruit_DAP::dap_write_word(uint32_t addr, uint32_t data)
 {
 	dap_write_reg(SWD_AP_TAR, addr);
 	dap_write_reg(SWD_AP_DRW, data);
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size)
+bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size)
 {
 	int max_size = (32 - 5) & ~3;
 	int offs = 0;
@@ -345,10 +354,11 @@ void Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size)
 		addr += sz;
 		offs += sz;
 	}
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_write_block(uint32_t addr, uint8_t *data, int size)
+bool Adafruit_DAP::dap_write_block(uint32_t addr, uint8_t *data, int size)
 {
 	int max_size = (32 - 5) & ~3;
 	int offs = 0;
@@ -382,10 +392,11 @@ void Adafruit_DAP::dap_write_block(uint32_t addr, uint8_t *data, int size)
 		addr += sz;
 		offs += sz;
 	}
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_reset_link(void)
+bool Adafruit_DAP::dap_reset_link(void)
 {
 	uint8_t buf[128];
 
@@ -419,19 +430,23 @@ void Adafruit_DAP::dap_reset_link(void)
 	buf[2] = 1; // Request size
 	buf[3] = SWD_DP_R_IDCODE | DAP_TRANSFER_RnW;
 	dbg_dap_cmd(buf, sizeof(buf), 4);
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP::dap_read_idcode(void)
+bool Adafruit_DAP::dap_read_idcode(uint32_t *v)
 {
-	return dap_read_reg(SWD_DP_R_IDCODE);
+  *v = dap_read_reg(SWD_DP_R_IDCODE);
+  return true;
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP::dap_target_prepare(void)
+bool Adafruit_DAP::dap_target_prepare(void)
 {
 	dap_write_reg(SWD_DP_W_ABORT, 0x00000016);
 	dap_write_reg(SWD_DP_W_SELECT, 0x00000000);
 	dap_write_reg(SWD_DP_W_CTRL_STAT, 0x50000f00);
 	dap_write_reg(SWD_AP_CSW, 0x23000052);
+	return true;
 }

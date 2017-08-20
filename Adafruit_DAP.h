@@ -197,29 +197,31 @@ class Adafruit_DAP {
   ~Adafruit_DAP(void) {};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
   
-  void dap_led(int index, int state);
-  void dap_connect(void);
-  void dap_disconnect(void);
-  void dap_swj_clock(uint32_t clock);
-  void dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t retry);
-  void dap_swd_configure(uint8_t cfg);
-  void dap_get_debugger_info(void);
-  void dap_reset_target(void);
-  void dap_reset_target_hw(void);
+  bool dap_led(int index, int state);
+  bool dap_connect(void);
+  bool dap_disconnect(void);
+  bool dap_swj_clock(uint32_t clock);
+  bool dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t retry);
+  bool dap_swd_configure(uint8_t cfg);
+  bool dap_get_debugger_info(char *debuggername);
+  bool dap_reset_target(void);
+  bool dap_reset_target_hw(void);
   uint32_t dap_read_reg(uint8_t reg);
-  void dap_write_reg(uint8_t reg, uint32_t data);
+  bool dap_write_reg(uint8_t reg, uint32_t data);
   uint32_t dap_read_word(uint32_t addr);
-  void dap_write_word(uint32_t addr, uint32_t data);
-  void dap_read_block(uint32_t addr, uint8_t *data, int size);
-  void dap_write_block(uint32_t addr, uint8_t *data, int size);
-  void dap_reset_link(void);
-  uint32_t dap_read_idcode(void);
-  void dap_target_prepare(void);
+  bool dap_write_word(uint32_t addr, uint32_t data);
+  bool dap_read_block(uint32_t addr, uint8_t *data, int size);
+  bool dap_write_block(uint32_t addr, uint8_t *data, int size);
+  bool dap_reset_link(void);
+  bool dap_read_idcode(uint32_t *id);
+  bool dap_target_prepare(void);
   void dap_set_target(uint8_t target);
+
+  char *error_message;
   
  protected:
   uint8_t _i2caddr;
-  int dbg_dap_cmd(uint8_t *data, int size, int rsize);
+  bool dbg_dap_cmd(uint8_t *data, int size, int rsize);
   void check(bool cond, char *fmt);
 
   ErrorHandler perror_exit;
