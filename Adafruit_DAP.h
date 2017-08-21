@@ -227,10 +227,10 @@ class Adafruit_DAP {
   ErrorHandler perror_exit;
 };
 
-class dap_m0p : public Adafruit_DAP {
+class Adafruit_DAP_SAM : public Adafruit_DAP {
 public:
-    dap_m0p(void) {};
-    ~dap_m0p(void) {};
+    Adafruit_DAP_SAM(void) {};
+    ~Adafruit_DAP_SAM(void) {};
 
     static device_t devices[];
     device_t target_device;

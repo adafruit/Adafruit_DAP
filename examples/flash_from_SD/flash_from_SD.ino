@@ -2,68 +2,99 @@
 #include <SPI.h>
 #include <SD.h>
 
-const int chipSelect = 4;
+#define SD_CS  5
+#define SWCLK 11
+#define SWDIO 10
+#define SWRST 12
+
 #define FILENAME "fw.bin"
 
-#define BUFSIZE 256 //don't change
+#define BUFSIZE 256       //don't change!
+uint8_t buf[BUFSIZE];
 
-//create a seesaw with m0 DAP support
-dap_m0p dap;
+//create a DAP for programming Atmel SAM devices
+Adafruit_DAP_SAM dap;
 
-//create the target options
-//TODO: set some actual options here
+//create the target options //TODO: set some actual options here?
 options_t g_target_options;
+
+// Function called when there's an SWD error
+void error(char *text) {
+  Serial.println(text);
+  while (1);
+}
+
 
 void setup() {
   pinMode(13, OUTPUT);
-  Serial.begin(9600);
-  //while(!Serial);
+  Serial.begin(115200);
+  while(!Serial) {
+    delay(1);         // will pause the chip until it opens serial console
+  }
 
-  dap.begin(9,10,11);
+  dap.begin(SWCLK, SWDIO, SWRST, &error);
   
     // see if the card is present and can be initialized:
-  if (!SD.begin(chipSelect)) {
-    Serial.println("Card failed, or not present");
-    // don't do anything more:
-    return;
+  if (!SD.begin(SD_CS)) {
+    error("Card failed, or not present");
   }
-  Serial.println("card initialized.");
+  Serial.println("Card initialized");
 
   File dataFile = SD.open(FILENAME);
-  uint8_t buf[256];
 
-  if(dataFile){
-    dap.dap_disconnect();
-    dap.dap_get_debugger_info();
-    dap.dap_connect();
-    dap.dap_transfer_configure(0, 128, 128);
-    dap.dap_swd_configure(0);
-    dap.dap_reset_link();
-    dap.dap_swj_clock(DAP_FREQ);
-    dap.dap_target_prepare();
+  if(!dataFile){
+     error("Couldn't open file");
+  }
   
-    dap.select(&g_target_options);
+  Serial.print("Connecting...");  
+  if (! dap.dap_disconnect())                      error(dap.error_message);
   
-    Serial.print("Erasing... ");
-    dap.erase();
-    Serial.println(" done.");
+  char debuggername[100];
+  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
+  Serial.print(debuggername); Serial.print("\n\r");
   
-    Serial.print("Programming... ");
-    uint32_t addr = dap.program_start();
+  if (! dap.dap_connect())                         error(dap.error_message);
+  
+  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
+  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
+  if (! dap.dap_reset_link())                      error(dap.error_message);
+  if (! dap.dap_swj_clock(DAP_FREQ))               error(dap.error_message);
+  dap.dap_target_prepare();
 
-    while (dataFile.available()) {
-      dataFile.read(buf, 256);
-      addr = dap.program(addr, buf);
+  uint32_t dsu_did;
+  if (! dap.select(&g_target_options, &dsu_did)) {
+    Serial.print("Unknown device found 0x"); Serial.print(dsu_did, HEX);
+    error("Unknown device found");
+  }
+  for (device_t *device = dap.devices; device->dsu_did > 0; device++) {
+    if (device->dsu_did == dsu_did) {
+      Serial.print("Found Target: ");
+      Serial.print(device->name);
+      Serial.print("\tFlash size: ");
+      Serial.print(device->flash_size);
+      Serial.print("\tFlash pages: ");
+      Serial.println(device->n_pages);
+      //Serial.print("Page size: "); Serial.println(device->flash_size / device->n_pages);
     }
-    dataFile.close();
+  }
+
+  Serial.print("Erasing... ");
+  dap.erase();
+  Serial.println(" done.");
+  
+  Serial.print("Programming... ");
+  uint32_t addr = dap.program_start();
+
+  while (dataFile.available()) {
+      memset(buf, BUFSIZE, 0xFF);  // empty it out
+      dataFile.read(buf, BUFSIZE);
+      dap.programBlock(addr, buf);
+      addr += BUFSIZE;
+  }
+  dataFile.close();
     
-    Serial.println(" done.");
-  }
-  // if the file isn't open, pop up an error:
-  else {
-    Serial.println("error opening file");
-    return;
-  }
+  Serial.println("\nDone!");
+
   dap.deselect();
   dap.dap_disconnect();
 }

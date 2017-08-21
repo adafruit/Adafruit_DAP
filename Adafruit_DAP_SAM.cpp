@@ -67,7 +67,7 @@
 #define USER_ROW_SIZE          256
 
 /*- Variables ---------------------------------------------------------------*/
-device_t dap_m0p::devices[] =
+device_t Adafruit_DAP_SAM::devices[] =
 {
   { 0x10040107, "SAM D09C13A",           8*1024,  128 },
   { 0x10020100, "SAM D10D14AM",         16*1024,  256 },
@@ -104,7 +104,7 @@ device_t dap_m0p::devices[] =
 static options_t options;
 
 //-----------------------------------------------------------------------------
-bool dap_m0p::select(options_t *target_options, uint32_t *found_id)
+bool Adafruit_DAP_SAM::select(options_t *target_options, uint32_t *found_id)
 {
   uint32_t dsu_did;
 
@@ -131,14 +131,14 @@ bool dap_m0p::select(options_t *target_options, uint32_t *found_id)
 }
 
 //-----------------------------------------------------------------------------
-void dap_m0p::deselect(void)
+void Adafruit_DAP_SAM::deselect(void)
 {
   dap_write_word(DEMCR, 0x00000000);
   dap_write_word(AIRCR, 0x05fa0004);
 }
 
 //-----------------------------------------------------------------------------
-void dap_m0p::erase(void)
+void Adafruit_DAP_SAM::erase(void)
 {
   dap_write_word(DSU_CTRL_STATUS, 0x00001f00); // Clear flags
   dap_write_word(DSU_CTRL_STATUS, 0x00000010); // Chip erase
@@ -147,13 +147,13 @@ void dap_m0p::erase(void)
 }
 
 //-----------------------------------------------------------------------------
-void dap_m0p::lock(void)
+void Adafruit_DAP_SAM::lock(void)
 {
   dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_SSB); // Set Security Bit
 }
 
 //-----------------------------------------------------------------------------
-void dap_m0p::program(void)
+void Adafruit_DAP_SAM::program(void)
 {
   uint32_t addr = FLASH_START + options.offset;
   uint32_t offs = 0;
@@ -186,7 +186,7 @@ void dap_m0p::program(void)
 }
 
 //-----------------------------------------------------------------------------
-uint32_t dap_m0p::program_start(void)
+uint32_t Adafruit_DAP_SAM::program_start(void)
 {
 
   if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
@@ -197,7 +197,7 @@ uint32_t dap_m0p::program_start(void)
   return FLASH_START + options.offset;
 }
 
-void dap_m0p::programBlock(uint32_t addr, uint8_t *buf)
+void Adafruit_DAP_SAM::programBlock(uint32_t addr, uint8_t *buf)
 {
     dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
@@ -210,7 +210,7 @@ void dap_m0p::programBlock(uint32_t addr, uint8_t *buf)
 }
 
 //-----------------------------------------------------------------------------
-void dap_m0p::readBlock(uint32_t addr, uint8_t *buf)
+void Adafruit_DAP_SAM::readBlock(uint32_t addr, uint8_t *buf)
 {
   if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
     perror_exit("device is locked, unable to read");
@@ -221,7 +221,7 @@ void dap_m0p::readBlock(uint32_t addr, uint8_t *buf)
 
 /*
 //-----------------------------------------------------------------------------
-void dap_m0p::fuse(void)
+void Adafruit_DAP_SAM::fuse(void)
 {
   uint8_t buf[USER_ROW_SIZE];
   bool read_all = (-1 == options.fuse_start);
