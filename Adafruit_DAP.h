@@ -236,7 +236,7 @@ public:
     device_t target_device;
     options_t options;
 
-    void select(options_t *target_options);
+    bool select(options_t *target_options, uint32_t *id);
     void deselect(void);
     void erase(void);
     void lock(void);

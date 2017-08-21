@@ -104,7 +104,7 @@ device_t dap_m0p::devices[] =
 static options_t options;
 
 //-----------------------------------------------------------------------------
-void dap_m0p::select(options_t *target_options)
+bool dap_m0p::select(options_t *target_options, uint32_t *found_id)
 {
   uint32_t dsu_did;
 
@@ -114,25 +114,20 @@ void dap_m0p::select(options_t *target_options)
   dap_write_word(AIRCR, 0x05fa0004);
 
   dsu_did = dap_read_word(DSU_DID);
+  *found_id = dsu_did;
 
   for (device_t *device = devices; device->dsu_did > 0; device++)
   {
     if (device->dsu_did == dsu_did)
     {
-      Serial.print("Target: ");
-      Serial.println(device->name);
-
       target_device = *device;
       options = *target_options;
 
-      //check_options(&options, device->flash_size, FLASH_ROW_SIZE);
-
-      return;
+      return true;
     }
   }
 
-  //error_exit("unknown target device (DSU_DID = 0x%08x)", dsu_did);
-  perror_exit("unknown target device");
+  return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -140,8 +135,6 @@ void dap_m0p::deselect(void)
 {
   dap_write_word(DEMCR, 0x00000000);
   dap_write_word(AIRCR, 0x05fa0004);
-
-  //free_options(&options);
 }
 
 //-----------------------------------------------------------------------------
@@ -189,8 +182,6 @@ void dap_m0p::program(void)
 
     addr += FLASH_ROW_SIZE;
     offs += FLASH_ROW_SIZE;
-
-    Serial.print(".");
   }
 }
 
