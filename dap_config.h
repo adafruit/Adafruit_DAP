@@ -43,7 +43,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_set(void);
 //#define DAP_CONFIG_ENABLE_JTAG
 
 #define DAP_CONFIG_DEFAULT_PORT        DAP_PORT_SWD
-#define DAP_CONFIG_DEFAULT_CLOCK       1000000 // Hz
+#define DAP_CONFIG_DEFAULT_CLOCK       50
 
 #define DAP_CONFIG_PACKET_SIZE         64
 #define DAP_CONFIG_PACKET_COUNT        1
@@ -114,14 +114,17 @@ static inline void DAP_CONFIG_nTRST_write(int value)
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_nRESET_write(int value)
 {
-  digitalWrite(DAP_CONFIG_nRESET_PIN, value);
+  digitalWriteFast(DAP_CONFIG_nRESET_PIN, value);
 }
 
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_SWCLK_TCK_read(void)
 {
+  //TODO: format all these like this
 #if defined(ARDUINO_ARCH_SAMD)
   return (*SWCLK_INREG & SWCLK_PINMASK) != 0;
+#elif defined(TEENSY)
+  return digitalReadFast(DAP_CONFIG_SWCLK_PIN);
 #else
   return digitalRead(DAP_CONFIG_SWCLK_PIN);
 #endif
@@ -133,7 +136,7 @@ static inline int DAP_CONFIG_SWDIO_TMS_read(void)
 #if defined(ARDUINO_ARCH_SAMD)
   return (*SWDIO_INREG & SWDIO_PINMASK) != 0;
 #else
-  return digitalRead(DAP_CONFIG_SWDIO_PIN);
+  return digitalReadFast(DAP_CONFIG_SWDIO_PIN);
 #endif
 }
 
@@ -161,7 +164,7 @@ static inline int DAP_CONFIG_nTRST_read(void)
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_nRESET_read(void)
 {
-  return digitalRead(DAP_CONFIG_nRESET_PIN);
+  return digitalReadFast(DAP_CONFIG_nRESET_PIN);
 }
 
 //-----------------------------------------------------------------------------
@@ -170,7 +173,7 @@ static inline void DAP_CONFIG_SWCLK_TCK_set(void)
 #if defined(ARDUINO_ARCH_SAMD)
   *SWCLK_OUTSETREG = SWCLK_PINMASK;
 #else
-  digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
+  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, HIGH);
 #endif
 }
 
@@ -180,7 +183,7 @@ static inline void DAP_CONFIG_SWCLK_TCK_clr(void)
 #if defined(ARDUINO_ARCH_SAMD)
   *SWCLK_OUTCLRREG = SWCLK_PINMASK;
 #else
-  digitalWrite(DAP_CONFIG_SWCLK_PIN, LOW);
+  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, LOW);
 #endif
 }
 
@@ -190,7 +193,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_set(void)
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_OUTSETREG = SWDIO_PINMASK;
 #else
-  digitalWrite(DAP_CONFIG_SWDIO_PIN, HIGH);
+  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, HIGH);
 #endif
 }
 
@@ -200,7 +203,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_clr(void)
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_OUTCLRREG = SWDIO_PINMASK;
 #else
-  digitalWrite(DAP_CONFIG_SWDIO_PIN, LOW);
+  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, LOW);
 #endif
 }
 
@@ -236,7 +239,7 @@ static inline void DAP_CONFIG_SETUP()
   pinMode(DAP_CONFIG_nRESET_PIN, INPUT);
   
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWriteFast(LED_BUILTIN, HIGH);
 }
 
 //-----------------------------------------------------------------------------
@@ -254,13 +257,13 @@ static inline void DAP_CONFIG_DISCONNECT(void)
 static inline void DAP_CONFIG_CONNECT_SWD(void)
 {
   pinMode(DAP_CONFIG_SWDIO_PIN, OUTPUT);
-  digitalWrite(DAP_CONFIG_SWDIO_PIN, HIGH);
+  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, HIGH);
 
   pinMode(DAP_CONFIG_SWCLK_PIN, OUTPUT);
-  digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
+  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, HIGH);
 
   pinMode(DAP_CONFIG_nRESET_PIN, OUTPUT);
-  digitalWrite(DAP_CONFIG_nRESET_PIN, HIGH);
+  digitalWriteFast(DAP_CONFIG_nRESET_PIN, HIGH);
 
   //pinMode(DAP_CONFIG_TDI_PIN, INPUT);
   //pinMode(DAP_CONFIG_TDO_PIN, INPUT);
@@ -295,7 +298,7 @@ static inline void DAP_CONFIG_CONNECT_JTAG(void)
 static inline void DAP_CONFIG_LED(int index, int state)
 {
   if (0 == index)
-	digitalWrite(LED_BUILTIN, !state);
+	digitalWriteFast(LED_BUILTIN, !state);
 }
 
 #endif // _DAP_CONFIG_H_

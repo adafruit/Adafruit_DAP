@@ -172,10 +172,6 @@ static int dap_retry_count;
 static int dap_match_retry_count;
 static int dap_clock_delay;
 
-static void (*dap_swd_clock)(int);
-static void (*dap_swd_write)(uint32_t, int);
-static uint32_t (*dap_swd_read)(int);
-
 #ifdef DAP_CONFIG_ENABLE_SWD
 static int dap_swd_turnaround;
 static bool dap_swd_data_phase;
@@ -186,24 +182,13 @@ static bool dap_swd_data_phase;
 //-----------------------------------------------------------------------------
 static inline void dap_delay_loop(int delay)
 {
-  delayMicroseconds(delay);
-}
-
-//-----------------------------------------------------------------------------
-static void dap_delay_us(int delay)
-{
-  while (delay)
-  {
-    int del = (delay > 100000) ? 100000 : delay;
-
-    dap_delay_loop((DAP_CONFIG_DELAY_CONSTANT * 2 * del) / 1000);
-
-    delay -= del;
+  for(int i=0; i<delay; i++){
+    asm("nop");
   }
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_clock_slow (int cycles)
+static void dap_swd_clock (int cycles)
 {
   while (cycles > 0)
   {
@@ -216,7 +201,7 @@ static void dap_swd_clock_slow (int cycles)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_write_slow (uint32_t value, int size)
+static void dap_swd_write (uint32_t value, int size)
 {
   for (int i = 0; i < size; i++)
   {
@@ -230,7 +215,7 @@ static void dap_swd_write_slow (uint32_t value, int size)
 }
 
 //-----------------------------------------------------------------------------
-static uint32_t dap_swd_read_slow (int size)
+static uint32_t dap_swd_read (int size)
 {
   uint32_t value = 0;
 
@@ -247,65 +232,11 @@ static uint32_t dap_swd_read_slow (int size)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_clock_fast(int cycles)
+void dap_setup_clock(int cycles)
 {
-  while (cycles--)
-  {
-    DAP_CONFIG_SWCLK_TCK_clr();
-    DAP_CONFIG_SWCLK_TCK_set();
-  }
-}
-
-//-----------------------------------------------------------------------------
-static void dap_swd_write_fast(uint32_t value, int size)
-{
-  for (int i = 0; i < size; i++)
-  {
-    DAP_CONFIG_SWDIO_TMS_write(value & 1);
-    DAP_CONFIG_SWCLK_TCK_clr();
-    value >>= 1;
-    DAP_CONFIG_SWCLK_TCK_set();
-  }
-}
-
-//-----------------------------------------------------------------------------
-static uint32_t dap_swd_read_fast(int size)
-{
-  uint32_t value = 0;
-  uint32_t bit;
-
-  for (int i = 0; i < size; i++)
-  {
-    DAP_CONFIG_SWCLK_TCK_clr();
-    bit = DAP_CONFIG_SWDIO_TMS_read();
-    DAP_CONFIG_SWCLK_TCK_set();
-    value |= (bit << i);
-  }
-
-  return value;
-}
-
-//-----------------------------------------------------------------------------
-static void dap_setup_clock(int freq)
-{
-  if (freq > DAP_CONFIG_FAST_CLOCK)
-  {
-    dap_clock_delay = 0;
-    Serial.println("Using fastest clocking");
-    dap_swd_clock = dap_swd_clock_fast;
-    dap_swd_write = dap_swd_write_fast;
-    dap_swd_read = dap_swd_read_fast;
-  }
-  else
-  {
-    dap_clock_delay = (DAP_CONFIG_DELAY_CONSTANT * 1000) / freq;
+    dap_clock_delay = cycles;
     Serial.print("Using delayed clocking: ");
     Serial.println(dap_clock_delay);
-
-    dap_swd_clock = dap_swd_clock_slow;
-    dap_swd_write = dap_swd_write_slow;
-    dap_swd_read = dap_swd_read_slow;
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -805,7 +736,7 @@ static void dap_delay(uint8_t *req, uint8_t *resp)
 
   delay = ((int)req[1] << 8) | req[0];
 
-  dap_delay_us(delay);
+  delayMicroseconds(delay);
 
   resp[0] = DAP_OK;
 }
@@ -845,7 +776,7 @@ static void dap_swj_pins(uint8_t *req, uint8_t *resp)
   if (select & DAP_SWJ_nRESET)
     DAP_CONFIG_nRESET_write(value & DAP_SWJ_nRESET);
 
-  dap_delay_us(wait * 1000);
+  delayMicroseconds(wait * 1000);
 
   value =
     (DAP_CONFIG_SWCLK_TCK_read() ? DAP_SWJ_SWCLK_TCK : 0) |

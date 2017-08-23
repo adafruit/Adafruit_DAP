@@ -39,6 +39,9 @@ bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr)
 {
 	perror_exit = perr;
 	return dap_init(swclk, swdio, nreset);
+	//dap_init(swclk, swdio, nreset);
+	//dap_clock_test(0);
+	//return true;
 }
 
 bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)

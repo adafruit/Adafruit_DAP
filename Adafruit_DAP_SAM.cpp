@@ -159,6 +159,9 @@ uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset)
 
   dap_write_word(NVMCTRL_CTRLB, 0); // Enable automatic write
 
+  //TODO: comvert to slow/fast clock mode
+  dap_setup_clock(0);
+
   return FLASH_START + offset;
 }
 

@@ -2,12 +2,13 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define SD_CS  5
-#define SWCLK 11
-#define SWDIO 10
-#define SWRST 12
+//teensy only, otherwise change sd cs pin
+#define SD_CS BUILTIN_SDCARD
+#define SWDIO 9
+#define SWCLK 8
+#define SWRST 7
 
-#define FILENAME "fw.bin"
+#define FILENAME "2772cipy.bin"
 
 #define BUFSIZE 256       //don't change!
 uint8_t buf[BUFSIZE];
@@ -16,7 +17,7 @@ uint8_t buf[BUFSIZE];
 Adafruit_DAP_SAM dap;
 
 // Function called when there's an SWD error
-void error(char *text) {
+void error(const char *text) {
   Serial.println(text);
   while (1);
 }
@@ -55,7 +56,7 @@ void setup() {
   if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
   if (! dap.dap_swd_configure(0))                  error(dap.error_message);
   if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(DAP_FREQ))               error(dap.error_message);
+  if (! dap.dap_swj_clock(50))               error(dap.error_message);
   dap.dap_target_prepare();
 
   uint32_t dsu_did;
@@ -89,6 +90,7 @@ void setup() {
   Serial.println(" done.");
   
   Serial.print("Programming... ");
+  Serial.print(millis());
   uint32_t addr = dap.program_start();
 
   while (dataFile.available()) {
