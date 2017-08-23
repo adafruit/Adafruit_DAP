@@ -32,7 +32,6 @@
 #define _DAP_CONFIG_H_
 
 /*- Includes ----------------------------------------------------------------*/
-#include "sam.h"
 #include "Arduino.h"
 
 static inline void DAP_CONFIG_SWCLK_TCK_clr(void);

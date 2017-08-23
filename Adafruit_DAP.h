@@ -159,7 +159,7 @@ enum
   M0_PLUS,
 };
 
-typedef void (*ErrorHandler)(char *error);
+typedef void (*ErrorHandler)(const char *error);
 
 typedef struct
 {
