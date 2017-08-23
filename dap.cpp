@@ -186,10 +186,7 @@ static bool dap_swd_data_phase;
 //-----------------------------------------------------------------------------
 static inline void dap_delay_loop(int delay)
 {
-  while (delay > 0){
-    asm("nop");
-	--delay;
-  }
+  delayMicroseconds(delay);
 }
 
 //-----------------------------------------------------------------------------
@@ -294,6 +291,7 @@ static void dap_setup_clock(int freq)
   if (freq > DAP_CONFIG_FAST_CLOCK)
   {
     dap_clock_delay = 0;
+    Serial.println("Using fastest clocking");
     dap_swd_clock = dap_swd_clock_fast;
     dap_swd_write = dap_swd_write_fast;
     dap_swd_read = dap_swd_read_fast;
@@ -301,6 +299,9 @@ static void dap_setup_clock(int freq)
   else
   {
     dap_clock_delay = (DAP_CONFIG_DELAY_CONSTANT * 1000) / freq;
+    Serial.print("Using delayed clocking: ");
+    Serial.println(dap_clock_delay);
+
     dap_swd_clock = dap_swd_clock_slow;
     dap_swd_write = dap_swd_write_slow;
     dap_swd_read = dap_swd_read_slow;
