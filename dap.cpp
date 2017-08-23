@@ -1070,3 +1070,47 @@ void dap_clock_test(int delay)
     }
   }
 }
+
+
+//-----------------------------------------------------------------------------
+uint32_t extract_value(uint8_t *buf, int start, int end)
+{
+  uint32_t value = 0;
+  int bit = start;
+  int index = 0;
+
+  do
+  {
+    int by = bit / 8;
+    int bt = bit % 8;
+
+    if (buf[by] & (1 << bt))
+      value |= (1 << index);
+
+    bit++;
+    index++;
+  } while (bit <= end);
+
+  return value;
+}
+
+//-----------------------------------------------------------------------------
+void apply_value(uint8_t *buf, uint32_t value, int start, int end)
+{
+  int bit = start;
+  int index = 0;
+
+  do
+  {
+    int by = bit / 8;
+    int bt = bit % 8;
+
+    if (value & (1 << index))
+      buf[by] |= (1 << bt);
+    else
+      buf[by] &= ~(1 << bt);
+
+    bit++;
+    index++;
+  } while (bit <= end);
+}

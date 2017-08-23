@@ -15,9 +15,6 @@ uint8_t buf[BUFSIZE];
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_SAM dap;
 
-//create the target options //TODO: set some actual options here?
-options_t g_target_options;
-
 // Function called when there's an SWD error
 void error(char *text) {
   Serial.println(text);
@@ -62,7 +59,7 @@ void setup() {
   dap.dap_target_prepare();
 
   uint32_t dsu_did;
-  if (! dap.select(&g_target_options, &dsu_did)) {
+  if (! dap.select(&dsu_did)) {
     Serial.print("Unknown device found 0x"); Serial.print(dsu_did, HEX);
     error("Unknown device found");
   }
@@ -77,6 +74,15 @@ void setup() {
       //Serial.print("Page size: "); Serial.println(device->flash_size / device->n_pages);
     }
   }
+
+  /* Example of how to read and set fuses
+  Serial.print("Fuses... ");
+  dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
+  dap._USER_ROW.WDT_Period = 0x0A;
+  dap.fuseWrite();
+  */
+        
+  Serial.println(" done.");
 
   Serial.print("Erasing... ");
   dap.erase();

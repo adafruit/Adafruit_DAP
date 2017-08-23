@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "Adafruit_DAP.h"
+#include "dap.h"
 
 /*- Definitions -------------------------------------------------------------*/
 #define FLASH_START            0
@@ -101,10 +102,8 @@ device_t Adafruit_DAP_SAM::devices[] =
   { 0 },
 };
 
-static options_t options;
-
 //-----------------------------------------------------------------------------
-bool Adafruit_DAP_SAM::select(options_t *target_options, uint32_t *found_id)
+bool Adafruit_DAP_SAM::select(uint32_t *found_id)
 {
   uint32_t dsu_did;
 
@@ -121,7 +120,6 @@ bool Adafruit_DAP_SAM::select(options_t *target_options, uint32_t *found_id)
     if (device->dsu_did == dsu_did)
     {
       target_device = *device;
-      options = *target_options;
 
       return true;
     }
@@ -153,40 +151,7 @@ void Adafruit_DAP_SAM::lock(void)
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::program(void)
-{
-  uint32_t addr = FLASH_START + options.offset;
-  uint32_t offs = 0;
-  uint32_t number_of_rows;
-  uint8_t *buf = options.file_data;
-  uint32_t size = options.file_size;
-
-  if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
-    perror_exit("device is locked, perform a chip erase before programming");
-
-  number_of_rows = (size + FLASH_ROW_SIZE - 1) / FLASH_ROW_SIZE;
-
-  dap_write_word(NVMCTRL_CTRLB, 0); // Enable automatic write
-
-  for (uint32_t row = 0; row < number_of_rows; row++)
-  {
-    dap_write_word(NVMCTRL_ADDR, addr >> 1);
-
-    dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_UR); // Unlock Region
-    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
-
-    dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_ER); // Erase Row
-    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
-
-    dap_write_block(addr, &buf[offs], FLASH_ROW_SIZE);
-
-    addr += FLASH_ROW_SIZE;
-    offs += FLASH_ROW_SIZE;
-  }
-}
-
-//-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAM::program_start(void)
+uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset)
 {
 
   if (dap_read_word(DSU_CTRL_STATUS) & 0x00010000)
@@ -194,7 +159,7 @@ uint32_t Adafruit_DAP_SAM::program_start(void)
 
   dap_write_word(NVMCTRL_CTRLB, 0); // Enable automatic write
 
-  return FLASH_START + options.offset;
+  return FLASH_START + offset;
 }
 
 void Adafruit_DAP_SAM::programBlock(uint32_t addr, uint8_t *buf)
@@ -218,94 +183,39 @@ void Adafruit_DAP_SAM::readBlock(uint32_t addr, uint8_t *buf)
   dap_read_block(addr, buf, FLASH_ROW_SIZE);
 }
 
-
-/*
-//-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::fuse(void)
-{
+void Adafruit_DAP_SAM::fuseRead(){
   uint8_t buf[USER_ROW_SIZE];
-  bool read_all = (-1 == options.fuse_start);
-  int size = (options.fuse_size < USER_ROW_SIZE) ?
-      options.fuse_size : USER_ROW_SIZE;
-
   dap_read_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
 
-  if (options.fuse_read)
-  {
-    if (options.fuse_name)
-    {
-      save_file(options.fuse_name, buf, USER_ROW_SIZE);
-    }
-    else if (read_all)
-    {
-      Serial.print("Fuses (user row): ");
+  uint64_t fuses = ((uint64_t)buf[7] << 56) | 
+          ((uint64_t)buf[6] << 48) |
+          ((uint64_t)buf[5] << 40) |
+          ((uint64_t)buf[4] << 32) |
+          ((uint64_t)buf[3] << 24) |
+          ((uint64_t)buf[2] << 16) |
+          ((uint64_t)buf[1] << 8) |
+          (uint64_t)buf[0];
 
-      for (int i = 0; i < USER_ROW_SIZE; i++)
-        Serial.print(buf[i], HEX);
-
-      Serial.println();
-    }
-    else
-    {
-      uint32_t value = extract_value(buf, options.fuse_start,
-          options.fuse_end);
-
-      //message("Fuses: 0x%x (%d)\n", value, value);
-    }
-  }
-
-  if (options.fuse_write)
-  {
-    if (options.fuse_name)
-    {
-      for (int i = 0; i < size; i++)
-        buf[i] = options.fuse_data[i];
-    }
-    else
-    {
-      apply_value(buf, options.fuse_value, options.fuse_start,
-          options.fuse_end);
-    }
-
-    dap_write_word(NVMCTRL_CTRLB, 0);
-    dap_write_word(NVMCTRL_ADDR, USER_ROW_ADDR >> 1);
-    dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_EAR);
-    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
-
-    dap_write_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
-  }
-
-  if (options.fuse_verify)
-  {
-    dap_read_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
-
-    if (options.fuse_name)
-    {
-      for (int i = 0; i < size; i++)
-      {
-        if (options.fuse_data[i] != buf[i])
-        {
-          message("fuse byte %d expected 0x%02x, got 0x%02x", i,
-              options.fuse_data[i], buf[i]);
-          perror_exit("fuse verification failed");
-        }
-      }
-    }
-    else if (read_all)
-    {
-      perror_exit("please specify fuse bit range for verification");
-    }
-    else
-    {
-      uint32_t value = extract_value(buf, options.fuse_start,
-          options.fuse_end);
-
-      if (options.fuse_value != value)
-      {
-        perror_exit("fuse verification failed: expected 0x%x (%u), got 0x%x (%u)",
-            options.fuse_value, options.fuse_value, value, value);
-      }
-    }
-  }
+  _USER_ROW.set(fuses);
 }
-*/
+
+void Adafruit_DAP_SAM::fuseWrite()
+{
+  uint64_t fuses = _USER_ROW.get();
+  uint8_t buf[USER_ROW_SIZE] = {(uint8_t)fuses,
+      (uint8_t)(fuses >> 8),
+      (uint8_t)(fuses >> 16),
+      (uint8_t)(fuses >> 24),
+      (uint8_t)(fuses >> 32),
+      (uint8_t)(fuses >> 40),
+      (uint8_t)(fuses >> 48),
+      (uint8_t)(fuses >> 56)
+    };
+
+  dap_write_word(NVMCTRL_CTRLB, 0);
+  dap_write_word(NVMCTRL_ADDR, USER_ROW_ADDR >> 1);
+  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_EAR);
+  while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
+
+  dap_write_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
+}
