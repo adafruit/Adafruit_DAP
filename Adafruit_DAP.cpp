@@ -492,3 +492,7 @@ bool Adafruit_DAP::dap_target_prepare(void)
 	dap_write_reg(SWD_AP_CSW, 0x23000052);
 	return true;
 }
+
+void Adafruit_DAP::dap_set_clock(uint32_t clock){
+	dap_setup_clock(clock);
+}

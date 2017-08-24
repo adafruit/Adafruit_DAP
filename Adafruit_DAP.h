@@ -195,6 +195,7 @@ class Adafruit_DAP {
   bool dap_read_idcode(uint32_t *id);
   bool dap_target_prepare(void);
   void dap_set_target(uint8_t target);
+  void dap_set_clock(uint32_t clock);
 
   char *error_message;
   
