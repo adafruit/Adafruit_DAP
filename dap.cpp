@@ -47,10 +47,10 @@ volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INRE
   uint32_t           SWDIO_PINMASK;
 #elif defined(TEENSYDUINO)
   volatile uint32_t SWCLK_BITMASK, *SWCLK_PORTCONFIG;
-  volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR;
+  volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR, *SWCLK_PORT_INPUT_REG;
 
   volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
-  volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR;
+  volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR, *SWDIO_PORT_INPUT_REG;
 #endif
 
 
@@ -959,12 +959,14 @@ bool dap_init(int swclk, int swdio, int nreset)
     SWDIO_PORTSET = portSetRegister(swdio);
     SWDIO_PORTCONFIG = portConfigRegister(swdio);
     SWDIO_PORTMODE = portModeRegister(swdio);
+    SWDIO_PORT_INPUT_REG = portInputRegister(swdio);
 
     SWCLK_BITMASK = digitalPinToBitMask(swclk);
     SWCLK_PORTCLEAR = portClearRegister(swclk);
     SWCLK_PORTSET = portSetRegister(swclk);
     SWCLK_PORTCONFIG = portConfigRegister(swclk);
     SWCLK_PORTMODE = portModeRegister(swclk);
+    SWCLK_PORT_INPUT_REG = portInputRegister(swclk);
 #endif
 
   dap_port  = 0;
