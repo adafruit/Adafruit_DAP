@@ -190,7 +190,7 @@ class Adafruit_DAP {
   uint32_t dap_read_word(uint32_t addr);
   bool dap_write_word(uint32_t addr, uint32_t data);
   bool dap_read_block(uint32_t addr, uint8_t *data, int size);
-  bool dap_write_block(uint32_t addr, uint8_t *data, int size);
+  bool dap_write_block(uint32_t addr, const uint8_t *data, int size);
   bool dap_reset_link(void);
   bool dap_read_idcode(uint32_t *id);
   bool dap_target_prepare(void);
@@ -219,7 +219,7 @@ public:
     void deselect(void);
     void erase(void);
     void lock(void);
-    void programBlock(uint32_t addr, uint8_t *buf);
+    void programBlock(uint32_t addr, const uint8_t *buf);
     void readBlock(uint32_t addr, uint8_t *buf);
     void fuse(void);
     void fuseRead();

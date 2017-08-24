@@ -164,7 +164,7 @@ uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset)
   return FLASH_START + offset;
 }
 
-void Adafruit_DAP_SAM::programBlock(uint32_t addr, uint8_t *buf)
+void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf)
 {
     dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
