@@ -288,6 +288,7 @@ static inline void DAP_CONFIG_CONNECT_SWD(void)
   digitalWriteFast(DAP_CONFIG_SWCLK_PIN, HIGH);
 
   pinMode(DAP_CONFIG_nRESET_PIN, OUTPUT);
+  delay(10);
   digitalWriteFast(DAP_CONFIG_nRESET_PIN, HIGH);
 
   //pinMode(DAP_CONFIG_TDI_PIN, INPUT);
