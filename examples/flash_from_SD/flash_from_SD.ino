@@ -90,7 +90,7 @@ void setup() {
   Serial.println(" done.");
   
   Serial.print("Programming... ");
-  Serial.print(millis());
+  unsigned long t = millis();
   uint32_t addr = dap.program_start();
 
   while (dataFile.available()) {
@@ -100,8 +100,9 @@ void setup() {
       addr += BUFSIZE;
   }
   dataFile.close();
-    
+  Serial.println(millis() - t);
   Serial.println("\nDone!");
+  dap.dap_set_clock(50);
 
   dap.deselect();
   dap.dap_disconnect();
