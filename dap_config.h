@@ -59,6 +59,15 @@ extern volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG, *SWC
   extern uint32_t           SWCLK_PINMASK;
 extern volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INREG;
   extern uint32_t           SWDIO_PINMASK;
+
+#elif defined(TEENSYDUINO)
+
+extern volatile uint32_t SWCLK_BITMASK, *SWCLK_PORTCONFIG;
+extern volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR;
+
+extern volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
+extern volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR;
+
 #endif
 
 // Set the value to NULL if you want to disable a string
@@ -120,10 +129,9 @@ static inline void DAP_CONFIG_nRESET_write(int value)
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_SWCLK_TCK_read(void)
 {
-  //TODO: format all these like this
 #if defined(ARDUINO_ARCH_SAMD)
   return (*SWCLK_INREG & SWCLK_PINMASK) != 0;
-#elif defined(TEENSY)
+#elif defined(TEENSYDUINO)
   return digitalReadFast(DAP_CONFIG_SWCLK_PIN);
 #else
   return digitalRead(DAP_CONFIG_SWCLK_PIN);
@@ -135,8 +143,10 @@ static inline int DAP_CONFIG_SWDIO_TMS_read(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   return (*SWDIO_INREG & SWDIO_PINMASK) != 0;
-#else
+#elif defined(TEENSYDUINO)
   return digitalReadFast(DAP_CONFIG_SWDIO_PIN);
+#else
+  return digitalRead(DAP_CONFIG_SWDIO_PIN);
 #endif
 }
 
@@ -164,7 +174,7 @@ static inline int DAP_CONFIG_nTRST_read(void)
 //-----------------------------------------------------------------------------
 static inline int DAP_CONFIG_nRESET_read(void)
 {
-  return digitalReadFast(DAP_CONFIG_nRESET_PIN);
+  return digitalRead(DAP_CONFIG_nRESET_PIN);
 }
 
 //-----------------------------------------------------------------------------
@@ -172,8 +182,10 @@ static inline void DAP_CONFIG_SWCLK_TCK_set(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWCLK_OUTSETREG = SWCLK_PINMASK;
+#elif defined(TEENSYDUINO)
+  *SWCLK_PORTSET = SWCLK_BITMASK;
 #else
-  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, HIGH);
+  digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
 #endif
 }
 
@@ -182,8 +194,10 @@ static inline void DAP_CONFIG_SWCLK_TCK_clr(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWCLK_OUTCLRREG = SWCLK_PINMASK;
+#elif defined(TEENSYDUINO)
+  *SWCLK_PORTCLEAR = SWCLK_BITMASK;
 #else
-  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, LOW);
+  digitalWrite(DAP_CONFIG_SWCLK_PIN, LOW);
 #endif
 }
 
@@ -192,8 +206,10 @@ static inline void DAP_CONFIG_SWDIO_TMS_set(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_OUTSETREG = SWDIO_PINMASK;
+#elif defined(TEENSYDUINO)
+  *SWDIO_PORTSET = SWDIO_BITMASK;
 #else
-  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, HIGH);
+  digitalWrite(DAP_CONFIG_SWDIO_PIN, HIGH);
 #endif
 }
 
@@ -202,8 +218,10 @@ static inline void DAP_CONFIG_SWDIO_TMS_clr(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_OUTCLRREG = SWDIO_PINMASK;
+#elif defined(TEENSYDUINO)
+  *SWDIO_PORTCLEAR = SWDIO_BITMASK;
 #else
-  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, LOW);
+  digitalWrite(DAP_CONFIG_SWDIO_PIN, LOW);
 #endif
 }
 
@@ -213,6 +231,9 @@ static inline void DAP_CONFIG_SWDIO_TMS_in(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_DIRREG &= ~SWDIO_PINMASK; 
+#elif defined(TEENSYDUINO)
+  *SWDIO_PORTMODE &= ~SWDIO_BITMASK;
+  *SWDIO_PORTCONFIG = PORT_PCR_MUX(1);
 #else
   pinMode(DAP_CONFIG_SWDIO_PIN, INPUT);
 #endif
@@ -223,6 +244,10 @@ static inline void DAP_CONFIG_SWDIO_TMS_out(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
   *SWDIO_DIRREG |= SWDIO_PINMASK; 
+#elif defined(TEENSYDUINO)
+  *SWDIO_PORTMODE |= SWDIO_BITMASK;
+  *SWDIO_PORTCONFIG = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+  *SWDIO_PORTCONFIG &= ~PORT_PCR_ODE;
 #else
   pinMode(DAP_CONFIG_SWDIO_PIN, OUTPUT);
 #endif

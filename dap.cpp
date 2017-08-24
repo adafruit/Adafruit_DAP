@@ -45,6 +45,12 @@ volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG, *SWCLK_INRE
   uint32_t           SWCLK_PINMASK;
 volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INREG;
   uint32_t           SWDIO_PINMASK;
+#elif defined(TEENSYDUINO)
+  volatile uint32_t SWCLK_BITMASK, *SWCLK_PORTCONFIG;
+  volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR;
+
+  volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
+  volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR;
 #endif
 
 
@@ -172,6 +178,10 @@ static int dap_retry_count;
 static int dap_match_retry_count;
 static int dap_clock_delay;
 
+static void (*dap_swd_clock)(int);
+static void (*dap_swd_write)(uint32_t, int);
+static uint32_t (*dap_swd_read)(int);
+
 #ifdef DAP_CONFIG_ENABLE_SWD
 static int dap_swd_turnaround;
 static bool dap_swd_data_phase;
@@ -188,7 +198,7 @@ static inline void dap_delay_loop(int delay)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_clock (int cycles)
+static void dap_swd_clock_slow (int cycles)
 {
   while (cycles > 0)
   {
@@ -201,7 +211,7 @@ static void dap_swd_clock (int cycles)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_write (uint32_t value, int size)
+static void dap_swd_write_slow (uint32_t value, int size)
 {
   for (int i = 0; i < size; i++)
   {
@@ -215,7 +225,7 @@ static void dap_swd_write (uint32_t value, int size)
 }
 
 //-----------------------------------------------------------------------------
-static uint32_t dap_swd_read (int size)
+static uint32_t dap_swd_read_slow (int size)
 {
   uint32_t value = 0;
 
@@ -232,11 +242,61 @@ static uint32_t dap_swd_read (int size)
 }
 
 //-----------------------------------------------------------------------------
+static void dap_swd_clock_fast(int cycles)
+{
+  while (cycles--)
+  {
+    DAP_CONFIG_SWCLK_TCK_clr();
+    DAP_CONFIG_SWCLK_TCK_set();
+  }
+}
+
+//-----------------------------------------------------------------------------
+static void dap_swd_write_fast(uint32_t value, int size)
+{
+  for (int i = 0; i < size; i++)
+  {
+    DAP_CONFIG_SWDIO_TMS_write(value & 1);
+    DAP_CONFIG_SWCLK_TCK_clr();
+    value >>= 1;
+    DAP_CONFIG_SWCLK_TCK_set();
+  }
+}
+
+//-----------------------------------------------------------------------------
+static uint32_t dap_swd_read_fast(int size)
+{
+  uint32_t value = 0;
+  uint32_t bit;
+
+  for (int i = 0; i < size; i++)
+  {
+    DAP_CONFIG_SWCLK_TCK_clr();
+    bit = DAP_CONFIG_SWDIO_TMS_read();
+    DAP_CONFIG_SWCLK_TCK_set();
+    value |= (bit << i);
+  }
+
+  return value;
+}
+
+//-----------------------------------------------------------------------------
 void dap_setup_clock(int cycles)
 {
     dap_clock_delay = cycles;
-    Serial.print("Using delayed clocking: ");
-    Serial.println(dap_clock_delay);
+    if(cycles > 0){
+      Serial.print("Using delayed clocking: ");
+      Serial.println(dap_clock_delay);
+      dap_swd_clock = dap_swd_clock_slow;
+      dap_swd_write = dap_swd_write_slow;
+      dap_swd_read = dap_swd_read_slow;
+    }
+    else{
+      Serial.print("Using fast clocking: ");
+      dap_swd_clock = dap_swd_clock_fast;
+      dap_swd_write = dap_swd_write_fast;
+      dap_swd_read = dap_swd_read_fast;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -893,6 +953,18 @@ bool dap_init(int swclk, int swdio, int nreset)
   SWDIO_INREG     = portInputRegister(digitalPinToPort(swdio));
   SWDIO_DIRREG    = portModeRegister(digitalPinToPort(swdio));
   SWDIO_PINMASK   = digitalPinToBitMask(swdio);
+#elif defined(TEENSYDUINO)
+    SWDIO_BITMASK = digitalPinToBitMask(swdio);
+    SWDIO_PORTCLEAR = portClearRegister(swdio);
+    SWDIO_PORTSET = portSetRegister(swdio);
+    SWDIO_PORTCONFIG = portConfigRegister(swdio);
+    SWDIO_PORTMODE = portModeRegister(swdio);
+
+    SWCLK_BITMASK = digitalPinToBitMask(swclk);
+    SWCLK_PORTCLEAR = portClearRegister(swclk);
+    SWCLK_PORTSET = portSetRegister(swclk);
+    SWCLK_PORTCONFIG = portConfigRegister(swclk);
+    SWCLK_PORTMODE = portModeRegister(swclk);
 #endif
 
   dap_port  = 0;
