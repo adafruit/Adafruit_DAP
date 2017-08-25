@@ -175,7 +175,7 @@ class Adafruit_DAP {
   Adafruit_DAP(void) {};
   ~Adafruit_DAP(void) {};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
-  
+
   bool dap_led(int index, int state);
   bool dap_connect(void);
   bool dap_disconnect(void);
@@ -197,7 +197,7 @@ class Adafruit_DAP {
   void dap_set_target(uint8_t target);
 
   char *error_message;
-  
+
  protected:
   uint8_t _i2caddr;
   bool dbg_dap_cmd(uint8_t *data, int size, int rsize);
@@ -258,13 +258,83 @@ public:
               LOCK = (data >> 48) & 0xFFFF;
             }
             uint64_t get(){
-              return ((uint64_t)LOCK << 48) | 
-              ((uint64_t) BOD33_Hysteresis << 40) | 
+              return ((uint64_t)LOCK << 48) |
+              ((uint64_t) BOD33_Hysteresis << 40) |
               ((uint64_t) WDR_WEN << 39) |
               ((uint64_t) WDR_EWOFFSET << 35) |
-              ((uint64_t) WDT_Window << 31) | 
-              ((uint64_t) WDT_Period << 27) | 
-              ((uint64_t) WDT_Always_On << 26) | 
+              ((uint64_t) WDT_Window << 31) |
+              ((uint64_t) WDT_Period << 27) |
+              ((uint64_t) WDT_Always_On << 26) |
+              ((uint64_t) WDT_Enable << 25) |
+              ((uint64_t) BOD33_Action << 15) |
+              ((uint64_t) BOD33_Enable << 14) |
+              ((uint64_t) BOD33_Level << 8) |
+              ((uint64_t) EEPROM << 4) |
+              (uint64_t) BOOTPROT;
+            }
+        };
+        USER_ROW _USER_ROW;
+};
+
+class Adafruit_DAP_nRF5x : public Adafruit_DAP {
+public:
+    Adafruit_DAP_nRF5x(void) {};
+    ~Adafruit_DAP_nRF5x(void) {};
+
+    static device_t devices[];
+    device_t target_device;
+
+    bool select(uint32_t *id);
+    void deselect(void);
+    void erase(void);
+    void lock(void);
+    void programBlock(uint32_t addr, uint8_t *buf);
+    void readBlock(uint32_t addr, uint8_t *buf);
+    void fuse(void);
+    void fuseRead();
+    void fuseWrite();
+
+    uint32_t program_start(uint32_t offset = 0);
+
+    struct USER_ROW {
+
+            uint8_t BOOTPROT: 3;
+            uint8_t EEPROM : 3;
+            uint8_t BOD33_Level : 6;
+            uint8_t BOD33_Enable : 1;
+            uint8_t BOD33_Action : 2;
+            uint8_t WDT_Enable : 1;
+            uint8_t WDT_Always_On : 1;
+            uint8_t WDT_Period : 4;
+            uint8_t WDT_Window : 4;
+            uint8_t WDR_EWOFFSET : 4;
+            uint8_t WDR_WEN : 1;
+            uint8_t BOD33_Hysteresis : 1;
+            uint16_t LOCK : 16;
+
+            void set(uint64_t data){
+              BOOTPROT = data & 0x07;
+              EEPROM = (data >> 4) & 0x07;
+              BOD33_Level = (data >> 8) & 0x3F;
+              BOD33_Enable = (data >> 14) & 0x01;
+              BOD33_Action = (data >> 15) & 0x03;
+              WDT_Enable = (data >> 25) & 0x01;
+              WDT_Always_On = (data >> 26) & 0x01;
+              WDT_Period = (data >> 27) & 0xF;
+              WDT_Window = (data >> 31) & 0xF;
+              WDR_EWOFFSET = (data >> 35) & 0xF;
+              WDR_WEN = (data >> 39) & 0x01;
+              BOD33_Hysteresis = (data >> 40) & 0x01;
+              LOCK = (data >> 48) & 0xFFFF;
+            }
+            uint64_t get(){
+              return ((uint64_t)LOCK << 48) |
+              ((uint64_t) BOD33_Hysteresis << 40) |
+              ((uint64_t) WDR_WEN << 39) |
+              ((uint64_t) WDR_EWOFFSET << 35) |
+              ((uint64_t) WDT_Window << 31) |
+              ((uint64_t) WDT_Period << 27) |
+              ((uint64_t) WDT_Always_On << 26) |
               ((uint64_t) WDT_Enable << 25) |
               ((uint64_t) BOD33_Action << 15) |
               ((uint64_t) BOD33_Enable << 14) |
