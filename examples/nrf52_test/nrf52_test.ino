@@ -76,13 +76,6 @@ void setup() {
   Serial.println(dap.target_device.n_pages);
   //Serial.print("Page size: "); Serial.println(dap.target_device.flash_size / dap.target_device.n_pages);
 
-  /* Example of how to read and set fuses
-  Serial.print("Fuses... ");
-  dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
-  dap._USER_ROW.WDT_Period = 0x0A;
-  dap.fuseWrite();
-  */
-
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
@@ -91,6 +84,22 @@ void setup() {
   Serial.print(millis());
 
   uint32_t addr = S132_ADDR;
+
+  while (dataFile.available()) {
+      memset(buf, BUFSIZE, 0xFF);  // empty it out
+      dataFile.read(buf, BUFSIZE);
+      dap.program(addr, buf, BUFSIZE);
+      addr += BUFSIZE;
+  }
+  dataFile.close();
+
+  ///////////////////////////
+  dataFile = SD.open(FILE_BOOTLOADER);
+  if(!dataFile){
+     error("Couldn't open file");
+  }  
+
+  addr = BOOTLOADER_ADDR;
 
   while (dataFile.available()) {
       memset(buf, BUFSIZE, 0xFF);  // empty it out
