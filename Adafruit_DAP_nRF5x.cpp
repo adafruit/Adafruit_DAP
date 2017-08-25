@@ -75,6 +75,51 @@
 #define NRF5X_USER_ROW_ADDR          0x00804000
 #define NRF5X_USER_ROW_SIZE          256
 
+
+// from nrf52.h
+
+#ifdef __cplusplus
+  #define   __I     volatile             /*!< Defines 'read only' permissions */
+#else
+  #define   __I     volatile const       /*!< Defines 'read only' permissions */
+#endif
+#define     __O     volatile             /*!< Defines 'write only' permissions */
+#define     __IO    volatile             /*!< Defines 'read / write' permissions */
+
+/* following defines should be used for structure members */
+#define     __IM     volatile const      /*! Defines 'read only' structure member permissions */
+#define     __OM     volatile            /*! Defines 'write only' structure member permissions */
+#define     __IOM    volatile            /*! Defines 'read / write' structure member permissions */
+
+/**
+  * @brief Non Volatile Memory Controller (NVMC)
+  */
+
+typedef struct {                                    /*!< NVMC Structure                                                        */
+  __I  uint32_t  RESERVED0[256];
+  __I  uint32_t  READY;                             /*!< Ready flag                                                            */
+  __I  uint32_t  RESERVED1[64];
+  __IO uint32_t  CONFIG;                            /*!< Configuration register                                                */
+
+  union {
+    __IO uint32_t  ERASEPCR1;                       /*!< Deprecated register - Register for erasing a page in Code area.
+                                                         Equivalent to ERASEPAGE.                                              */
+    __IO uint32_t  ERASEPAGE;                       /*!< Register for erasing a page in Code area                              */
+  };
+  __IO uint32_t  ERASEALL;                          /*!< Register for erasing all non-volatile user memory                     */
+  __IO uint32_t  ERASEPCR0;                         /*!< Deprecated register - Register for erasing a page in Code area.
+                                                         Equivalent to ERASEPAGE.                                              */
+  __IO uint32_t  ERASEUICR;                         /*!< Register for erasing User Information Configuration Registers         */
+  __I  uint32_t  RESERVED2[10];
+  __IO uint32_t  ICACHECNF;                         /*!< I-Code cache configuration register.                                  */
+  __I  uint32_t  RESERVED3;
+  __IO uint32_t  IHIT;                              /*!< I-Code cache hit counter.                                             */
+  __IO uint32_t  IMISS;                             /*!< I-Code cache miss counter.                                            */
+} NRF_NVMC_Type;
+
+#define NRF_NVMC_BASE                   0x4001E000UL
+#define NRF_NVMC                        ((NRF_NVMC_Type           *) NRF_NVMC_BASE)
+
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP_nRF5x::select(uint32_t *found_id)
 {
@@ -146,10 +191,18 @@ void Adafruit_DAP_nRF5x::deselect(void)
 //-----------------------------------------------------------------------------
 void Adafruit_DAP_nRF5x::erase(void)
 {
-  dap_write_word(NRF5X_DSU_CTRL_STATUS, 0x00001f00); // Clear flags
-  dap_write_word(NRF5X_DSU_CTRL_STATUS, 0x00000010); // Chip erase
-  delay(100);
-  while (0 == (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00000100));
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 2); // Erase Enable
+  dap_write_word( (uint32_t) &NRF_NVMC->ERASEALL, 1); // Erase All
+
+  // 6.72 - 295.3 ms
+  const uint32_t TIME_ERASEALL_MIN = 7;
+  const uint32_t TIME_ERASEALL_MAX = 296;
+
+  delay(10);
+  while ( 0 == (dap_read_word((uint32_t)&NRF_NVMC->READY) & 1UL) )
+  {
+    delay(1);
+  }
 }
 
 //-----------------------------------------------------------------------------

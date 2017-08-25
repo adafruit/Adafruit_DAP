@@ -81,13 +81,11 @@ void setup() {
   dap.fuseWrite();
   */
 
-  Serial.println(" done.");
-
-/*
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
 
+/*
   Serial.print("Programming... ");
   Serial.print(millis());
   uint32_t addr = dap.program_start();
