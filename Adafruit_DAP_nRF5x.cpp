@@ -247,7 +247,8 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     buf   += 4;
     count -= bytes;
 
-    while ( !flashReady() ) { }
+    delayMicroseconds(TIME_WRITE_MIN_US);
+    while ( !flashReady() ) { delayMicroseconds(5); }
   }
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
