@@ -47,6 +47,13 @@
 
 #define DSU_CTRL_STATUS        0x41002100
 #define DSU_DID                0x41002118
+#define DSU_ADDR               0x41002104
+#define DSU_DATA               0x4100210C
+#define DSU_LENGTH             0x41002108
+
+#define DSU_CTRL_CRC           0x00000004
+#define DSU_STATUSA_DONE       0x00000100
+#define DSU_STATUSA_BERR       0x00000400
 
 #define NVMCTRL_CTRLA          0x41004000
 #define NVMCTRL_CTRLB          0x41004004
@@ -185,6 +192,50 @@ void Adafruit_DAP_SAM::readBlock(uint32_t addr, uint8_t *buf)
     perror_exit("device is locked, unable to read");
 
   dap_read_block(addr, buf, FLASH_ROW_SIZE);
+}
+
+/*
+uint32_t Adafruit_DAP_SAM::verifyBlock(uint32_t addr)
+{
+   dap_write_word(DSU_DATA, 0xFFFFFFFF);
+   dap_write_word(DSU_ADDR, (addr << 2));
+   dap_write_word(DSU_LENGTH, FLASH_ROW_SIZE);
+
+   dap_write_word(DSU_CTRL_STATUS, 0x00001f00); // Clear flags
+   dap_write_word(DSU_CTRL_STATUS, DSU_CTRL_CRC); //start CRC
+
+   uint32_t status = 0;
+   while(0 == (status & DSU_STATUSA_DONE) ){
+      status = dap_read_word(DSU_CTRL_STATUS);
+      if( (status & DSU_STATUSA_BERR) > 0){
+       Serial.println(status, BIN);
+       perror_exit("bus read error during verify!");
+     }
+   }
+   return dap_read_word(DSU_DATA);
+}
+*/
+
+
+void Adafruit_DAP_SAM::verify(uint32_t length, uint32_t crc)
+{
+   /* to verify CRC, compare (dap_read_word(DSU_DATA) ^ 0xFFFFFFFF) to output of crc32 program on linux */
+   dap_write_word(DSU_DATA, 0xFFFFFFFF);
+   dap_write_word(DSU_ADDR, 0);
+   dap_write_word(DSU_LENGTH, length);
+
+   dap_write_word(DSU_CTRL_STATUS, 0x00001f00); // Clear flags
+   dap_write_word(DSU_CTRL_STATUS, DSU_CTRL_CRC); //start CRC
+
+   uint32_t status = 0;
+   while(0 == (status & DSU_STATUSA_DONE) ){
+      status = dap_read_word(DSU_CTRL_STATUS);
+      if( (status & DSU_STATUSA_BERR) > 0){
+       Serial.println(status, BIN);
+       perror_exit("bus read error during verify!");
+     }
+   }
+   if(dap_read_word(DSU_DATA)  != crc) perror_exit("verify failed!");
 }
 
 void Adafruit_DAP_SAM::fuseRead(){
