@@ -45,14 +45,16 @@
 #define NRF5X_DEMCR                  0xe000edfc
 #define NRF5X_AIRCR                  0xe000ed0c
 
-#define NRF5X_DSU_CTRL_STATUS        0x41002100
-#define NRF5X_DSU_DID                0x41002118
+#define NRF5X_FICR_CODEPAGESIZE      0x10000010     // Code memory page size
+#define NRF5X_FICR_CODESIZE          0x10000014     // Code size (in pages)
+#define NRF5X_FICR_HWID              0x10000100     // Part Code
+#define NRF5X_FICR_CHIPVARIANT       0x10000104     // Part Variant
+#define NRF5X_FICR_PACKAGEID         0x10000108     // Package Options
+#define NRF5X_FICR_SRAM              0x1000010C     // RAM Variant
+#define NRF5X_FICR_FLASHSIZE         0x10000110     // Flash Variant
 
-#define NRF5X_HWID                   0x10000100
-#define NRF5X_CHIPVARIANT            0x10000104
-#define NRF5X_PACKAGEID              0x10000108
-#define NRF5X_SRAM                   0x1000010C
-#define NRF5X_FLASHSIZE              0x10000110
+// TODO: Change these from SAMD to nRF5x compatible registers!
+#define NRF5X_DSU_CTRL_STATUS        0x41002100
 
 #define NRF5X_NVMCTRL_CTRLA          0x41004000
 #define NRF5X_NVMCTRL_CTRLB          0x41004004
@@ -73,37 +75,65 @@
 #define NRF5X_USER_ROW_ADDR          0x00804000
 #define NRF5X_USER_ROW_SIZE          256
 
-/*- Variables ---------------------------------------------------------------*/
-device_t Adafruit_DAP_nRF5x::devices[] =
-{
-  { 0x00052832, "nRF52832",         512*1024,  4096 },
-  { 0 },
-};
-
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP_nRF5x::select(uint32_t *found_id)
 {
   uint32_t hwid;
+  uint32_t chipvariant;
+  uint32_t codepagesize;
+  uint32_t codesize;
+  uint32_t sram;
 
   // Stop the core
   dap_write_word(NRF5X_DHCSR, 0xa05f0003);
   dap_write_word(NRF5X_DEMCR, 0x00000001);
   dap_write_word(NRF5X_AIRCR, 0x05fa0004);
 
-  hwid = dap_read_word(NRF5X_HWID);
+  hwid = dap_read_word(NRF5X_FICR_HWID);
+
   *found_id = hwid;
 
-  for (device_t *device = devices; device->dsu_did > 0; device++)
+  if (hwid == 0x52832)
   {
-    if (device->dsu_did == hwid)
-    {
-      target_device = *device;
+      // Read other relevant registers
+      chipvariant = dap_read_word(NRF5X_FICR_CHIPVARIANT);
+      codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
+      codesize = dap_read_word(NRF5X_FICR_CODESIZE);
+      //sram = dap_read_word(NRF5X_FICR_SRAM);
 
-      return true;
-    }
+      // Assign device details to target_device
+      target_device.dsu_did = hwid;
+      target_device.flash_size = codepagesize * codesize;
+      target_device.n_pages = codesize;
+      switch (chipvariant)
+      {
+          case 0x41414141:
+            target_device.name = "nRF52832_AAAA";
+            break;
+          case 0x41414142:
+            target_device.name = "nRF52832_AAAB";
+            break;
+          case 0x41414241:
+            target_device.name = "nRF52832_AABA";
+            break;
+          case 0x41414242:
+            target_device.name = "nRF52832_AABB";
+            break;
+          case 0x41414230:
+            target_device.name = "nRF52832_AAB0";
+            break;
+          default:
+            target_device.name = "nRF52832_????";
+            break;
+      }
+  }
+  else
+  {
+      // No matching device ID found
+      return false;
   }
 
-  return false;
+  return true;
 }
 
 //-----------------------------------------------------------------------------
