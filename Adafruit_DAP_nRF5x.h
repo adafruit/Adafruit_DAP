@@ -43,7 +43,17 @@ public:
 
     bool select(uint32_t *id);
     void deselect(void);
+
     void erase(void);
+
+    void erasePage(uint32_t page);
+    void eraseUICR(void);
+    void eraseFICR(void);
+
+    bool program(uint32_t addr, const uint8_t* buf, uint32_t count);
+
+    bool flashReady(void);
+
     void lock(void);
     void programBlock(uint32_t addr, uint8_t *buf);
     void readBlock(uint32_t addr, uint8_t *buf);

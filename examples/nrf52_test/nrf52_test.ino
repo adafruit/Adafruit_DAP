@@ -3,12 +3,16 @@
 #include <SD.h>
 
 //teensy only, otherwise change sd cs pin
-#define SD_CS BUILTIN_SDCARD
-#define SWDIO 10
-#define SWCLK 11
-#define SWRST 12
+#define SD_CS 10
+#define SWDIO 11
+#define SWCLK 12
+#define SWRST 13
 
-#define FILENAME "2772cipy.bin"
+#define FILE_S132       "S132_201.BIN"
+#define FILE_BOOTLOADER "FT52_050.BIN"
+
+#define BOOTLOADER_ADDR 0x74000
+#define S132_ADDR       0
 
 #define BUFSIZE 256       //don't change!
 uint8_t buf[BUFSIZE];
@@ -32,19 +36,17 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
 
-/*
     // see if the card is present and can be initialized:
   if (!SD.begin(SD_CS)) {
     error("Card failed, or not present");
   }
   Serial.println("Card initialized");
 
-  File dataFile = SD.open(FILENAME);
+  File dataFile = SD.open(FILE_S132);
 
   if(!dataFile){
      error("Couldn't open file");
   }
-*/
 
   Serial.print("Connecting...");
   if (! dap.dap_disconnect())                      error(dap.error_message);
@@ -85,21 +87,18 @@ void setup() {
   dap.erase();
   Serial.println(" done.");
 
-/*
   Serial.print("Programming... ");
   Serial.print(millis());
-  uint32_t addr = dap.program_start();
-*/
 
-/*
+  uint32_t addr = S132_ADDR;
+
   while (dataFile.available()) {
       memset(buf, BUFSIZE, 0xFF);  // empty it out
       dataFile.read(buf, BUFSIZE);
-      dap.programBlock(addr, buf);
+      dap.program(addr, buf, BUFSIZE);
       addr += BUFSIZE;
   }
   dataFile.close();
-*/
 
   Serial.println("\nDone!");
 

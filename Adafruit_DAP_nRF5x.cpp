@@ -188,21 +188,71 @@ void Adafruit_DAP_nRF5x::deselect(void)
   dap_write_word(NRF5X_AIRCR, 0x05fa0004);
 }
 
+bool Adafruit_DAP_nRF5x::flashReady(void)
+{
+  return dap_read_word((uint32_t)&NRF_NVMC->READY) & 1UL;
+}
+
 //-----------------------------------------------------------------------------
 void Adafruit_DAP_nRF5x::erase(void)
 {
-  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 2); // Erase Enable
-  dap_write_word( (uint32_t) &NRF_NVMC->ERASEALL, 1); // Erase All
-
   // 6.72 - 295.3 ms
   const uint32_t TIME_ERASEALL_MIN = 7;
   const uint32_t TIME_ERASEALL_MAX = 296;
 
-  delay(10);
-  while ( 0 == (dap_read_word((uint32_t)&NRF_NVMC->READY) & 1UL) )
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 2); // Erase Enable
+  dap_write_word( (uint32_t) &NRF_NVMC->ERASEALL, 1); // Erase All
+
+  delay(TIME_ERASEALL_MIN);
+  while ( !flashReady() ) { }
+
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0);   // Disable Erase
+}
+
+void Adafruit_DAP_nRF5x::erasePage(uint32_t page)
+{
+
+}
+
+void Adafruit_DAP_nRF5x::eraseUICR(void)
+{
+
+}
+
+void Adafruit_DAP_nRF5x::eraseFICR(void)
+{
+
+}
+
+bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t count)
+{
+  // address must be word-aligned
+  if ( addr & 0x03 ) return false;
+
+  // 67.5  - 338 us
+  const uint32_t TIME_WRITE_MIN_US = 68;
+
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 1); // Write Enable
+
+  while(count)
   {
-    delay(1);
+    uint32_t data = 0xffFFffFF;
+    uint32_t bytes = min(count, 4);
+
+    memcpy(&data, buf, bytes);
+
+    dap_write_word(addr, data);
+
+    addr  += 4;
+    buf   += 4;
+    count -= bytes;
+
+    while ( !flashReady() ) { }
   }
+
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
+
+  return true;
 }
 
 //-----------------------------------------------------------------------------
