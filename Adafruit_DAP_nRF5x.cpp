@@ -262,7 +262,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
   return true;
 }
 
-void Adafruit_DAP_nRF5x::programUCIR(uint32_t addr, uint32_t value)
+void Adafruit_DAP_nRF5x::programUICR(uint32_t addr, uint32_t value)
 {
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 1); // Write Enable
   dap_write_word(addr, value);

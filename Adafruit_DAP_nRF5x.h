@@ -51,7 +51,7 @@ public:
     void eraseFICR(void);
 
     bool program(uint32_t addr, const uint8_t* buf, uint32_t count);
-    void programUCIR(uint32_t addr, uint32_t value);
+    void programUICR(uint32_t addr, uint32_t value);
 
     bool flashReady(void);
 
