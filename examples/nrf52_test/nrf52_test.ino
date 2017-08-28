@@ -2,26 +2,11 @@
 #include <SPI.h>
 #include <SD.h>
 
-// lv 1: only erase
-// lv 2: erase and write one word 0xCafeBabe to 0x0000
-// lv 3: read and write data from SD card
-#define TEST_LV   3
-
 //teensy only, otherwise change sd cs pin
 #define SD_CS 10
 #define SWDIO 11
 #define SWCLK 12
 #define SWRST 13
-
-#define FILE_S132         "S132_201.BIN"
-#define FILE_BOOTLOADER   "FT52_050.BIN"
-
-#define S132_ADDR         0
-#define BOOTLOADER_ADDR   0x74000
-
-// Location that store bootloader address
-#define UICR_BOOTLOADER     0x10001014
-#define UICR_MBR_PARAM_PAGE 0x10001018
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -43,16 +28,6 @@ void setup() {
   }
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
-
-  // see if the card is present and can be initialized:
-  if (!SD.begin(SD_CS)) {
-    error("Card failed, or not present");
-  }
-  Serial.println("Card initialized");
-
-  if ( !SD.exists(FILE_S132) )        error("Couldn't open file " FILE_S132);
-  if ( !SD.exists(FILE_BOOTLOADER) )  error("Couldn't open file " FILE_BOOTLOADER);
-
 
   Serial.print("Connecting...");
   if (! dap.dap_disconnect())                      error(dap.error_message);
@@ -88,33 +63,18 @@ void setup() {
   Serial.println(" done.");
 
   uint32_t start_ms = millis();
-  
-#if TEST_LV == 2
-  {
-    dap.program_start();
-    Serial.print("Programming 32K ... ");
-    
-    uint32_t addr = 0;
-    for(int i=0; i<sizeof(buf); i++) buf[i] = i;
-
-    for(int i=0; i<8; i++) 
-    {
-      dap.program(addr, buf, sizeof(buf));
-      addr += 4096;
-    }
-  }
-#endif
-
-#if TEST_LV >= 3
+   
   dap.program_start();
-  Serial.println();
+  Serial.print("Programming 32K ... ");
+  
+  uint32_t addr = 0;
+  for(int i=0; i<sizeof(buf); i++) buf[i] = i;
 
-  write_bin_file(FILE_S132, S132_ADDR);
-  write_bin_file(FILE_BOOTLOADER, BOOTLOADER_ADDR);
-#endif
-
-  dap.programUCIR(UICR_BOOTLOADER, BOOTLOADER_ADDR);
-  dap.programUCIR(UICR_MBR_PARAM_PAGE, 0x0007E000);
+  for(int i=0; i<8; i++) 
+  {
+    dap.program(addr, buf, sizeof(buf));
+    addr += 4096;
+  }
 
   Serial.print("\nDone in ");
   Serial.print(millis()-start_ms);
