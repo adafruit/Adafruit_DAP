@@ -2,20 +2,29 @@
 #include <SPI.h>
 #include <SD.h>
 
+// lv 1: only erase
+// lv 2: erase and write one word 0xCafeBabe to 0x0000
+// lv 3: read and write data from SD card
+#define TEST_LV   3
+
 //teensy only, otherwise change sd cs pin
 #define SD_CS 10
 #define SWDIO 11
 #define SWCLK 12
 #define SWRST 13
 
-#define FILE_S132       "S132_201.BIN"
-#define FILE_BOOTLOADER "FT52_050.BIN"
+#define FILE_S132         "S132_201.BIN"
+#define FILE_BOOTLOADER   "FT52_050.BIN"
 
-#define BOOTLOADER_ADDR 0x74000
-#define S132_ADDR       0
+#define S132_ADDR         0
+#define BOOTLOADER_ADDR   0x74000
 
-#define BUFSIZE 256       //don't change!
-uint8_t buf[BUFSIZE];
+// Location that store bootloader address
+#define UICR_BOOTLOADER     0x10001014
+#define UICR_MBR_PARAM_PAGE 0x10001018
+
+#define BUFSIZE   4096
+uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_nRF5x dap;
@@ -26,7 +35,6 @@ void error(const char *text) {
   while (1);
 }
 
-
 void setup() {
   pinMode(13, OUTPUT);
   Serial.begin(115200);
@@ -36,17 +44,15 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
 
-    // see if the card is present and can be initialized:
+  // see if the card is present and can be initialized:
   if (!SD.begin(SD_CS)) {
     error("Card failed, or not present");
   }
   Serial.println("Card initialized");
 
-  File dataFile = SD.open(FILE_S132);
+  if ( !SD.exists(FILE_S132) )        error("Couldn't open file " FILE_S132);
+  if ( !SD.exists(FILE_BOOTLOADER) )  error("Couldn't open file " FILE_BOOTLOADER);
 
-  if(!dataFile){
-     error("Couldn't open file");
-  }
 
   Serial.print("Connecting...");
   if (! dap.dap_disconnect())                      error(dap.error_message);
@@ -76,43 +82,67 @@ void setup() {
   Serial.println(dap.target_device.n_pages);
   //Serial.print("Page size: "); Serial.println(dap.target_device.flash_size / dap.target_device.n_pages);
 
+
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
 
-  Serial.print("Programming... ");
-  Serial.print(millis());
+  uint32_t start_ms = millis();
+  
+#if TEST_LV == 2
+  {
+    dap.program_start();
+    Serial.print("Programming 32K ... ");
+    
+    uint32_t addr = 0;
+    for(int i=0; i<sizeof(buf); i++) buf[i] = i;
 
-  uint32_t addr = S132_ADDR;
-
-  while (dataFile.available()) {
-      memset(buf, BUFSIZE, 0xFF);  // empty it out
-      dataFile.read(buf, BUFSIZE);
-      dap.program(addr, buf, BUFSIZE);
-      addr += BUFSIZE;
+    for(int i=0; i<8; i++) 
+    {
+      dap.program(addr, buf, sizeof(buf));
+      addr += 4096;
+    }
   }
-  dataFile.close();
+#endif
 
-  ///////////////////////////
-  dataFile = SD.open(FILE_BOOTLOADER);
-  if(!dataFile){
-     error("Couldn't open file");
-  }  
+#if TEST_LV >= 3
+  dap.program_start();
+  Serial.println();
 
-  addr = BOOTLOADER_ADDR;
+  write_bin_file(FILE_S132, S132_ADDR);
+  write_bin_file(FILE_BOOTLOADER, BOOTLOADER_ADDR);
+#endif
 
-  while (dataFile.available()) {
-      memset(buf, BUFSIZE, 0xFF);  // empty it out
-      dataFile.read(buf, BUFSIZE);
-      dap.program(addr, buf, BUFSIZE);
-      addr += BUFSIZE;
-  }
-  dataFile.close();
+  dap.programUCIR(UICR_BOOTLOADER, BOOTLOADER_ADDR);
+  dap.programUCIR(UICR_MBR_PARAM_PAGE, 0x0007E000);
 
-  Serial.println("\nDone!");
+  Serial.print("\nDone in ");
+  Serial.print(millis()-start_ms);
+  Serial.println(" ms");
 
   dap.deselect();
   dap.dap_disconnect();
+}
+
+void write_bin_file(const char* filename, uint32_t addr)
+{
+  File dataFile = SD.open(filename);
+  if(!dataFile){
+     error("Couldn't open file");
+  }
+
+  Serial.print("Programming... ");
+  Serial.println(filename);
+
+  while (dataFile.available()) 
+  {
+    memset(buf, BUFSIZE, 0xFF);  // empty it out
+    uint32_t count = dataFile.read(buf, BUFSIZE);
+    dap.program(addr, buf, count);
+    addr += count;
+  }
+  
+  dataFile.close();  
 }
 
 void loop() {

@@ -196,14 +196,9 @@ bool Adafruit_DAP_nRF5x::flashReady(void)
 //-----------------------------------------------------------------------------
 void Adafruit_DAP_nRF5x::erase(void)
 {
-  // 6.72 - 295.3 ms
-  const uint32_t TIME_ERASEALL_MIN = 7;
-  const uint32_t TIME_ERASEALL_MAX = 296;
-
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 2); // Erase Enable
   dap_write_word( (uint32_t) &NRF_NVMC->ERASEALL, 1); // Erase All
 
-  delay(TIME_ERASEALL_MIN);
   while ( !flashReady() ) { }
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0);   // Disable Erase
@@ -224,13 +219,25 @@ void Adafruit_DAP_nRF5x::eraseFICR(void)
 
 }
 
+//-----------------------------------------------------------------------------
+uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset)
+{
+//  if (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00010000)
+//    perror_exit("device is locked, perform a chip erase before programming");
+
+  //TODO: comvert to slow/fast clock mode
+  dap_setup_clock(0);
+
+  return NRF5X_FLASH_START + offset;
+}
+
 bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t count)
 {
   // address must be word-aligned
   if ( addr & 0x03 ) return false;
 
-  // 67.5  - 338 us
-  const uint32_t TIME_WRITE_MIN_US = 68;
+  // buffer must be word-aligned
+//  if ( ((uint32_t) buf) & 0x03 ) return false;
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 1); // Write Enable
 
@@ -247,13 +254,20 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     buf   += 4;
     count -= bytes;
 
-    delayMicroseconds(TIME_WRITE_MIN_US);
-    while ( !flashReady() ) { delayMicroseconds(5); }
+    while ( !flashReady() ) {  }
   }
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
 
   return true;
+}
+
+void Adafruit_DAP_nRF5x::programUCIR(uint32_t addr, uint32_t value)
+{
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 1); // Write Enable
+  dap_write_word(addr, value);
+  while ( !flashReady() ) {  }
+  dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
 }
 
 //-----------------------------------------------------------------------------
@@ -262,20 +276,7 @@ void Adafruit_DAP_nRF5x::lock(void)
   dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_SSB); // Set Security Bit
 }
 
-//-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset)
-{
 
-  if (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00010000)
-    perror_exit("device is locked, perform a chip erase before programming");
-
-  dap_write_word(NRF5X_NVMCTRL_CTRLB, 0); // Enable automatic write
-
-  //TODO: comvert to slow/fast clock mode
-  dap_setup_clock(0);
-
-  return NRF5X_FLASH_START + offset;
-}
 
 void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, uint8_t *buf)
 {
