@@ -264,7 +264,7 @@ static inline void DAP_CONFIG_SETUP()
   pinMode(DAP_CONFIG_nRESET_PIN, INPUT);
   
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 //-----------------------------------------------------------------------------
@@ -282,14 +282,16 @@ static inline void DAP_CONFIG_DISCONNECT(void)
 static inline void DAP_CONFIG_CONNECT_SWD(void)
 {
   pinMode(DAP_CONFIG_SWDIO_PIN, OUTPUT);
-  digitalWriteFast(DAP_CONFIG_SWDIO_PIN, HIGH);
+  digitalWrite(DAP_CONFIG_SWDIO_PIN, HIGH);
 
   pinMode(DAP_CONFIG_SWCLK_PIN, OUTPUT);
-  digitalWriteFast(DAP_CONFIG_SWCLK_PIN, HIGH);
+  digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
 
   pinMode(DAP_CONFIG_nRESET_PIN, OUTPUT);
-  delay(10);
-  digitalWriteFast(DAP_CONFIG_nRESET_PIN, HIGH);
+  for(int i=0; i<1000000ul; i++){
+    asm("nop");
+  }
+  digitalWrite(DAP_CONFIG_nRESET_PIN, HIGH);
 
   //pinMode(DAP_CONFIG_TDI_PIN, INPUT);
   //pinMode(DAP_CONFIG_TDO_PIN, INPUT);
@@ -324,7 +326,7 @@ static inline void DAP_CONFIG_CONNECT_JTAG(void)
 static inline void DAP_CONFIG_LED(int index, int state)
 {
   if (0 == index)
-	digitalWriteFast(LED_BUILTIN, !state);
+	digitalWrite(LED_BUILTIN, !state);
 }
 
 #endif // _DAP_CONFIG_H_

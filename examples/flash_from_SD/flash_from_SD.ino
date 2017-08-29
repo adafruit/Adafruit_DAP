@@ -2,13 +2,12 @@
 #include <SPI.h>
 #include <SD.h>
 
-//teensy only, otherwise change sd cs pin
-#define SD_CS BUILTIN_SDCARD
-#define SWDIO 9
-#define SWCLK 8
-#define SWRST 7
+#define SD_CS 4
+#define SWDIO 10
+#define SWCLK 9
+#define SWRST 11
 
-#define FILENAME "2772cipy.bin"
+#define FILENAME "fw.bin"
 
 #define BUFSIZE 256       //don't change!
 uint8_t buf[BUFSIZE];
