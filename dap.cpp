@@ -285,14 +285,13 @@ void dap_setup_clock(int cycles)
 {
     dap_clock_delay = cycles;
     if(cycles > 0){
-      Serial.print("Using delayed clocking: ");
-      Serial.println(dap_clock_delay);
+      //Serial.print("Using delayed clocking: "); Serial.println(dap_clock_delay);
       dap_swd_clock = dap_swd_clock_slow;
       dap_swd_write = dap_swd_write_slow;
       dap_swd_read = dap_swd_read_slow;
     }
     else{
-      Serial.print("Using fast clocking: ");
+      //Serial.print("Using fast clocking\n");
       dap_swd_clock = dap_swd_clock_fast;
       dap_swd_write = dap_swd_write_fast;
       dap_swd_read = dap_swd_read_fast;

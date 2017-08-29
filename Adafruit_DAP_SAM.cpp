@@ -217,7 +217,7 @@ uint32_t Adafruit_DAP_SAM::verifyBlock(uint32_t addr)
 */
 
 
-void Adafruit_DAP_SAM::verify(uint32_t length, uint32_t crc)
+bool Adafruit_DAP_SAM::readCRC(uint32_t length, uint32_t *crc)
 {
    /* to verify CRC, compare (dap_read_word(DSU_DATA) ^ 0xFFFFFFFF) to output of crc32 program on linux */
    dap_write_word(DSU_DATA, 0xFFFFFFFF);
@@ -231,11 +231,13 @@ void Adafruit_DAP_SAM::verify(uint32_t length, uint32_t crc)
    while(0 == (status & DSU_STATUSA_DONE) ){
       status = dap_read_word(DSU_CTRL_STATUS);
       if( (status & DSU_STATUSA_BERR) > 0){
-       Serial.println(status, BIN);
-       perror_exit("bus read error during verify!");
-     }
+	//Serial.println(status, BIN);
+	error_message = "bus read error during verify!";
+	return false;
+      }
    }
-   if(dap_read_word(DSU_DATA)  != crc) perror_exit("verify failed!");
+   *crc = dap_read_word(DSU_DATA);
+   return true;
 }
 
 void Adafruit_DAP_SAM::fuseRead(){

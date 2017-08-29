@@ -221,7 +221,7 @@ public:
     void lock(void);
     void programBlock(uint32_t addr, const uint8_t *buf);
     void readBlock(uint32_t addr, uint8_t *buf);
-    void verify(uint32_t length, uint32_t crc);
+    bool readCRC(uint32_t length, uint32_t *crc);
     //uint32_t verifyBlock(uint32_t addr);
     void fuse(void);
     void fuseRead();
