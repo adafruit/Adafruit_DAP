@@ -1,0 +1,21 @@
+PID 2772
+NAME Feather_M0_Basic
+CHIP ATSAMD21G18
+ERASE
+RESET
+UNLOCK
+PROGRAM 2772test.bin
+VERIFY 2772test.bin
+RESET
+CHECK TEST OK!
+RXTXECHO
+PROGRAM 2772blnk.bin
+VERIFY 2772blnk.bin
+CHECKUSB 0x239A 0x800B
+LOCK 8192
+DONE
+
+
+# other commands you can try!
+#READ read.bin
+#PROGRAM 2772cipy.bin
