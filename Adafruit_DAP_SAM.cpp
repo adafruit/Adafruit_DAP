@@ -171,7 +171,7 @@ uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset)
   return FLASH_START + offset;
 }
 
-void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf)
+void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf, uint16_t size)
 {
     /* DM: this is actually unnecessary after a chip erase
     dap_write_word(NVMCTRL_ADDR, addr >> 1);
@@ -182,7 +182,7 @@ void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf)
     dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_ER); // Erase Row
     while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
     */
-    dap_write_block(addr, buf, FLASH_ROW_SIZE);
+    dap_write_block(addr, buf, size);
 }
 
 //-----------------------------------------------------------------------------

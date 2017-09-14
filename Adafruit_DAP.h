@@ -219,7 +219,7 @@ public:
     void deselect(void);
     void erase(void);
     void lock(void);
-    void programBlock(uint32_t addr, const uint8_t *buf);
+    void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = 256);
     void readBlock(uint32_t addr, uint8_t *buf);
     bool readCRC(uint32_t length, uint32_t *crc);
     //uint32_t verifyBlock(uint32_t addr);

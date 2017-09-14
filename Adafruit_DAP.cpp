@@ -402,7 +402,7 @@ bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size)
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP::dap_write_block(uint32_t addr, const uint8_t *data, int size)
 {
-	int max_size = (32 - 5) & ~3;
+	int max_size = (512 - 5) & ~3;
 	int offs = 0;
 
 	while (size)
