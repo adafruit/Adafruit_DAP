@@ -57,7 +57,7 @@ bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize)
 	interrupts();
 
 	if (hid_buffer[0] != cmd) {
-	  error_message = "invalid response received";
+	  error_message = (char *)"invalid response received";
 	  return false;
 	}
 
@@ -91,7 +91,7 @@ bool Adafruit_DAP::dap_led(int index, int state)
 	if (! dbg_dap_cmd(buf, sizeof(buf), 3)) return false;
 
 	if (DAP_OK != buf[0]) {
-	  error_message = "DAP_LED failed";
+	  error_message = (char *)"DAP_LED failed";
 	  return false;
 	}
 
@@ -108,7 +108,7 @@ bool Adafruit_DAP::dap_connect(void)
 	if (! dbg_dap_cmd(buf, sizeof(buf), 2)) return false;
 
 	if (DAP_PORT_SWD != buf[0]) {
-	  error_message = "DAP_CONNECT failed";
+	  error_message = (char *)"DAP_CONNECT failed";
 	  return false;
 	}
 
@@ -143,7 +143,7 @@ bool Adafruit_DAP::dap_swj_clock(uint32_t clock)
 	}
 
 	if (DAP_OK != buf[0]) {
-	  error_message = "SWJ_CLOCK failed";
+	  error_message = (char *)"SWJ_CLOCK failed";
 	  return false;
 	}
 
@@ -166,7 +166,7 @@ bool Adafruit_DAP::dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t
 	}
 
 	if (DAP_OK != buf[0]) {
-	  error_message = "TRANSFER_CONFIGURE failed";
+	  error_message = (char *)"TRANSFER_CONFIGURE failed";
 	  return false;
 	}
 
@@ -183,7 +183,7 @@ bool Adafruit_DAP::dap_swd_configure(uint8_t cfg)
 	if (! dbg_dap_cmd(buf, sizeof(buf), 2)) return false;
 
 	if (DAP_OK != buf[0]) {
-	  error_message = "SWD_CONFIGURE failed";
+	  error_message = (char *)"SWD_CONFIGURE failed";
 	  return false;
 	}
 
@@ -236,7 +236,7 @@ bool Adafruit_DAP::dap_get_debugger_info(char *str)
 	strcat(str, ")");
 
 	if (! (buf[1] & DAP_PORT_SWD)) {
-	  error_message = "SWD support required";
+	  error_message = (char *)"SWD support required";
 	  return false;
 	}
 
@@ -252,7 +252,7 @@ bool Adafruit_DAP::dap_reset_target(void)
 	if (! dbg_dap_cmd(buf, sizeof(buf), 1)) return false;
 
 	if (DAP_OK != buf[0]) {
-	  error_message = "RESET_TARGET failed";
+	  error_message = (char *)"RESET_TARGET failed";
 	  return false;
 	}
 
@@ -464,7 +464,7 @@ bool Adafruit_DAP::dap_reset_link(void)
 	buf[18] = 0x00;
 
 	dbg_dap_cmd(buf, sizeof(buf), 19);
-	check(DAP_OK == buf[0], "SWJ_SEQUENCE failed");
+	check(DAP_OK == buf[0], (char *)"SWJ_SEQUENCE failed");
 
 	//-------------
 	buf[0] = ID_DAP_TRANSFER;
