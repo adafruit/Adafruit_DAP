@@ -37,9 +37,8 @@
 #include "dap.h"
 
 /*- Definitions -------------------------------------------------------------*/
-#define DAP_FLASH_START            0
-#define DAP_FLASH_ROW_SIZE         256
-#define DAP_FLASH_PAGE_SIZE        64
+#define FLASH_START            0
+#define FLASH_ROW_SIZE         512
 
 #define DHCSR                  0xe000edf0
 #define DEMCR                  0xe000edfc
@@ -58,60 +57,41 @@
 #define NVMCTRL_CTRLA          0x41004000
 #define NVMCTRL_CTRLB          0x41004004
 #define NVMCTRL_PARAM          0x41004008
-#define NVMCTRL_INTFLAG        0x41004014
-#define NVMCTRL_STATUS         0x41004018
-#define NVMCTRL_ADDR           0x4100401c
+#define NVMCTRL_INTFLAG        0x41004010
+#define NVMCTRL_STATUS         0x41004012
+#define NVMCTRL_ADDR           0x41004014
+#define NVMCTRL_RUNLOCK        0x41004018
 
-#define NVMCTRL_CMD_ER         0xa502
-#define NVMCTRL_CMD_WP         0xa504
-#define NVMCTRL_CMD_EAR        0xa505
-#define NVMCTRL_CMD_WAP        0xa506
-#define NVMCTRL_CMD_WL         0xa50f
-#define NVMCTRL_CMD_UR         0xa541
-#define NVMCTRL_CMD_PBC        0xa544
-#define NVMCTRL_CMD_SSB        0xa545
+#define NVMCTRL_CMD_EP         0xa500    /* Erase Page */
+#define NVMCTRL_CMD_EB         0xa501    /* Erase Block */
+#define NVMCTRL_CMD_WP         0xa503    /* Write Page */
+#define NVMCTRL_CMD_WQW        0xa504    /* Write 128 bit word */
+#define NVMCTRL_CMD_LR         0xa511    /* Lock Region */
+#define NVMCTRL_CMD_UR         0xa512    /* Unlock Region */
+#define NVMCTRL_CMD_SPRM       0xa513    /* Set Power Reduction Mode */
+#define NVMCTRL_CMD_CPRM       0xa514    /* Clear Power Reduction Mode */
+#define NVMCTRL_CMD_PBC        0xa515    /* Page Buffer Clear */
+#define NVMCTRL_CMD_SSB        0xa516    /* Set Security Bit */
 
 #define USER_ROW_ADDR          0x00804000
-#define USER_ROW_SIZE          256
+#define USER_ROW_SIZE          20
 
 /*- Variables ---------------------------------------------------------------*/
-device_t Adafruit_DAP_SAM::devices[] =
+device_t Adafruit_DAP_SAMx5::devices[] =
 {
-  { 0x10040100, (char *)"SAM D09D14A",          16*1024,  256 },
-  { 0x10040107, (char *)"SAM D09C13A",           8*1024,  128 },
-  { 0x10020100, (char *)"SAM D10D14AM",         16*1024,  256 },
-  { 0x10030100, (char *)"SAM D11D14A",          16*1024,  256 },
-  { 0x10030000, (char *)"SAM D11D14AM",         16*1024,  256 },
-  { 0x10030003, (char *)"SAM D11D14AS",         16*1024,  256 },
-  { 0x10030006, (char *)"SAM D11C14A",          16*1024,  256 },
-  { 0x10030106, (char *)"SAM D11C14A (Rev B)",  16*1024,  256 },
-  { 0x1000120d, (char *)"SAM D20E15A",          32*1024,  512 },
-  { 0x1000140a, (char *)"SAM D20E18A",         256*1024, 4096 },
-  { 0x10001100, (char *)"SAM D20J18A",         256*1024, 4096 },
-  { 0x10001200, (char *)"SAM D20J18A (Rev C)", 256*1024, 4096 },
-  { 0x10010100, (char *)"SAM D21J18A",         256*1024, 4096 },
-  { 0x10010200, (char *)"SAM D21J18A (Rev C)", 256*1024, 4096 },
-  { 0x10010300, (char *)"SAM D21J18A (Rev D)", 256*1024, 4096 },
-  { 0x1001020d, (char *)"SAM D21E15A (Rev C)",  32*1024,  512 },
-  { 0x1001030a, (char *)"SAM D21E18A",         256*1024, 4096 },
-  { 0x10010205, (char *)"SAM D21G18A",         256*1024, 4096 },
-  { 0x10010305, (char *)"SAM D21G18A (Rev D)", 256*1024, 4096 },
-  { 0x10010019, (char *)"SAM R21G18 ES",       256*1024, 4096 },
-  { 0x10010119, (char *)"SAM R21G18",          256*1024, 4096 },
-  { 0x10010219, (char *)"SAM R21G18A (Rev C)", 256*1024, 4096 },
-  { 0x10010319, (char *)"SAM R21G18A (Rev D)", 256*1024, 4096 },
-  { 0x11010100, (char *)"SAM C21J18A ES",      256*1024, 4096 },
-  { 0x10810219, (char *)"SAM L21E18B",         256*1024, 4096 },
-  { 0x10810000, (char *)"SAM L21J18A",         256*1024, 4096 },
-  { 0x1081010f, (char *)"SAM L21J18B (Rev B)", 256*1024, 4096 },
-  { 0x1081020f, (char *)"SAM L21J18B (Rev C)", 256*1024, 4096 },
-  { 0x1081021e, (char *)"SAM R30G18A",         256*1024, 4096 },
-  { 0x1081021f, (char *)"SAM R30E18A",         256*1024, 4096 },
+  { 0x60060000, (char *)"SAMD51P20A",          1024*1024, 2048  },
+  { 0x60060001, (char *)"SAMD51P19A",          512*1024,  1024  },
+  { 0x60060002, (char *)"SAMD51N20A",          1024*1024, 2048  },
+  { 0x60060003, (char *)"SAMD51N19A",          512*1024,  1024  },
+  { 0x60060004, (char *)"SAMD51J20A",          1024*1024, 2048  },
+  { 0x60060005, (char *)"SAMD51J19A",          512*1024,  1024  },
+  { 0x60060006, (char *)"SAMD51J18A",          256*1024,  512   },
+  { 0x60060007, (char *)"SAMD51G19A",          512*1024,  1024  },
+  { 0x60060008, (char *)"SAMD51G18A",          256*1024,  512   },
   { 0 },
 };
 
-//-----------------------------------------------------------------------------
-bool Adafruit_DAP_SAM::select(uint32_t *found_id)
+bool Adafruit_DAP_SAMx5::select(uint32_t *found_id)
 {
   uint32_t DAP_DSU_did;
 
@@ -137,14 +117,7 @@ bool Adafruit_DAP_SAM::select(uint32_t *found_id)
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::deselect(void)
-{
-  dap_write_word(DEMCR, 0x00000000);
-  dap_write_word(AIRCR, 0x05fa0004);
-}
-
-//-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::erase(void)
+void Adafruit_DAP_SAMx5::erase(void)
 {
   dap_write_word(DAP_DSU_CTRL_STATUS, 0x00001f00); // Clear flags
   dap_write_word(DAP_DSU_CTRL_STATUS, 0x00000010); // Chip erase
@@ -153,72 +126,69 @@ void Adafruit_DAP_SAM::erase(void)
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::lock(void)
+void Adafruit_DAP_SAMx5::lock(void)
 {
-  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_SSB); // Set Security Bit
+  dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_SSB); // Set Security Bit
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset)
+uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset)
 {
 
   if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000)
     perror_exit("device is locked, perform a chip erase before programming");
 
-  dap_write_word(NVMCTRL_CTRLB, 0); // Enable automatic write
+  dap_write_word(NVMCTRL_CTRLA, 0x04); // manual write
 
   dap_setup_clock(0);
 
-  return DAP_FLASH_START + offset;
+  return FLASH_START + offset;
 }
 
-void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf, uint16_t size)
+void Adafruit_DAP_SAMx5::programBlock(uint32_t addr, const uint8_t *buf, uint16_t size)
 {
-    /* DM: this is actually unnecessary after a chip erase
     dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
-    dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_UR); // Unlock Region
+    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_UR); // Unlock Region
     while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 
-    dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_ER); // Erase Row
+    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_EB); // Erase block
     while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
-    */
+
     dap_write_block(addr, buf, size);
+
+    uint16_t status = 0;
+    uint32_t timeout = 100;
+
+    while(!(status & 0x01)){ //not ready
+      status = dap_read_word(NVMCTRL_STATUS);
+      Serial.println(status, HEX);
+      delay(10);
+      timeout--;
+
+      if(timeout == 0){
+        Serial.print("status: ");
+        status = dap_read_word(NVMCTRL_INTFLAG);
+        Serial.println(status, HEX);
+        perror_exit("timeout while writing page");
+      }
+    }
+
+    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_WP);
+    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 }
 
 //-----------------------------------------------------------------------------
-void Adafruit_DAP_SAM::readBlock(uint32_t addr, uint8_t *buf)
+void Adafruit_DAP_SAMx5::readBlock(uint32_t addr, uint8_t *buf)
 {
   if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000)
     perror_exit("device is locked, unable to read");
 
-  dap_read_block(addr, buf, DAP_FLASH_ROW_SIZE);
+  dap_read_block(addr, buf, FLASH_ROW_SIZE);
 }
 
-/*
-uint32_t Adafruit_DAP_SAM::verifyBlock(uint32_t addr)
-{
-   dap_write_word(DAP_DSU_DATA, 0xFFFFFFFF);
-   dap_write_word(DAP_DSU_ADDR, (addr << 2));
-   dap_write_word(DAP_DSU_LENGTH, DAP_FLASH_ROW_SIZE);
 
-   dap_write_word(DAP_DSU_CTRL_STATUS, 0x00001f00); // Clear flags
-   dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_CTRL_CRC); //start CRC
-
-   uint32_t status = 0;
-   while(0 == (status & DAP_DSU_STATUSA_DONE) ){
-      status = dap_read_word(DAP_DSU_CTRL_STATUS);
-      if( (status & DAP_DSU_STATUSA_BERR) > 0){
-       Serial.println(status, BIN);
-       perror_exit("bus read error during verify!");
-     }
-   }
-   return dap_read_word(DAP_DSU_DATA);
-}
-*/
-
-
-bool Adafruit_DAP_SAM::readCRC(uint32_t length, uint32_t *crc)
+bool Adafruit_DAP_SAMx5::readCRC(uint32_t length, uint32_t *crc)
 {
    /* to verify CRC, compare (dap_read_word(DAP_DSU_DATA) ^ 0xFFFFFFFF) to output of crc32 program on linux */
    dap_write_word(DAP_DSU_DATA, 0xFFFFFFFF);
@@ -241,39 +211,19 @@ bool Adafruit_DAP_SAM::readCRC(uint32_t length, uint32_t *crc)
    return true;
 }
 
-void Adafruit_DAP_SAM::fuseRead(){
+void Adafruit_DAP_SAMx5::fuseRead(){
   uint8_t buf[USER_ROW_SIZE];
   dap_read_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
 
-  uint64_t fuses = ((uint64_t)buf[7] << 56) | 
-          ((uint64_t)buf[6] << 48) |
-          ((uint64_t)buf[5] << 40) |
-          ((uint64_t)buf[4] << 32) |
-          ((uint64_t)buf[3] << 24) |
-          ((uint64_t)buf[2] << 16) |
-          ((uint64_t)buf[1] << 8) |
-          (uint64_t)buf[0];
-
-  _USER_ROW.set(fuses);
+  memcpy(_USER_ROW.reg, buf, USER_ROW_SIZE);
 }
 
-void Adafruit_DAP_SAM::fuseWrite()
+void Adafruit_DAP_SAMx5::fuseWrite()
 {
-  uint64_t fuses = _USER_ROW.get();
-  uint8_t buf[USER_ROW_SIZE] = {(uint8_t)fuses,
-      (uint8_t)(fuses >> 8),
-      (uint8_t)(fuses >> 16),
-      (uint8_t)(fuses >> 24),
-      (uint8_t)(fuses >> 32),
-      (uint8_t)(fuses >> 40),
-      (uint8_t)(fuses >> 48),
-      (uint8_t)(fuses >> 56)
-    };
-
   dap_write_word(NVMCTRL_CTRLB, 0);
   dap_write_word(NVMCTRL_ADDR, USER_ROW_ADDR >> 1);
-  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_EAR);
+  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_EP);
   while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 
-  dap_write_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
+  dap_write_block(USER_ROW_ADDR, _USER_ROW.reg, USER_ROW_SIZE);
 }

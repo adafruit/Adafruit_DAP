@@ -941,14 +941,14 @@ bool dap_init(int swclk, int swdio, int nreset)
   DAP_CONFIG_nRESET_PIN = nreset;
   
 #if defined(ARDUINO_ARCH_SAMD)
-  SWCLK_OUTSETREG = &(PORT_IOBUS->Group[g_APinDescription[swclk].ulPort].OUTSET.reg);
-  SWCLK_OUTCLRREG = &(PORT_IOBUS->Group[g_APinDescription[swclk].ulPort].OUTCLR.reg);
+  SWCLK_OUTSETREG = &(PORT->Group[g_APinDescription[swclk].ulPort].OUTSET.reg);
+  SWCLK_OUTCLRREG = &(PORT->Group[g_APinDescription[swclk].ulPort].OUTCLR.reg);
   SWCLK_DIRREG    = portModeRegister(digitalPinToPort(swclk));
   SWCLK_INREG     = portInputRegister(digitalPinToPort(swclk));
   SWCLK_PINMASK   = digitalPinToBitMask(swclk);
 
-  SWDIO_OUTSETREG = &(PORT_IOBUS->Group[g_APinDescription[swdio].ulPort].OUTSET.reg);
-  SWDIO_OUTCLRREG = &(PORT_IOBUS->Group[g_APinDescription[swdio].ulPort].OUTCLR.reg);
+  SWDIO_OUTSETREG = &(PORT->Group[g_APinDescription[swdio].ulPort].OUTSET.reg);
+  SWDIO_OUTCLRREG = &(PORT->Group[g_APinDescription[swdio].ulPort].OUTCLR.reg);
   SWDIO_INREG     = portInputRegister(digitalPinToPort(swdio));
   SWDIO_DIRREG    = portModeRegister(digitalPinToPort(swdio));
   SWDIO_PINMASK   = digitalPinToBitMask(swdio);

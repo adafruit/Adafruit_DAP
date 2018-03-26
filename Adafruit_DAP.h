@@ -279,4 +279,52 @@ public:
         USER_ROW _USER_ROW;
 };
 
+class Adafruit_DAP_SAMx5 : public Adafruit_DAP_SAM {
+public:
+    Adafruit_DAP_SAMx5(void) {};
+    ~Adafruit_DAP_SAMx5(void) {};
+
+    static device_t devices[];
+    device_t target_device;
+
+    bool select(uint32_t *id);
+    void erase(void);
+    void lock(void);
+    void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = 512);
+    void readBlock(uint32_t addr, uint8_t *buf);
+    bool readCRC(uint32_t length, uint32_t *crc);
+    //uint32_t verifyBlock(uint32_t addr);
+    void fuse(void);
+    void fuseRead();
+    void fuseWrite();
+
+    uint32_t program_start(uint32_t offset = 0);
+
+    typedef union {
+        struct {
+          uint8_t BOD33_Disable:1;
+          uint8_t BOD33_Level:8;
+          uint8_t BOD33_Action:2;
+          uint8_t BOD33_Hysteresis:4;
+          uint16_t :10;
+          uint8_t NVM_BOOT:4;
+          uint8_t :2;
+          uint8_t SEESBLK:4;
+          uint8_t RAM_ECCDIS:1;
+          uint8_t :8;
+          uint8_t WDT_Enable:1;
+          uint8_t WDT_Always_On:1;
+          uint8_t WDT_Period:4;
+          uint8_t WDT_Window:4;
+          uint8_t WDT_WEN: 1;
+          uint8_t :1;
+          uint16_t NVM_LOCKS:16;
+          uint32_t User_Page:32;
+          uint32_t :32;
+        } bit;
+        uint8_t reg[20];
+      } USER_ROW;
+      USER_ROW _USER_ROW;
+};
+
 #endif
