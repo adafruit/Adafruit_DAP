@@ -97,7 +97,7 @@ bool Adafruit_DAP_SAMx5::select(uint32_t *found_id)
 
   // Stop the core
   dap_write_word(DHCSR, 0xa05f0003);
-  dap_write_word(DEMCR, 0x00000001);
+  dap_write_word(DEMCR, 0x00100501);
   dap_write_word(AIRCR, 0x05fa0004);
 
   DAP_DSU_did = dap_read_word(DAP_DSU_DID);
@@ -147,29 +147,19 @@ uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset)
 
 void Adafruit_DAP_SAMx5::programBlock(uint32_t addr, const uint8_t *buf, uint16_t size)
 {
-    dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
-    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_UR); // Unlock Region
-    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
-
-    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_EB); // Erase block
-    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
+    uint32_t status = 0;
 
     dap_write_block(addr, buf, size);
 
-    uint16_t status = 0;
     uint32_t timeout = 100;
 
     while(!(status & 0x01)){ //not ready
-      status = dap_read_word(NVMCTRL_STATUS);
-      Serial.println(status, HEX);
-      delay(10);
+      status = dap_read_word(NVMCTRL_STATUS) >> 16;
+      delay(1);
       timeout--;
 
       if(timeout == 0){
-        Serial.print("status: ");
-        status = dap_read_word(NVMCTRL_INTFLAG);
-        Serial.println(status, HEX);
         perror_exit("timeout while writing page");
       }
     }
