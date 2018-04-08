@@ -304,12 +304,13 @@ public:
     uint32_t program_start(uint32_t offset = 0);
 
     typedef union {
-        struct {
+        struct __attribute__((__packed__)) {
           uint8_t BOD33_Disable:1;
           uint8_t BOD33_Level:8;
           uint8_t BOD33_Action:2;
           uint8_t BOD33_Hysteresis:4;
-          uint16_t :10;
+          uint8_t :8;
+          uint8_t :3;
           uint8_t NVM_BOOT:4;
           uint8_t :2;
           uint8_t SEESBLK:4;
