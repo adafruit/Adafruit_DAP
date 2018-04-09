@@ -74,7 +74,7 @@
 #define NVMCTRL_CMD_SSB        0xa516    /* Set Security Bit */
 
 #define USER_ROW_ADDR          0x00804000
-#define USER_ROW_SIZE          20
+#define USER_ROW_SIZE          32
 
 /*- Variables ---------------------------------------------------------------*/
 device_t Adafruit_DAP_SAMx5::devices[] =
@@ -210,10 +210,15 @@ void Adafruit_DAP_SAMx5::fuseRead(){
 
 void Adafruit_DAP_SAMx5::fuseWrite()
 {
-  dap_write_word(NVMCTRL_CTRLB, 0);
-  dap_write_word(NVMCTRL_ADDR, USER_ROW_ADDR >> 1);
-  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_EP);
+  dap_write_word(NVMCTRL_CTRLA, 0x04); // manual write
+  dap_write_word(NVMCTRL_ADDR, USER_ROW_ADDR);
+  dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_EP);
   while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 
-  dap_write_block(USER_ROW_ADDR, _USER_ROW.reg, USER_ROW_SIZE);
+  for(int i=0; i<USER_ROW_SIZE; i+=16){
+    dap_write_block(USER_ROW_ADDR + i, ((uint8_t *)&_USER_ROW) + i, 16);
+
+    dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_WQW);
+    while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
+  }
 }

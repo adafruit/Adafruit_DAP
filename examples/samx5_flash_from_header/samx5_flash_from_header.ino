@@ -62,7 +62,7 @@ void setup() {
   /* Example of how to read and set fuses
   Serial.print("Fuses... ");
   dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
-  dap._USER_ROW.WDT_Period = 0x0A;
+  dap._USER_ROW.bit.NVM_BOOT = 0x0B;
   dap.fuseWrite();
   */
         
