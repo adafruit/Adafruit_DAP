@@ -215,6 +215,19 @@ void Adafruit_DAP_SAMx5::fuseWrite()
   dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_EP);
   while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 
+  uint32_t status = 0;
+  uint32_t timeout = 100;
+
+  while(!(status & 0x01)){ //not ready
+    status = dap_read_word(NVMCTRL_STATUS) >> 16;
+    delay(1);
+    timeout--;
+
+    if(timeout == 0){
+      perror_exit("timeout while writing page");
+    }
+  }
+
   for(int i=0; i<USER_ROW_SIZE; i+=16){
     dap_write_block(USER_ROW_ADDR + i, ((uint8_t *)&_USER_ROW) + i, 16);
 
