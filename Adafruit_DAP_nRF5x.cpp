@@ -172,6 +172,50 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id)
             break;
       }
   }
+  else if (hwid == 0x52840)
+  {
+      // TODO: Add nRF52840 support!
+      // Read other relevant registers
+      chipvariant = dap_read_word(NRF5X_FICR_CHIPVARIANT);
+      codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
+      codesize = dap_read_word(NRF5X_FICR_CODESIZE);
+      //sram = dap_read_word(NRF5X_FICR_SRAM);
+
+      // Assign device details to target_device
+      target_device.dsu_did = hwid;
+      target_device.flash_size = codepagesize * codesize;
+      target_device.n_pages = codesize;
+      switch (chipvariant)
+      {
+          case 0x41414141:
+            target_device.name = "nRF52840_AAAA";
+            break;
+          case 0x42414141:
+            target_device.name = "nRF52840_BAAA";
+            break;
+          case 0x41314141:
+            target_device.name = "nRF52840_CAAA";
+            break;
+          case 0x41414241:
+            target_device.name = "nRF52840_AABA";
+            break;
+          case 0x41414242:
+            target_device.name = "nRF52840_AABB";
+            break;
+          case 0x41414341:
+            target_device.name = "nRF52840_AACA";
+            break;
+          case 0x41414142:
+            target_device.name = "nRF52840_AAAB";
+            break;
+          case 0x41414330:
+            target_device.name = "nRF52840_AAC0";
+            break;
+          default:
+            target_device.name = "nRF52840_????";
+            break;
+      }
+  }
   else
   {
       // No matching device ID found
