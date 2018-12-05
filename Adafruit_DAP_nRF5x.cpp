@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*- Includes ----------------------------------------------------------------*/
+#include <Arduino.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -232,6 +233,18 @@ void Adafruit_DAP_nRF5x::deselect(void)
   dap_write_word(NRF5X_AIRCR, 0x05fa0004);
 }
 
+bool Adafruit_DAP_nRF5x::flashWaitReady(void)
+{
+  int i;
+
+  for (i = 0; i < 100000; i++) {
+      if (dap_read_word((uint32_t)&NRF_NVMC->READY) & 1UL) {
+          return true;
+      }
+  }
+  return false;
+}
+
 bool Adafruit_DAP_nRF5x::flashReady(void)
 {
   return dap_read_word((uint32_t)&NRF_NVMC->READY) & 1UL;
@@ -277,6 +290,11 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset)
 
 bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t count)
 {
+  int startMillis = millis();
+
+  Serial.print("Writing "); Serial.print(count); Serial.print(" bytes at 0x");
+  Serial.print(addr, HEX); Serial.print(" ... ");
+
   // address must be word-aligned
   if ( addr & 0x03 ) return false;
 
@@ -298,10 +316,17 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     buf   += 4;
     count -= bytes;
 
-    while ( !flashReady() ) {  }
+    //while ( !flashReady() ) {  }
+    if (!flashWaitReady()) {
+        // Flash timed out before being ready!
+        return false;
+    };
   }
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
+
+  Serial.print("Done in "); Serial.print(millis() - startMillis);
+  Serial.println("ms");
 
   return true;
 }
