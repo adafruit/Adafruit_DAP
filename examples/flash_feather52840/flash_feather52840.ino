@@ -8,13 +8,15 @@
 #define SWCLK 12
 #define SWRST 13
 
-#define FILE_BOOTLOADER     "40_BOOT.bin"
+#define BASE_ADDR               0
 
-#define BASE_ADDR           0
+#define FILE_BOOTLOADER         "40_BOOT.bin"
 
-// UCIR setting for bootloader
-//#define UICR_BOOTLOADER     0x10001014
-//#define UICR_MBR_PARAM_PAGE 0x10001018
+/* UICR setting for bootloader */
+#define UICR_BOOTLOADER         0x10001014
+#define UICR_BOOTLOADER_VAL     0x00400F00
+#define UICR_MBR_PARAM_PAGE     0x10001018
+#define UICR_MBR_PARAM_PAGE_VAL 0x00E00F00
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -84,9 +86,9 @@ void setup() {
 
   write_bin_file(FILE_BOOTLOADER, BASE_ADDR);
 
-  // write UICR setting
-  //dap.programUICR(UICR_BOOTLOADER, BOOTLOADER_ADDR);
-  //dap.programUICR(UICR_MBR_PARAM_PAGE, 0x0007E000);
+  /* Write UICR setting */
+  dap.programUICR(UICR_BOOTLOADER, UICR_BOOTLOADER_VAL);
+  dap.programUICR(UICR_MBR_PARAM_PAGE, UICR_MBR_PARAM_PAGE_VAL);
 
   Serial.print("\nDone in ");
   Serial.print(millis()-start_ms);
