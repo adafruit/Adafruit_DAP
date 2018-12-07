@@ -28,7 +28,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*- Includes ----------------------------------------------------------------*/
-#include <Arduino.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -416,8 +415,6 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset)
 
 bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t count)
 {
-  int startMillis;
-
   // /* Reset and write flash algorithm to SRAM */
   // Serial.println("Resetting target and writing flash algorithm to SRAM ...");
   // startMillis = millis();
@@ -435,16 +432,8 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
   //   return false;
   // }
 
-  /* Write data */
-  startMillis = millis();
-  Serial.print("Writing "); Serial.print(count); Serial.print(" bytes at 0x");
-  Serial.print(addr, HEX); Serial.print(" ... ");
-
   // address must be word-aligned
   if ( addr & 0x03 ) return false;
-
-  // buffer must be word-aligned
-//  if ( ((uint32_t) buf) & 0x03 ) return false;
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 1); // Write Enable
 
@@ -453,6 +442,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     uint8_t data[CHUNK_SIZE];
     uint32_t bytes = min(count, CHUNK_SIZE);
     uint32_t sum = 0;
+    bool hasdata = false;
 
     memset(data, 0xFF, CHUNK_SIZE);
     memcpy(data, buf, bytes);
@@ -460,9 +450,12 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     /* If data is all 0x00, this chunk is empty. Don't bother writing it since
      * we've already erased the flash memory. */
     for (uint32_t i = 0; i < CHUNK_SIZE; i++) {
-        sum += data[i];
+        if (data[i] != 0x00)
+        {
+            hasdata = true;
+        }
     }
-    if (sum) {
+    if (hasdata) {
         dap_write_block(addr, data, (int)bytes);
     }
 
@@ -470,19 +463,13 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     buf   += bytes;
     count -= bytes;
 
-    //while ( !flashReady() ) {  }
     if (!flashWaitReady()) {
         // Flash timed out before being ready!
-        Serial.println("Timed out waiting for flash ready bit.");
-
         return false;
     };
   }
 
   dap_write_word( (uint32_t) &NRF_NVMC->CONFIG, 0); // Write Disable
-
-  Serial.print("Done in "); Serial.print(millis() - startMillis);
-  Serial.println(" ms");
 
   return true;
 }
