@@ -37,6 +37,9 @@
 #include "Adafruit_DAP.h"
 #include "dap.h"
 
+/* The number of bytes to write at one time in program(). */
+#define CHUNK_SIZE  (1024)
+
 /*- Definitions -------------------------------------------------------------*/
 #define NRF5X_FLASH_START            0
 #define NRF5X_FLASH_ROW_SIZE         256
@@ -447,13 +450,21 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
 
   while(count)
   {
-    uint8_t data = 0xFF;
-    uint32_t bytes = min(count, 4);
+    uint8_t data[CHUNK_SIZE];
+    uint32_t bytes = min(count, CHUNK_SIZE);
+    uint32_t sum = 0;
 
-    memcpy(&data, buf, bytes);
+    memset(data, 0xFF, CHUNK_SIZE);
+    memcpy(data, buf, bytes);
 
-    //dap_write_word(addr, data);
-    dap_write_block(addr, &data, (int)bytes);
+    /* If data is all 0x00, this chunk is empty. Don't bother writing it since
+     * we've already erased the flash memory. */
+    for (uint32_t i = 0; i < CHUNK_SIZE; i++) {
+        sum += data[i];
+    }
+    if (sum) {
+        dap_write_block(addr, data, (int)bytes);
+    }
 
     addr  += bytes;
     buf   += bytes;

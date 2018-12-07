@@ -14,9 +14,9 @@
 
 /* UICR setting for bootloader */
 #define UICR_BOOTLOADER         0x10001014
-#define UICR_BOOTLOADER_VAL     0x00400F00
+#define UICR_BOOTLOADER_VAL     0x000F4000
 #define UICR_MBR_PARAM_PAGE     0x10001018
-#define UICR_MBR_PARAM_PAGE_VAL 0x00E00F00
+#define UICR_MBR_PARAM_PAGE_VAL 0x000FE000
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
