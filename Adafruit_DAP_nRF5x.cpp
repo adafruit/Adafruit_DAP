@@ -39,6 +39,9 @@
 /* The number of bytes to write at one time in program(). */
 #define CHUNK_SIZE  (1024)
 
+/* Enable to verify written data (slow!) */
+#define VERIFY_DATA (1)
+
 /*- Definitions -------------------------------------------------------------*/
 #define NRF5X_FLASH_START            0
 #define NRF5X_FLASH_ROW_SIZE         256
@@ -441,7 +444,6 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
   {
     uint8_t data[CHUNK_SIZE];
     uint32_t bytes = min(count, CHUNK_SIZE);
-    uint32_t sum = 0;
     bool hasdata = false;
 
     memset(data, 0xFF, CHUNK_SIZE);
@@ -453,10 +455,23 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
         if (data[i] != 0x00)
         {
             hasdata = true;
+            break;
         }
     }
+
     if (hasdata) {
         dap_write_block(addr, data, (int)bytes);
+    }
+
+    /* Optionally verify the written data */
+    if (hasdata && VERIFY_DATA) {
+        uint8_t read_buf[CHUNK_SIZE] = { 0 };
+        dap_read_block(addr, read_buf, (int)bytes);
+        int equal = memcmp(read_buf, data, bytes);
+        if (equal != 0) {
+            /* Verify failed! */
+            return false;
+        }
     }
 
     addr  += bytes;

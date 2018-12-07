@@ -108,14 +108,27 @@ void write_bin_file(const char* filename, uint32_t addr)
   Serial.print("Programming... ");
   Serial.println(filename);
 
+  uint32_t charcount = 0;
   while (dataFile.available())
   {
     memset(buf, BUFSIZE, 0xFF);  // empty it out
     uint32_t count = dataFile.read(buf, BUFSIZE);
-    dap.program(addr, buf, count);
+    bool rc = dap.program(addr, buf, count);
+    if (!rc) {
+      Serial.print("Failed writing at 0x");
+      Serial.print(addr, HEX);
+      Serial.println("!");
+    }
     addr += count;
+    charcount++;
+    if (charcount == 78) {
+      Serial.println(".");
+      charcount = 0;
+    } else {
+      Serial.print(".");
+    }
   }
-
+  Serial.println("");
   dataFile.close();
 }
 
