@@ -8,13 +8,15 @@
 #define SWCLK 12
 #define SWRST 13
 
-#define FILE_BOOTLOADER     "40_BOOT.bin"
+#define BASE_ADDR               0
 
-#define BASE_ADDR           0
+#define FILE_BOOTLOADER         "40_BOOT.bin"
 
-// UCIR setting for bootloader
-//#define UICR_BOOTLOADER     0x10001014
-//#define UICR_MBR_PARAM_PAGE 0x10001018
+/* UICR setting for bootloader */
+#define UICR_BOOTLOADER         0x10001014
+#define UICR_BOOTLOADER_VAL     0x000F4000
+#define UICR_MBR_PARAM_PAGE     0x10001018
+#define UICR_MBR_PARAM_PAGE_VAL 0x000FE000
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -84,9 +86,9 @@ void setup() {
 
   write_bin_file(FILE_BOOTLOADER, BASE_ADDR);
 
-  // write UICR setting
-  //dap.programUICR(UICR_BOOTLOADER, BOOTLOADER_ADDR);
-  //dap.programUICR(UICR_MBR_PARAM_PAGE, 0x0007E000);
+  /* Write UICR setting */
+  dap.programUICR(UICR_BOOTLOADER, UICR_BOOTLOADER_VAL);
+  dap.programUICR(UICR_MBR_PARAM_PAGE, UICR_MBR_PARAM_PAGE_VAL);
 
   Serial.print("\nDone in ");
   Serial.print(millis()-start_ms);
@@ -106,14 +108,27 @@ void write_bin_file(const char* filename, uint32_t addr)
   Serial.print("Programming... ");
   Serial.println(filename);
 
+  uint32_t charcount = 0;
   while (dataFile.available())
   {
     memset(buf, BUFSIZE, 0xFF);  // empty it out
     uint32_t count = dataFile.read(buf, BUFSIZE);
-    dap.program(addr, buf, count);
+    bool rc = dap.program(addr, buf, count);
+    if (!rc) {
+      Serial.print("Failed writing at 0x");
+      Serial.print(addr, HEX);
+      Serial.println("!");
+    }
     addr += count;
+    charcount++;
+    if (charcount == 78) {
+      Serial.println(".");
+      charcount = 0;
+    } else {
+      Serial.print(".");
+    }
   }
-
+  Serial.println("");
   dataFile.close();
 }
 

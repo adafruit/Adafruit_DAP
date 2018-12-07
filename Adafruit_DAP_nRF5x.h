@@ -53,6 +53,7 @@ public:
     bool program(uint32_t addr, const uint8_t* buf, uint32_t count);
     void programUICR(uint32_t addr, uint32_t value);
 
+    bool flashWaitReady(void);
     bool flashReady(void);
 
     void lock(void);
