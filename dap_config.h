@@ -85,7 +85,7 @@ extern volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR, *SWDI
 #define DAP_CONFIG_DELAY_CONSTANT      4000
 
 // A threshold for switching to fast clock (no added delays)
-// This is the frequency produced by dap_clock_test(1) on the SWCLK pin 
+// This is the frequency produced by dap_clock_test(1) on the SWCLK pin
 #define DAP_CONFIG_FAST_CLOCK          463000 // Hz
 
 /*- Implementations ---------------------------------------------------------*/
@@ -230,7 +230,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_clr(void)
 static inline void DAP_CONFIG_SWDIO_TMS_in(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
-  *SWDIO_DIRREG &= ~SWDIO_PINMASK; 
+  *SWDIO_DIRREG &= ~SWDIO_PINMASK;
 #elif defined(TEENSYDUINO)
   *SWDIO_PORTMODE &= ~SWDIO_BITMASK;
   *SWDIO_PORTCONFIG = PORT_PCR_MUX(1);
@@ -243,7 +243,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_in(void)
 static inline void DAP_CONFIG_SWDIO_TMS_out(void)
 {
 #if defined(ARDUINO_ARCH_SAMD)
-  *SWDIO_DIRREG |= SWDIO_PINMASK; 
+  *SWDIO_DIRREG |= SWDIO_PINMASK;
 #elif defined(TEENSYDUINO)
   *SWDIO_PORTMODE |= SWDIO_BITMASK;
   *SWDIO_PORTCONFIG = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
@@ -262,7 +262,7 @@ static inline void DAP_CONFIG_SETUP()
   //pinMode(DAP_CONFIG_TDO_PIN, INPUT);
   //pinMode(DAP_CONFIG_nTRST_PIN, INPUT);
   pinMode(DAP_CONFIG_nRESET_PIN, INPUT);
-  
+
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
 }
@@ -319,7 +319,7 @@ static inline void DAP_CONFIG_CONNECT_JTAG(void)
   DAP_gpio_init(PORTA, CONFIG_DAP_nTRST, 1);
   gpio_outset_bulk(PORTA, (1ul << CONFIG_DAP_nTRST));
   */
-	
+
 }
 
 //-----------------------------------------------------------------------------
@@ -330,4 +330,3 @@ static inline void DAP_CONFIG_LED(int index, int state)
 }
 
 #endif // _DAP_CONFIG_H_
-

@@ -178,7 +178,7 @@ class Adafruit_DAP {
   Adafruit_DAP(void) {};
   ~Adafruit_DAP(void) {};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
-  
+
   bool dap_led(int index, int state);
   bool dap_connect(void);
   bool dap_disconnect(void);
@@ -201,7 +201,7 @@ class Adafruit_DAP {
   void dap_set_clock(uint32_t clock);
 
   char *error_message;
-  
+
  protected:
   uint8_t _i2caddr;
   bool dbg_dap_cmd(uint8_t *data, int size, int rsize);
@@ -264,13 +264,13 @@ public:
               LOCK = (data >> 48) & 0xFFFF;
             }
             uint64_t get(){
-              return ((uint64_t)LOCK << 48) | 
-              ((uint64_t) BOD33_Hysteresis << 40) | 
+              return ((uint64_t)LOCK << 48) |
+              ((uint64_t) BOD33_Hysteresis << 40) |
               ((uint64_t) WDR_WEN << 39) |
               ((uint64_t) WDR_EWOFFSET << 35) |
-              ((uint64_t) WDT_Window << 31) | 
-              ((uint64_t) WDT_Period << 27) | 
-              ((uint64_t) WDT_Always_On << 26) | 
+              ((uint64_t) WDT_Window << 31) |
+              ((uint64_t) WDT_Period << 27) |
+              ((uint64_t) WDT_Always_On << 26) |
               ((uint64_t) WDT_Enable << 25) |
               ((uint64_t) BOD33_Action << 15) |
               ((uint64_t) BOD33_Enable << 14) |
@@ -331,5 +331,7 @@ public:
       } USER_ROW;
       USER_ROW _USER_ROW;
 };
+
+#include "Adafruit_DAP_nRF5x.h"
 
 #endif
