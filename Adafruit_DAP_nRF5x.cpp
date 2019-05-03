@@ -452,7 +452,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t* buf, uint32_t cou
     /* If data is all 0x00, this chunk is empty. Don't bother writing it since
      * we've already erased the flash memory. */
     for (uint32_t i = 0; i < CHUNK_SIZE; i++) {
-        if (data[i] != 0x00)
+        if (data[i] != 0xFF)
         {
             hasdata = true;
             break;
