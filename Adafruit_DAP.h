@@ -333,5 +333,6 @@ public:
 };
 
 #include "Adafruit_DAP_nRF5x.h"
+#include "Adafruit_DAP_STM32.h"
 
 #endif
