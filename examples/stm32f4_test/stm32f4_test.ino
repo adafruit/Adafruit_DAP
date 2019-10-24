@@ -57,11 +57,14 @@ void setup() {
   Serial.print("Flash pages\t");
   Serial.println(dap.target_device.n_pages);
 
-//  Serial.print("Erasing... ");
-//  dap.erase();
-//  Serial.println(" done.");
-//
-//  uint32_t start_ms = millis();
+  uint32_t start_ms;
+  Serial.print("Erasing... ");
+  start_ms = millis();
+  dap.erase();
+  Serial.print(" done in ");
+  Serial.print(millis()-start_ms);
+  Serial.println(" ms");
+  
 //
 //  dap.program_start();
 //  Serial.print("Programming 32K ... ");

@@ -41,6 +41,11 @@ class Adafruit_DAP_STM32 : public Adafruit_DAP
 
     bool select(uint32_t *id);
     void deselect(void);
+    void erase(void);
+
+  private:
+    bool flash_busy(void);
+    void flash_unlock(void);
 };
 
 #endif /* ADAFRUIT_DAP_STM32_H_ */

@@ -45,9 +45,19 @@
 #define AIRCR             0xe000ed0c
 
 #define DAP_DBGMCU_IDCODE 0xE0042000
-
 #define STM32_FLASHSIZE   0x1FFF7A22
 
+// Flash interface registers
+#define FLASH_R_BASE      0x40023C00UL
+#define FLASH_ACR         (FLASH_R_BASE + 0x00)
+#define FLASH_KEYR        (FLASH_R_BASE + 0x04)
+#define FLASH_OPTKEYR     (FLASH_R_BASE + 0x08)
+#define FLASH_SR          (FLASH_R_BASE + 0x0C)
+#define FLASH_CR          (FLASH_R_BASE + 0x10)
+#define FLASH_OPTCR       (FLASH_R_BASE + 0x14)
+#define FLASH_OPTCR1      (FLASH_R_BASE + 0x18)
+
+// Look up table for MCU ID
 struct
 {
   uint32_t    mcuid;
@@ -90,7 +100,33 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id)
 
   if (target_device.name == NULL) return false;
 
+  // unlock FLASH_CS access
+  flash_unlock();
+
   return true;
+}
+
+void Adafruit_DAP_STM32::flash_unlock(void)
+{
+  dap_write_word(FLASH_KEYR, 0x45670123); // key 1
+  dap_write_word(FLASH_KEYR, 0xCDEF89AB); // key 2
+}
+
+bool Adafruit_DAP_STM32::flash_busy(void)
+{
+  return (dap_read_word(FLASH_SR) >> 16) & 0x01UL;
+}
+
+void Adafruit_DAP_STM32::erase(void)
+{
+  while ( flash_busy() ) delay(1);
+
+  // Mass erage
+  // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
+  // Set STRT bit
+  dap_write_word(FLASH_CR, 0x10004);
+
+  while ( flash_busy() ) delay(1);
 }
 
 void Adafruit_DAP_STM32::deselect(void)
