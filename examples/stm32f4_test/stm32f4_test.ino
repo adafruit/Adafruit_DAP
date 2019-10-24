@@ -46,20 +46,16 @@ void setup() {
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {
-    Serial.print("\tFlash size: ");
-    Serial.print(dap.target_device.flash_size / 1024);
-    Serial.println(" KBs");
-    error("No nRF5x device found!");
+    error("No STM32 device found!");
   }
 
-  Serial.print("Found Target: ");
-  Serial.print(dap.target_device.name);
-  Serial.print("\tFlash size: ");
-  Serial.print(dap.target_device.flash_size);
-  Serial.print("\tFlash pages: ");
+  Serial.print("Found Target\t");
+  Serial.println(dap.target_device.name);
+  Serial.print("Flash size\t");
+  Serial.print(dap.target_device.flash_size / 1024);
+  Serial.println(" KBs");
+  Serial.print("Flash pages\t");
   Serial.println(dap.target_device.n_pages);
-  //Serial.print("Page size: "); Serial.println(dap.target_device.flash_size / dap.target_device.n_pages);
-
 
 //  Serial.print("Erasing... ");
 //  dap.erase();

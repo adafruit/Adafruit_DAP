@@ -44,11 +44,32 @@
 #define DEMCR             0xe000edfc
 #define AIRCR             0xe000ed0c
 
+#define DAP_DBGMCU_IDCODE 0xE0042000
+
 #define STM32_FLASHSIZE   0x1FFF7A22
+
+struct
+{
+  uint32_t    mcuid;
+  const char* name;
+} _stm32_devices[] =
+{
+  { 0x413, "STM32F405xx/07xx and STM32F415xx/17xx"},
+  { 0x419, "STM32F42xxx and STM32F43xxx"},
+  { 0x431, "STM32F411xC/E"},
+  { 0x441, "STM32F412" },
+};
+
+enum { STM32_DEVICES_COUNT = sizeof(_stm32_devices)/sizeof(_stm32_devices[0]) };
+
+Adafruit_DAP_STM32::Adafruit_DAP_STM32(void)
+{
+  memset(&target_device, 0, sizeof(target_device));
+}
 
 bool Adafruit_DAP_STM32::select(uint32_t *found_id)
 {
-  uint32_t devid;
+  uint32_t mcuid;
 
   // Stop the core
   dap_write_word(DHCSR, 0xa05f0003);
@@ -57,7 +78,19 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id)
 
   target_device.flash_size = (dap_read_word(STM32_FLASHSIZE) >> 16) * 1024;
 
-  return false;
+  *found_id = mcuid = (dap_read_word(DAP_DBGMCU_IDCODE) & 0xFFFUL);
+  for(int i=0; i<STM32_DEVICES_COUNT; i++)
+  {
+    if ( mcuid == _stm32_devices[i].mcuid )
+    {
+      target_device.name = _stm32_devices[i].name;
+      break;
+    }
+  }
+
+  if (target_device.name == NULL) return false;
+
+  return true;
 }
 
 void Adafruit_DAP_STM32::deselect(void)

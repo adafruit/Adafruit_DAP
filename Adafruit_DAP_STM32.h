@@ -34,7 +34,7 @@
 class Adafruit_DAP_STM32 : public Adafruit_DAP
 {
   public:
-    Adafruit_DAP_STM32(void) {};
+    Adafruit_DAP_STM32(void);
     ~Adafruit_DAP_STM32(void) {};
 
     device_t target_device;

@@ -166,10 +166,10 @@ typedef void (*ErrorHandler)(const char *error);
 
 typedef struct
 {
-  uint32_t  dsu_did;
-  char      *name;
-  uint32_t  flash_size;
-  uint32_t  n_pages;
+  uint32_t   dsu_did;
+  const char *name;
+  uint32_t   flash_size;
+  uint32_t   n_pages;
 } device_t;
 
 class Adafruit_DAP {
