@@ -43,9 +43,10 @@ class Adafruit_DAP_STM32 : public Adafruit_DAP
     void deselect(void);
     void erase(void);
 
+    void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
+
   private:
     bool flash_busy(void);
-
     void flash_unlock(void);
     void flash_lock(void);
 };

@@ -5,6 +5,8 @@
 #define SWRST 13
 
 #define BUFSIZE   4096
+
+// buffer should be word algined for STM32
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
 //create a DAP for programming Atmel SAM devices
@@ -53,31 +55,39 @@ void setup() {
   Serial.print("Flash pages\t");
   Serial.println(dap.target_device.n_pages);
 
-  uint32_t start_ms = millis();
+  uint32_t start_ms, duaration;;
   
   Serial.print("Erasing... ");
+  
+  start_ms = millis();
   dap.erase();
+  duaration = millis()-start_ms;
+  
   Serial.print(" done in ");
-  Serial.print(millis()-start_ms);
+  Serial.print(duaration);
   Serial.println(" ms");
 
-#if 0  
-  dap.program_start();
-  Serial.print("Programming 32K ... ");
+  Serial.print("Programming 4K ... ");
 
-  uint32_t addr = 0;
+  // prepare data
   for(int i=0; i<sizeof(buf); i++) buf[i] = i;
 
-  for(int i=0; i<8; i++)
-  {
-    dap.program(addr, buf, sizeof(buf));
-    addr += 4096;
-  }
+  start_ms = millis();
 
-  Serial.print("\nDone in ");
-  Serial.print(millis()-start_ms);
+  uint32_t addr = 0;
+  dap.programBlock(addr, buf, sizeof(buf));
+  addr += 4096;
+
+  duaration = millis()-start_ms;
+
+  Serial.print("done in ");
+  Serial.print(duaration);
   Serial.println(" ms");
-#endif
+
+  Serial.print("Speed ");
+  Serial.print((double) sizeof(buf)/(duaration*1.024) );
+  Serial.println(" KBs/s");
+
   dap.deselect();
   dap.dap_disconnect();
 }

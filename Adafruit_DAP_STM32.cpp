@@ -113,6 +113,7 @@
 #define FLASH_CR_LOCK_Msk              (0x1UL << FLASH_CR_LOCK_Pos)             /*!< 0x80000000 */
 #define FLASH_CR_LOCK                  FLASH_CR_LOCK_Msk
 
+#define FLASH_CR_PSIZE_WORD            (2UL << FLASH_CR_PSIZE_Pos)
 // Look up table for MCU ID
 struct
 {
@@ -156,9 +157,6 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id)
 
   if (target_device.name == NULL) return false;
 
-  // unlock FLASH_CS access
-  flash_unlock();
-
   return true;
 }
 
@@ -180,14 +178,43 @@ bool Adafruit_DAP_STM32::flash_busy(void)
 
 void Adafruit_DAP_STM32::erase(void)
 {
-  while ( flash_busy() ) delay(1);
+  flash_unlock();
+  while ( flash_busy() ) yield();
 
   // Mass erase with FLASH_VOLTAGE_RANGE_3 (32-bit operation)
   // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
   // Set STRT bit
-  dap_write_word(FLASH_CR, FLASH_CR_MER | FLASH_CR_STRT | (2UL << 8));
+  dap_write_word(FLASH_CR, FLASH_CR_MER | FLASH_CR_STRT | FLASH_CR_PSIZE_WORD);
 
+  // Mass erase take ~8-9 seconds
   while ( flash_busy() ) delay(100);
+
+  flash_lock();
+}
+
+void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_t size)
+{
+  if (!size) return;
+
+  const uint32_t* buf32 = (const uint32_t*) buf;
+
+  flash_unlock();
+  while ( flash_busy() ) yield();
+
+  while(size)
+  {
+    // PG
+    dap_write_word(FLASH_CR, FLASH_CR_PG | FLASH_CR_PSIZE_WORD);
+
+    dap_write_word(addr, *buf32++);
+
+    addr += 4;
+    size = ((size < 4) ? 0 : (size-4));
+
+    while ( flash_busy() ) yield();
+  }
+
+  flash_lock();
 }
 
 void Adafruit_DAP_STM32::deselect(void)
