@@ -1,9 +1,5 @@
 #include "Adafruit_DAP.h"
-#include <SPI.h>
-#include <SD.h>
 
-//teensy only, otherwise change sd cs pin
-#define SD_CS 10
 #define SWDIO 11
 #define SWCLK 12
 #define SWRST 13
@@ -57,57 +53,34 @@ void setup() {
   Serial.print("Flash pages\t");
   Serial.println(dap.target_device.n_pages);
 
-  uint32_t start_ms;
+  uint32_t start_ms = millis();
+  
   Serial.print("Erasing... ");
-  start_ms = millis();
   dap.erase();
   Serial.print(" done in ");
   Serial.print(millis()-start_ms);
   Serial.println(" ms");
-  
-//
-//  dap.program_start();
-//  Serial.print("Programming 32K ... ");
-//
-//  uint32_t addr = 0;
-//  for(int i=0; i<sizeof(buf); i++) buf[i] = i;
-//
-//  for(int i=0; i<8; i++)
-//  {
-//    dap.program(addr, buf, sizeof(buf));
-//    addr += 4096;
-//  }
-//
-//  Serial.print("\nDone in ");
-//  Serial.print(millis()-start_ms);
-//  Serial.println(" ms");
 
+#if 0  
+  dap.program_start();
+  Serial.print("Programming 32K ... ");
+
+  uint32_t addr = 0;
+  for(int i=0; i<sizeof(buf); i++) buf[i] = i;
+
+  for(int i=0; i<8; i++)
+  {
+    dap.program(addr, buf, sizeof(buf));
+    addr += 4096;
+  }
+
+  Serial.print("\nDone in ");
+  Serial.print(millis()-start_ms);
+  Serial.println(" ms");
+#endif
   dap.deselect();
   dap.dap_disconnect();
 }
-
-#if 0
-void write_bin_file(const char* filename, uint32_t addr)
-{
-  File dataFile = SD.open(filename);
-  if(!dataFile){
-     error("Couldn't open file");
-  }
-
-  Serial.print("Programming... ");
-  Serial.println(filename);
-
-  while (dataFile.available()) 
-  {
-    memset(buf, BUFSIZE, 0xFF);  // empty it out
-    uint32_t count = dataFile.read(buf, BUFSIZE);
-    dap.program(addr, buf, count);
-    addr += count;
-  }
-  
-  dataFile.close();  
-}
-#endif 
 
 void loop() {
   //blink led on the host to show we're done

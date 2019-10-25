@@ -57,6 +57,62 @@
 #define FLASH_OPTCR       (FLASH_R_BASE + 0x14)
 #define FLASH_OPTCR1      (FLASH_R_BASE + 0x18)
 
+/*******************  Bits definition for FLASH_SR register  ******************/
+#define FLASH_SR_EOP_Pos               (0U)
+#define FLASH_SR_EOP_Msk               (0x1UL << FLASH_SR_EOP_Pos)              /*!< 0x00000001 */
+#define FLASH_SR_EOP                   FLASH_SR_EOP_Msk
+#define FLASH_SR_SOP_Pos               (1U)
+#define FLASH_SR_SOP_Msk               (0x1UL << FLASH_SR_SOP_Pos)              /*!< 0x00000002 */
+#define FLASH_SR_SOP                   FLASH_SR_SOP_Msk
+#define FLASH_SR_WRPERR_Pos            (4U)
+#define FLASH_SR_WRPERR_Msk            (0x1UL << FLASH_SR_WRPERR_Pos)           /*!< 0x00000010 */
+#define FLASH_SR_WRPERR                FLASH_SR_WRPERR_Msk
+#define FLASH_SR_PGAERR_Pos            (5U)
+#define FLASH_SR_PGAERR_Msk            (0x1UL << FLASH_SR_PGAERR_Pos)           /*!< 0x00000020 */
+#define FLASH_SR_PGAERR                FLASH_SR_PGAERR_Msk
+#define FLASH_SR_PGPERR_Pos            (6U)
+#define FLASH_SR_PGPERR_Msk            (0x1UL << FLASH_SR_PGPERR_Pos)           /*!< 0x00000040 */
+#define FLASH_SR_PGPERR                FLASH_SR_PGPERR_Msk
+#define FLASH_SR_PGSERR_Pos            (7U)
+#define FLASH_SR_PGSERR_Msk            (0x1UL << FLASH_SR_PGSERR_Pos)           /*!< 0x00000080 */
+#define FLASH_SR_PGSERR                FLASH_SR_PGSERR_Msk
+#define FLASH_SR_BSY_Pos               (16U)
+#define FLASH_SR_BSY_Msk               (0x1UL << FLASH_SR_BSY_Pos)              /*!< 0x00010000 */
+#define FLASH_SR_BSY                   FLASH_SR_BSY_Msk
+
+/*******************  Bits definition for FLASH_CR register  ******************/
+#define FLASH_CR_PG_Pos                (0U)
+#define FLASH_CR_PG_Msk                (0x1UL << FLASH_CR_PG_Pos)               /*!< 0x00000001 */
+#define FLASH_CR_PG                    FLASH_CR_PG_Msk
+#define FLASH_CR_SER_Pos               (1U)
+#define FLASH_CR_SER_Msk               (0x1UL << FLASH_CR_SER_Pos)              /*!< 0x00000002 */
+#define FLASH_CR_SER                   FLASH_CR_SER_Msk
+#define FLASH_CR_MER_Pos               (2U)
+#define FLASH_CR_MER_Msk               (0x1UL << FLASH_CR_MER_Pos)              /*!< 0x00000004 */
+#define FLASH_CR_MER                   FLASH_CR_MER_Msk
+#define FLASH_CR_SNB_Pos               (3U)
+#define FLASH_CR_SNB_Msk               (0x1FUL << FLASH_CR_SNB_Pos)             /*!< 0x000000F8 */
+#define FLASH_CR_SNB                   FLASH_CR_SNB_Msk
+#define FLASH_CR_SNB_0                 (0x01UL << FLASH_CR_SNB_Pos)             /*!< 0x00000008 */
+#define FLASH_CR_SNB_1                 (0x02UL << FLASH_CR_SNB_Pos)             /*!< 0x00000010 */
+#define FLASH_CR_SNB_2                 (0x04UL << FLASH_CR_SNB_Pos)             /*!< 0x00000020 */
+#define FLASH_CR_SNB_3                 (0x08UL << FLASH_CR_SNB_Pos)             /*!< 0x00000040 */
+#define FLASH_CR_SNB_4                 (0x10UL << FLASH_CR_SNB_Pos)             /*!< 0x00000080 */
+#define FLASH_CR_PSIZE_Pos             (8U)
+#define FLASH_CR_PSIZE_Msk             (0x3UL << FLASH_CR_PSIZE_Pos)            /*!< 0x00000300 */
+#define FLASH_CR_PSIZE                 FLASH_CR_PSIZE_Msk
+#define FLASH_CR_PSIZE_0               (0x1UL << FLASH_CR_PSIZE_Pos)            /*!< 0x00000100 */
+#define FLASH_CR_PSIZE_1               (0x2UL << FLASH_CR_PSIZE_Pos)            /*!< 0x00000200 */
+#define FLASH_CR_STRT_Pos              (16U)
+#define FLASH_CR_STRT_Msk              (0x1UL << FLASH_CR_STRT_Pos)             /*!< 0x00010000 */
+#define FLASH_CR_STRT                  FLASH_CR_STRT_Msk
+#define FLASH_CR_EOPIE_Pos             (24U)
+#define FLASH_CR_EOPIE_Msk             (0x1UL << FLASH_CR_EOPIE_Pos)            /*!< 0x01000000 */
+#define FLASH_CR_EOPIE                 FLASH_CR_EOPIE_Msk
+#define FLASH_CR_LOCK_Pos              (31U)
+#define FLASH_CR_LOCK_Msk              (0x1UL << FLASH_CR_LOCK_Pos)             /*!< 0x80000000 */
+#define FLASH_CR_LOCK                  FLASH_CR_LOCK_Msk
+
 // Look up table for MCU ID
 struct
 {
@@ -106,17 +162,20 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id)
   return true;
 }
 
-bool Adafruit_DAP_STM32::flash_unlock(void)
+void Adafruit_DAP_STM32::flash_unlock(void)
 {
   dap_write_word(FLASH_KEYR, 0x45670123); // key 1
   dap_write_word(FLASH_KEYR, 0xCDEF89AB); // key 2
+}
 
-  return 0 == (dap_read_word(FLASH_CR) & (1UL << 31));
+void Adafruit_DAP_STM32::flash_lock(void)
+{
+  dap_write_word(FLASH_CR, FLASH_CR_LOCK);
 }
 
 bool Adafruit_DAP_STM32::flash_busy(void)
 {
-  return (dap_read_word(FLASH_SR) >> 16) & 0x01UL;
+  return dap_read_word(FLASH_SR) & FLASH_SR_BSY;
 }
 
 void Adafruit_DAP_STM32::erase(void)
@@ -126,13 +185,15 @@ void Adafruit_DAP_STM32::erase(void)
   // Mass erase with FLASH_VOLTAGE_RANGE_3 (32-bit operation)
   // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
   // Set STRT bit
-  dap_write_word(FLASH_CR, 0x10004 | (2UL << 8));
+  dap_write_word(FLASH_CR, FLASH_CR_MER | FLASH_CR_STRT | (2UL << 8));
 
   while ( flash_busy() ) delay(100);
 }
 
 void Adafruit_DAP_STM32::deselect(void)
 {
+  flash_lock();
+
   dap_write_word(DEMCR, 0x00000000);
   dap_write_word(AIRCR, 0x05fa0004);
 }
