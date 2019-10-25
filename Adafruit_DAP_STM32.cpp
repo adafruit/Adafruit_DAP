@@ -106,10 +106,12 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id)
   return true;
 }
 
-void Adafruit_DAP_STM32::flash_unlock(void)
+bool Adafruit_DAP_STM32::flash_unlock(void)
 {
   dap_write_word(FLASH_KEYR, 0x45670123); // key 1
   dap_write_word(FLASH_KEYR, 0xCDEF89AB); // key 2
+
+  return 0 == (dap_read_word(FLASH_CR) & (1UL << 31));
 }
 
 bool Adafruit_DAP_STM32::flash_busy(void)
@@ -121,12 +123,12 @@ void Adafruit_DAP_STM32::erase(void)
 {
   while ( flash_busy() ) delay(1);
 
-  // Mass erage
+  // Mass erase with FLASH_VOLTAGE_RANGE_3 (32-bit operation)
   // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
   // Set STRT bit
-  dap_write_word(FLASH_CR, 0x10004);
+  dap_write_word(FLASH_CR, 0x10004 | (2UL << 8));
 
-  while ( flash_busy() ) delay(1);
+  while ( flash_busy() ) delay(100);
 }
 
 void Adafruit_DAP_STM32::deselect(void)

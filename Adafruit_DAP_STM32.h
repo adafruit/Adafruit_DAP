@@ -45,7 +45,7 @@ class Adafruit_DAP_STM32 : public Adafruit_DAP
 
   private:
     bool flash_busy(void);
-    void flash_unlock(void);
+    bool flash_unlock(void);
 };
 
 #endif /* ADAFRUIT_DAP_STM32_H_ */
