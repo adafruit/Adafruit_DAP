@@ -4,6 +4,7 @@
 #define SWCLK 12
 #define SWRST 13
 
+// the more the better
 #define BUFSIZE   (16*1024)
 
 // buffer should be word algined for STM32
@@ -18,6 +19,7 @@ void error(const char *text) {
   while (1);
 }
 
+// dumping stm32 memory for verification
 void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
 {
   memset(buffer, 0xff, bufsize);
@@ -91,9 +93,12 @@ void setup() {
   Serial.print(duaration);
   Serial.println(" ms");
 
+  // verify if all memory is 0xff
   print_memory(0, buf, sizeof(buf));  
 
-  Serial.print("Programming 4K ... ");
+  Serial.print("Programming ");
+  Serial.print(sizeof(buf)/1024);
+  Serial.println(" KBs ...");
 
   // prepare data
   for(int i=0; i<sizeof(buf); i++) buf[i] = i;
@@ -115,7 +120,7 @@ void setup() {
   Serial.println(" KBs/s");
 
 
-  // read back
+  // verify if data is written
   print_memory(0, buf, sizeof(buf));
 
   dap.deselect();
