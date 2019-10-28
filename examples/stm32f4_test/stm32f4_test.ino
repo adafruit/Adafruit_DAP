@@ -119,16 +119,6 @@ void setup() {
   Serial.print((double) sizeof(buf)/(duaration*1.024) );
   Serial.println(" KBs/s");
 
-  // Compute contents crc
-  start_ms = millis();
-  Serial.print("Computing CRC ... ");
-  Serial.print(dap.readCRC(0, BUFSIZE), HEX);
-
-  duaration = millis()-start_ms;
-  Serial.print(" done in ");
-  Serial.print(duaration);
-  Serial.println(" ms");
-
   // verify if data is written
   //print_memory(0, buf, sizeof(buf));
 
