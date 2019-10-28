@@ -25,7 +25,7 @@ void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
   memset(buffer, 0xff, bufsize);
   dap.dap_read_block(addr, buffer, bufsize);
 
-  for(int i=0; i < bufsize; i++)
+  for(uint32_t i=0; i < bufsize; i++)
   {
     if (i % 16 == 0) 
     {
@@ -86,7 +86,7 @@ void setup() {
   start_ms = millis();
 
   // preparing flash sector with address = 0, size = 
-  dap.programPrepare(0, sizeof(buf));
+  dap.programPrepare(0, BUFSIZE);
   duaration = millis()-start_ms;
   
   Serial.print(" done in ");
@@ -94,14 +94,14 @@ void setup() {
   Serial.println(" ms");
 
   // verify if all memory is 0xff
-  print_memory(0, buf, sizeof(buf));  
+  //print_memory(0, buf, sizeof(buf));
 
   Serial.print("Programming ");
   Serial.print(sizeof(buf)/1024);
-  Serial.println(" KBs ...");
+  Serial.print(" KBs ...");
 
   // prepare data
-  for(int i=0; i<sizeof(buf); i++) buf[i] = i;
+  for(uint32_t i=0; i<sizeof(buf); i++) buf[i] = i;
 
   start_ms = millis();
 
@@ -111,17 +111,26 @@ void setup() {
 
   duaration = millis()-start_ms;
 
-  Serial.print("done in ");
+  Serial.print(" done in ");
   Serial.print(duaration);
-  Serial.println(" ms");
+  Serial.print(" ms, ");
 
   Serial.print("Speed ");
   Serial.print((double) sizeof(buf)/(duaration*1.024) );
   Serial.println(" KBs/s");
 
+  // Compute contents crc
+  start_ms = millis();
+  Serial.print("Computing CRC ... ");
+  Serial.print(dap.readCRC(0, BUFSIZE), HEX);
+
+  duaration = millis()-start_ms;
+  Serial.print(" done in ");
+  Serial.print(duaration);
+  Serial.println(" ms");
 
   // verify if data is written
-  print_memory(0, buf, sizeof(buf));
+  //print_memory(0, buf, sizeof(buf));
 
   dap.deselect();
   dap.dap_disconnect();
