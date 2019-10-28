@@ -48,7 +48,7 @@
 #define DAP_DBGMCU_IDCODE 0xE0042000
 #define STM32_FLASHSIZE   0x1FFF7A22
 
-// Flash interface registers
+// Flash Interface Registers
 #define FLASH_R_BASE      0x40023C00UL
 #define FLASH_ACR         (FLASH_R_BASE + 0x00)
 #define FLASH_KEYR        (FLASH_R_BASE + 0x04)
@@ -57,6 +57,16 @@
 #define FLASH_CR          (FLASH_R_BASE + 0x10)
 #define FLASH_OPTCR       (FLASH_R_BASE + 0x14)
 #define FLASH_OPTCR1      (FLASH_R_BASE + 0x18)
+
+// RCC Registers
+#define RCC_BASE          0x40023800UL
+#define RCC_AHB1ENR       (RCC_BASE + 0x30)
+
+// CRC Registers
+#define CRC_BASE          0x40023000UL
+#define CRC_DR            (CRC_BASE + 0x00)
+#define CRC_IDR           (CRC_BASE + 0x04)
+#define CRC_CR            (CRC_BASE + 0x08)
 
 /*******************  Bits definition for FLASH_SR register  ******************/
 #define FLASH_SR_EOP_Pos               (0U)
@@ -270,16 +280,35 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_
   flash_lock();
 }
 
-//void Adafruit_DAP_STM32::verifyFlash(uint32_t addr, uint8_t const * data, uint32_t size)
-//{
-//  // reduce if there is issue with stack memory
-//  uint8_t buf[4*1024];
-//
-//  while (size)
-//  {
-//
-//  }
-//}
+uint32_t Adafruit_DAP_STM32::readCRC(uint32_t addr, uint32_t size)
+{
+  // reduce if there is issue with stack memory
+  uint32_t buf[1024];
+
+  uint32_t rcc_ahb1enr = dap_read_word(RCC_AHB1ENR);
+
+  // Enable Clock for CRC
+  dap_write_word(RCC_AHB1ENR, (1UL << 12) | rcc_ahb1enr );
+
+  // reset crc
+  dap_write_word(CRC_CR, 0x01UL);
+
+  while (size)
+  {
+    uint32_t count = min(size, sizeof(buf));
+    dap_read_block(addr, (uint8_t*) buf, count);
+
+    for(uint32_t i=0; i < count/4; i++)
+    {
+      dap_write_word(CRC_DR, buf[i]);
+    }
+
+    addr += count;
+    size -= count;
+  }
+
+  return dap_read_word(CRC_DR);
+}
 
 void Adafruit_DAP_STM32::deselect(void)
 {
