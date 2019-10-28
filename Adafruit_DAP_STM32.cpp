@@ -204,6 +204,8 @@ void Adafruit_DAP_STM32::erase(void)
 
 void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size)
 {
+  if (addr >= FLASH_START_ADDR) addr -= FLASH_START_ADDR;
+
   // in unit of KBs
   const uint32_t flash_sectors[] =
   {
@@ -268,6 +270,26 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_
 
   while ( flash_busy() ) yield();
   flash_lock();
+}
+
+bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t* data, uint32_t size)
+{
+  uint8_t buf[4*1024];
+
+  while (size)
+  {
+    uint32_t const count = min(size, sizeof(buf));
+
+    dap_read_block(addr, buf, count);
+
+    if ( memcmp(data, buf, count) ) return false;
+
+    data += count;
+    addr += count;
+    size -= count;
+  }
+
+  return true;
 }
 
 void Adafruit_DAP_STM32::deselect(void)

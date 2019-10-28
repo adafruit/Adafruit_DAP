@@ -13,6 +13,9 @@ uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_STM32 dap;
 
+// STM32 auto map 0x00 to 0x08000000, use 0 for simplicity
+#define FLASH_START_ADDR    0
+
 // Function called when there's an SWD error
 void error(const char *text) {
   Serial.println(text);
@@ -79,14 +82,16 @@ void setup() {
   Serial.print(dap.target_device.flash_size / 1024);
   Serial.println(" KBs");
   
-  uint32_t start_ms, duaration;;
+  uint32_t start_ms, duaration;
+
   
+  //------------- Preparing sectors -------------//
   Serial.print("Preparing ... ");
   
   start_ms = millis();
 
-  // preparing flash sector with address = 0, size = 
-  dap.programPrepare(0, BUFSIZE);
+  // preparing flash sector with address = 0, size = Binary size
+  dap.programPrepare(FLASH_START_ADDR, sizeof(buf));
   duaration = millis()-start_ms;
   
   Serial.print(" done in ");
@@ -100,17 +105,14 @@ void setup() {
   Serial.print(sizeof(buf)/1024);
   Serial.print(" KBs ...");
 
+  //------------- Programming -------------//
   // prepare data
   for(uint32_t i=0; i<sizeof(buf); i++) buf[i] = i;
 
   start_ms = millis();
-
-  uint32_t addr = 0;
-  dap.programBlock(addr, buf, sizeof(buf));
-  addr += 4096;
-
+  dap.programBlock(FLASH_START_ADDR, buf, sizeof(buf));
+  
   duaration = millis()-start_ms;
-
   Serial.print(" done in ");
   Serial.print(duaration);
   Serial.print(" ms, ");
@@ -118,6 +120,20 @@ void setup() {
   Serial.print("Speed ");
   Serial.print((double) sizeof(buf)/(duaration*1.024) );
   Serial.println(" KBs/s");
+
+  //------------- Veify contents -------------//
+  start_ms = millis();
+  Serial.print("Verifying ... ");
+  if ( dap.verifyFlash(FLASH_START_ADDR, buf, sizeof(buf)) ) {
+    Serial.print("Matched");
+  }else {
+    Serial.print("MisMatched");
+  }
+  
+  duaration = millis()-start_ms;
+  Serial.print(" done in ");
+  Serial.print(duaration);
+  Serial.print(" ms, ");
 
   // verify if data is written
   //print_memory(0, buf, sizeof(buf));
