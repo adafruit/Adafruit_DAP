@@ -4,7 +4,7 @@
 #define SWCLK 12
 #define SWRST 13
 
-#define BUFSIZE   4096
+#define BUFSIZE   (16*1024)
 
 // buffer should be word algined for STM32
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -16,6 +16,30 @@ Adafruit_DAP_STM32 dap;
 void error(const char *text) {
   Serial.println(text);
   while (1);
+}
+
+void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
+{
+  memset(buffer, 0xff, bufsize);
+  dap.dap_read_block(addr, buffer, bufsize);
+
+  for(int i=0; i < bufsize; i++)
+  {
+    if (i % 16 == 0) 
+    {
+      if ( i != 0 ) Serial.println();
+      // print offset
+      if ( i < 0x100 ) Serial.print("0");
+      if ( i < 0x10  ) Serial.print("0");
+      Serial.print(i, HEX);
+      Serial.print(": ");
+    }
+
+    if ( buffer[i] < 0x10 ) Serial.print("0");
+    Serial.print(buffer[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();  
 }
 
 void setup() {
@@ -67,6 +91,8 @@ void setup() {
   Serial.print(duaration);
   Serial.println(" ms");
 
+  print_memory(0, buf, sizeof(buf));  
+
   Serial.print("Programming 4K ... ");
 
   // prepare data
@@ -87,6 +113,10 @@ void setup() {
   Serial.print("Speed ");
   Serial.print((double) sizeof(buf)/(duaration*1.024) );
   Serial.println(" KBs/s");
+
+
+  // read back
+  print_memory(0, buf, sizeof(buf));
 
   dap.deselect();
   dap.dap_disconnect();

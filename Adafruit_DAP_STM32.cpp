@@ -196,24 +196,16 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_
 {
   if (!size) return;
 
-  const uint32_t* buf32 = (const uint32_t*) buf;
-
   flash_unlock();
   while ( flash_busy() ) yield();
 
-  while(size)
-  {
-    // PG
-    dap_write_word(FLASH_CR, FLASH_CR_PG | FLASH_CR_PSIZE_WORD);
+  // Enable programming bit: PG
+  dap_write_word(FLASH_CR, FLASH_CR_PG | FLASH_CR_PSIZE_WORD);
 
-    dap_write_word(addr, *buf32++);
+  // Program the whole buffer
+  dap_write_block(addr, buf, size);
 
-    addr += 4;
-    size = ((size < 4) ? 0 : (size-4));
-
-    while ( flash_busy() ) yield();
-  }
-
+  while ( flash_busy() ) yield();
   flash_lock();
 }
 
