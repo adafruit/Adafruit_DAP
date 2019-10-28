@@ -78,15 +78,15 @@ void setup() {
   Serial.print("Flash size\t");
   Serial.print(dap.target_device.flash_size / 1024);
   Serial.println(" KBs");
-  Serial.print("Flash pages\t");
-  Serial.println(dap.target_device.n_pages);
-
+  
   uint32_t start_ms, duaration;;
   
-  Serial.print("Erasing... ");
+  Serial.print("Preparing ... ");
   
   start_ms = millis();
-  dap.erase();
+
+  // preparing flash sector with address = 0, size = 
+  dap.programPrepare(0, sizeof(buf));
   duaration = millis()-start_ms;
   
   Serial.print(" done in ");

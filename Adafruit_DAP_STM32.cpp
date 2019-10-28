@@ -36,10 +36,11 @@
 #include "Adafruit_DAP.h"
 #include "dap.h"
 
+#include "Arduino.h"
+
 //--------------------------------------------------------------------+
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
 //--------------------------------------------------------------------+
-
 #define DHCSR             0xe000edf0
 #define DEMCR             0xe000edfc
 #define AIRCR             0xe000ed0c
@@ -129,6 +130,15 @@ struct
 
 enum { STM32_DEVICES_COUNT = sizeof(_stm32_devices)/sizeof(_stm32_devices[0]) };
 
+
+// Flash Layout Organization
+// STM32 auto map 0x00 to FLASH_START_ADDR
+#define FLASH_START_ADDR    0x08000000
+
+//--------------------------------------------------------------------+
+// Implementation
+//--------------------------------------------------------------------+
+
 Adafruit_DAP_STM32::Adafruit_DAP_STM32(void)
 {
   memset(&target_device, 0, sizeof(target_device));
@@ -192,6 +202,57 @@ void Adafruit_DAP_STM32::erase(void)
   flash_lock();
 }
 
+void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size)
+{
+  // in unit of KBs
+  const uint32_t flash_sectors[] =
+  {
+    // Bank 0 : sector 0-3 : 16 KB, sector 4: 64 KB, sector 5-11: 128 KB
+    16, 16, 16, 16,
+    64,
+    128, 128, 128, 128, 128, 128, 128,
+
+    // Bank 1 : sector 0-3 : 16 KB, sector 4: 64 KB, sector 5-11: 128 KB
+    16, 16, 16, 16,
+    64,
+    128, 128, 128, 128, 128, 128, 128,
+
+    0
+  };
+
+  const uint32_t sector_count = sizeof(flash_sectors)/sizeof(flash_sectors[0]);
+
+  uint32_t sec_start = 0;
+  uint32_t sec_end = 0;
+  uint32_t tempaddr = 0;
+
+  for(uint32_t i=0; i<sector_count; i++)
+  {
+    if ( tempaddr <= addr ) sec_start = i;
+
+    if ( (addr + size) <= tempaddr )
+    {
+      sec_end = i-1;
+      break;
+    }
+
+    tempaddr += flash_sectors[i]*1024;
+  }
+
+  flash_unlock();
+
+  for(uint32_t i=sec_start; i <= sec_end; i++)
+  {
+    while ( flash_busy() ) yield();
+
+    // Set SER, Sector Number, and PSize and Start bit
+    dap_write_word(FLASH_CR, FLASH_CR_SER | FLASH_CR_STRT | (i << FLASH_CR_SNB_Pos) | FLASH_CR_PSIZE_WORD);
+  }
+
+  while ( flash_busy() ) yield();
+  flash_lock();
+}
+
 void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_t size)
 {
   if (!size) return;
@@ -208,6 +269,17 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf, uint32_
   while ( flash_busy() ) yield();
   flash_lock();
 }
+
+//void Adafruit_DAP_STM32::verifyFlash(uint32_t addr, uint8_t const * data, uint32_t size)
+//{
+//  // reduce if there is issue with stack memory
+//  uint8_t buf[4*1024];
+//
+//  while (size)
+//  {
+//
+//  }
+//}
 
 void Adafruit_DAP_STM32::deselect(void)
 {
