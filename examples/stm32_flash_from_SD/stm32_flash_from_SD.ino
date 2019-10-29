@@ -37,8 +37,9 @@ void setup() {
   }
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
-  
-    // see if the card is present and can be initialized:
+
+  //------------- SD Card open -------------//
+  // see if the card is present and can be initialized:
   if (!SD.begin(SD_CS)) {
     error("Card failed, or not present");
   }
@@ -49,7 +50,8 @@ void setup() {
   if(!dataFile){
      error("Couldn't open file");
   }
-  
+
+  //------------- DAP connecting -------------//
   Serial.print("Connecting...");  
   if (! dap.dap_disconnect())                      error(dap.error_message);
   
@@ -76,18 +78,14 @@ void setup() {
   Serial.print(dap.target_device.flash_size / 1024);
   Serial.println(" KBs");
 
-
   //------------- Preparing sectors -------------//
   uint32_t start_ms;
   Serial.print("Preparing ... ");
   start_ms = millis();
 
   // preparing flash sector with address = 0, size = Binary size
-  dap.programPrepare(FLASH_START_ADDR, dataFile.size());
-  
-  Serial.print(" done in ");
-  Serial.print(millis()-start_ms);
-  Serial.println(" ms");
+  dap.programPrepare(FLASH_START_ADDR, dataFile.size());  
+  Serial.print(" done in "); Serial.print(millis()-start_ms); Serial.println(" ms");
 
   //------------- Programming -------------//
   Serial.print("Programming ");
@@ -95,19 +93,37 @@ void setup() {
   Serial.print(" bytes ...");
 
   uint32_t addr = FLASH_START_ADDR;
-
+  start_ms = millis();
+  
   while (dataFile.available()) {
       memset(buf, BUFSIZE, 0xFF);  // empty it out
       uint32_t count = dataFile.read(buf, BUFSIZE);
       dap.programBlock(addr, buf, count);
       addr += count;
   }
+
+  Serial.print(" done in "); Serial.print(millis()-start_ms); Serial.println(" ms");
+
+  //------------- Verifying -------------//
+  Serial.print("Verifying ...");
+  dataFile.seek(0); // seek to file beginning
+
+  addr = FLASH_START_ADDR;
+  start_ms = millis();
+  
+  while (dataFile.available()) {
+      memset(buf, BUFSIZE, 0xFF);  // empty it out
+      uint32_t count = dataFile.read(buf, BUFSIZE);
+      if ( !dap.verifyFlash(addr, buf, count) ) {
+        error("Flash mismatched");
+      }
+      addr += count;
+  }
+
+  Serial.print(" done in "); Serial.print(millis()-start_ms); Serial.println(" ms");
+
   dataFile.close();
-
-  Serial.print(" done in ");
-  Serial.print(millis()-start_ms);
-  Serial.println(" ms");
-
+  
   dap.deselect();
   dap.dap_disconnect();
 }
