@@ -26,7 +26,7 @@ install:
 
 script:
    - python run-clang-format.py -r .
-   - build_platform metro_m4
+   - build_platform m4
 
 # Generate and deploy documentation
 after_success:
