@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Adafruit <info@adafruit.com>
+ * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Adafruit
+ * <info@adafruit.com>
  * All rights reserved.
  *
- * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just put both halves into one library and wrapped it up in Arduino compatibility
+ * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just
+ * put both halves into one library and wrapped it up in Arduino compatibility
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -42,4 +44,3 @@ void dap_clock_test(int delay);
 void dap_setup_clock(int cycles);
 
 #endif // _DAP_H_
-

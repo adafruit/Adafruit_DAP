@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Ha Thach for Adafruit <info@adafruit.com>
+ * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Ha Thach for
+ * Adafruit <info@adafruit.com>
  * All rights reserved.
  *
- * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just put both halves into one library and wrapped it up in Arduino compatibility
+ * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just
+ * put both halves into one library and wrapped it up in Arduino compatibility
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,27 +33,26 @@
 #ifndef ADAFRUIT_DAP_STM32_H_
 #define ADAFRUIT_DAP_STM32_H_
 
-class Adafruit_DAP_STM32 : public Adafruit_DAP
-{
-  public:
-    Adafruit_DAP_STM32(void);
-    ~Adafruit_DAP_STM32(void) {};
+class Adafruit_DAP_STM32 : public Adafruit_DAP {
+public:
+  Adafruit_DAP_STM32(void);
+  ~Adafruit_DAP_STM32(void){};
 
-    device_t target_device;
+  device_t target_device;
 
-    bool select(uint32_t *id);
-    void deselect(void);
-    void erase(void);
+  bool select(uint32_t *id);
+  void deselect(void);
+  void erase(void);
 
-    void programPrepare(uint32_t addr, uint32_t size);
-    void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
+  void programPrepare(uint32_t addr, uint32_t size);
+  void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
 
-    bool verifyFlash(uint32_t addr, const uint8_t* data, uint32_t size);
+  bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
 
-  private:
-    bool flash_busy(void);
-    void flash_unlock(void);
-    void flash_lock(void);
+private:
+  bool flash_busy(void);
+  void flash_unlock(void);
+  void flash_lock(void);
 };
 
 #endif /* ADAFRUIT_DAP_STM32_H_ */

@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Adafruit <info@adafruit.com>
+ * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Adafruit
+ * <info@adafruit.com>
  * All rights reserved.
  *
- * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just put both halves into one library and wrapped it up in Arduino compatibility
+ * This is mostly a re-mix of Alex Taradovs excellent Free-DAP code - we just
+ * put both halves into one library and wrapped it up in Arduino compatibility
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,30 +31,33 @@
  */
 
 /*- Includes ----------------------------------------------------------------*/
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include "dap_config.h"
 #include "dap.h"
+#include "dap_config.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 int DAP_CONFIG_SWCLK_PIN;
 int DAP_CONFIG_SWDIO_PIN;
 int DAP_CONFIG_nRESET_PIN;
 
 #if defined(ARDUINO_ARCH_SAMD)
-  // ultra speedy
-volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG, *SWCLK_INREG;
-  uint32_t           SWCLK_PINMASK;
-volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INREG;
-  uint32_t           SWDIO_PINMASK;
+// ultra speedy
+volatile uint32_t *SWCLK_OUTSETREG, *SWCLK_OUTCLRREG, *SWCLK_DIRREG,
+    *SWCLK_INREG;
+uint32_t SWCLK_PINMASK;
+volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG,
+    *SWDIO_INREG;
+uint32_t SWDIO_PINMASK;
 #elif defined(TEENSYDUINO)
-  volatile uint32_t SWCLK_BITMASK, *SWCLK_PORTCONFIG;
-  volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR, *SWCLK_PORT_INPUT_REG;
+volatile uint32_t SWCLK_BITMASK, *SWCLK_PORTCONFIG;
+volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR,
+    *SWCLK_PORT_INPUT_REG;
 
-  volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
-  volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR, *SWDIO_PORT_INPUT_REG;
+volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
+volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR,
+    *SWDIO_PORT_INPUT_REG;
 #endif
-
 
 #ifdef DAP_CONFIG_ENABLE_JTAG
 #error JTAG is not supported. If you have a real need for it, please contact me.
@@ -63,110 +68,101 @@ volatile uint32_t *SWDIO_OUTSETREG, *SWDIO_OUTCLRREG, *SWDIO_DIRREG, *SWDIO_INRE
 #endif
 
 /*- Definitions -------------------------------------------------------------*/
-enum
-{
-  ID_DAP_INFO               = 0x00,
-  ID_DAP_LED                = 0x01,
-  ID_DAP_CONNECT            = 0x02,
-  ID_DAP_DISCONNECT         = 0x03,
+enum {
+  ID_DAP_INFO = 0x00,
+  ID_DAP_LED = 0x01,
+  ID_DAP_CONNECT = 0x02,
+  ID_DAP_DISCONNECT = 0x03,
   ID_DAP_TRANSFER_CONFIGURE = 0x04,
-  ID_DAP_TRANSFER           = 0x05,
-  ID_DAP_TRANSFER_BLOCK     = 0x06,
-  ID_DAP_TRANSFER_ABORT     = 0x07,
-  ID_DAP_WRITE_ABORT        = 0x08,
-  ID_DAP_DELAY              = 0x09,
-  ID_DAP_RESET_TARGET       = 0x0a,
-  ID_DAP_SWJ_PINS           = 0x10,
-  ID_DAP_SWJ_CLOCK          = 0x11,
-  ID_DAP_SWJ_SEQUENCE       = 0x12,
-  ID_DAP_SWD_CONFIGURE      = 0x13,
-  ID_DAP_JTAG_SEQUENCE      = 0x14,
-  ID_DAP_JTAG_CONFIGURE     = 0x15,
-  ID_DAP_JTAG_IDCODE        = 0x16,
-  ID_DAP_VENDOR_0           = 0x80,
-  ID_DAP_VENDOR_31          = 0x9f,
-  ID_DAP_INVALID            = 0xff,
+  ID_DAP_TRANSFER = 0x05,
+  ID_DAP_TRANSFER_BLOCK = 0x06,
+  ID_DAP_TRANSFER_ABORT = 0x07,
+  ID_DAP_WRITE_ABORT = 0x08,
+  ID_DAP_DELAY = 0x09,
+  ID_DAP_RESET_TARGET = 0x0a,
+  ID_DAP_SWJ_PINS = 0x10,
+  ID_DAP_SWJ_CLOCK = 0x11,
+  ID_DAP_SWJ_SEQUENCE = 0x12,
+  ID_DAP_SWD_CONFIGURE = 0x13,
+  ID_DAP_JTAG_SEQUENCE = 0x14,
+  ID_DAP_JTAG_CONFIGURE = 0x15,
+  ID_DAP_JTAG_IDCODE = 0x16,
+  ID_DAP_VENDOR_0 = 0x80,
+  ID_DAP_VENDOR_31 = 0x9f,
+  ID_DAP_INVALID = 0xff,
 };
 
-enum
-{
-  DAP_INFO_VENDOR           = 0x01,
-  DAP_INFO_PRODUCT          = 0x02,
-  DAP_INFO_SER_NUM          = 0x03,
-  DAP_INFO_FW_VER           = 0x04,
-  DAP_INFO_DEVICE_VENDOR    = 0x05,
-  DAP_INFO_DEVICE_NAME      = 0x06,
-  DAP_INFO_CAPABILITIES     = 0xf0,
-  DAP_INFO_PACKET_COUNT     = 0xfe,
-  DAP_INFO_PACKET_SIZE      = 0xff,
+enum {
+  DAP_INFO_VENDOR = 0x01,
+  DAP_INFO_PRODUCT = 0x02,
+  DAP_INFO_SER_NUM = 0x03,
+  DAP_INFO_FW_VER = 0x04,
+  DAP_INFO_DEVICE_VENDOR = 0x05,
+  DAP_INFO_DEVICE_NAME = 0x06,
+  DAP_INFO_CAPABILITIES = 0xf0,
+  DAP_INFO_PACKET_COUNT = 0xfe,
+  DAP_INFO_PACKET_SIZE = 0xff,
 };
 
-enum
-{
-  DAP_TRANSFER_APnDP        = 1 << 0,
-  DAP_TRANSFER_RnW          = 1 << 1,
-  DAP_TRANSFER_A2           = 1 << 2,
-  DAP_TRANSFER_A3           = 1 << 3,
-  DAP_TRANSFER_MATCH_VALUE  = 1 << 4,
-  DAP_TRANSFER_MATCH_MASK   = 1 << 5,
+enum {
+  DAP_TRANSFER_APnDP = 1 << 0,
+  DAP_TRANSFER_RnW = 1 << 1,
+  DAP_TRANSFER_A2 = 1 << 2,
+  DAP_TRANSFER_A3 = 1 << 3,
+  DAP_TRANSFER_MATCH_VALUE = 1 << 4,
+  DAP_TRANSFER_MATCH_MASK = 1 << 5,
 };
 
-enum
-{
-  DAP_TRANSFER_INVALID      = 0,
-  DAP_TRANSFER_OK           = 1 << 0,
-  DAP_TRANSFER_WAIT         = 1 << 1,
-  DAP_TRANSFER_FAULT        = 1 << 2,
-  DAP_TRANSFER_ERROR        = 1 << 3,
-  DAP_TRANSFER_MISMATCH     = 1 << 4,
+enum {
+  DAP_TRANSFER_INVALID = 0,
+  DAP_TRANSFER_OK = 1 << 0,
+  DAP_TRANSFER_WAIT = 1 << 1,
+  DAP_TRANSFER_FAULT = 1 << 2,
+  DAP_TRANSFER_ERROR = 1 << 3,
+  DAP_TRANSFER_MISMATCH = 1 << 4,
 };
 
-enum
-{
-  DAP_PORT_DISABLED         = 0,
-  DAP_PORT_AUTODETECT       = 0,
-  DAP_PORT_SWD              = 1,
-  DAP_PORT_JTAG             = 2,
+enum {
+  DAP_PORT_DISABLED = 0,
+  DAP_PORT_AUTODETECT = 0,
+  DAP_PORT_SWD = 1,
+  DAP_PORT_JTAG = 2,
 };
 
-enum
-{
-  DAP_SWJ_SWCLK_TCK         = 1 << 0,
-  DAP_SWJ_SWDIO_TMS         = 1 << 1,
-  DAP_SWJ_TDI               = 1 << 2,
-  DAP_SWJ_TDO               = 1 << 3,
-  DAP_SWJ_nTRST             = 1 << 5,
-  DAP_SWJ_nRESET            = 1 << 7,
+enum {
+  DAP_SWJ_SWCLK_TCK = 1 << 0,
+  DAP_SWJ_SWDIO_TMS = 1 << 1,
+  DAP_SWJ_TDI = 1 << 2,
+  DAP_SWJ_TDO = 1 << 3,
+  DAP_SWJ_nTRST = 1 << 5,
+  DAP_SWJ_nRESET = 1 << 7,
 };
 
-enum
-{
-  DAP_OK                    = 0x00,
-  DAP_ERROR                 = 0xff,
+enum {
+  DAP_OK = 0x00,
+  DAP_ERROR = 0xff,
 };
 
-enum
-{
-  SWD_DP_R_IDCODE           = 0x00,
-  SWD_DP_W_ABORT            = 0x00,
-  SWD_DP_R_CTRL_STAT        = 0x04,
-  SWD_DP_W_CTRL_STAT        = 0x04, // When CTRLSEL == 0
-  SWD_DP_W_WCR              = 0x04, // When CTRLSEL == 1
-  SWD_DP_R_RESEND           = 0x08,
-  SWD_DP_W_SELECT           = 0x08,
-  SWD_DP_R_RDBUFF           = 0x0c,
+enum {
+  SWD_DP_R_IDCODE = 0x00,
+  SWD_DP_W_ABORT = 0x00,
+  SWD_DP_R_CTRL_STAT = 0x04,
+  SWD_DP_W_CTRL_STAT = 0x04, // When CTRLSEL == 0
+  SWD_DP_W_WCR = 0x04,       // When CTRLSEL == 1
+  SWD_DP_R_RESEND = 0x08,
+  SWD_DP_W_SELECT = 0x08,
+  SWD_DP_R_RDBUFF = 0x0c,
 };
 
 /*- Constants ---------------------------------------------------------------*/
-static const char * const dap_info_strings[] =
-{
-  NULL,
-  DAP_CONFIG_VENDOR_STR,
-  DAP_CONFIG_PRODUCT_STR,
-  DAP_CONFIG_SER_NUM_STR,
-  DAP_CONFIG_FW_VER_STR,
-  DAP_CONFIG_DEVICE_VENDOR_STR,
-  DAP_CONFIG_DEVICE_NAME_STR,
+static const char *const dap_info_strings[] = {
+    NULL,
+    DAP_CONFIG_VENDOR_STR,
+    DAP_CONFIG_PRODUCT_STR,
+    DAP_CONFIG_SER_NUM_STR,
+    DAP_CONFIG_FW_VER_STR,
+    DAP_CONFIG_DEVICE_VENDOR_STR,
+    DAP_CONFIG_DEVICE_NAME_STR,
 };
 
 /*- Variables ---------------------------------------------------------------*/
@@ -190,19 +186,16 @@ static bool dap_swd_data_phase;
 /*- Implementations ---------------------------------------------------------*/
 
 //-----------------------------------------------------------------------------
-static inline void dap_delay_loop(int delay)
-{
-  for(int i=0; i<delay; i++){
+static inline void dap_delay_loop(int delay) {
+  for (int i = 0; i < delay; i++) {
     asm("nop");
   }
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_clock_slow (int cycles)
-{
-  while (cycles > 0)
-  {
-	cycles--;
+static void dap_swd_clock_slow(int cycles) {
+  while (cycles > 0) {
+    cycles--;
     DAP_CONFIG_SWCLK_TCK_clr();
     dap_delay_loop(dap_clock_delay);
     DAP_CONFIG_SWCLK_TCK_set();
@@ -211,10 +204,8 @@ static void dap_swd_clock_slow (int cycles)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_write_slow (uint32_t value, int size)
-{
-  for (int i = 0; i < size; i++)
-  {
+static void dap_swd_write_slow(uint32_t value, int size) {
+  for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWDIO_TMS_write(value & 1);
     DAP_CONFIG_SWCLK_TCK_clr();
     dap_delay_loop(dap_clock_delay);
@@ -225,12 +216,10 @@ static void dap_swd_write_slow (uint32_t value, int size)
 }
 
 //-----------------------------------------------------------------------------
-static uint32_t dap_swd_read_slow (int size)
-{
+static uint32_t dap_swd_read_slow(int size) {
   uint32_t value = 0;
 
-  for (int i = 0; i < size; i++)
-  {
+  for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWCLK_TCK_clr();
     dap_delay_loop(dap_clock_delay);
     value |= ((uint32_t)DAP_CONFIG_SWDIO_TMS_read() << i);
@@ -242,20 +231,16 @@ static uint32_t dap_swd_read_slow (int size)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_clock_fast(int cycles)
-{
-  while (cycles--)
-  {
+static void dap_swd_clock_fast(int cycles) {
+  while (cycles--) {
     DAP_CONFIG_SWCLK_TCK_clr();
     DAP_CONFIG_SWCLK_TCK_set();
   }
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_write_fast(uint32_t value, int size)
-{
-  for (int i = 0; i < size; i++)
-  {
+static void dap_swd_write_fast(uint32_t value, int size) {
+  for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWDIO_TMS_write(value & 1);
     DAP_CONFIG_SWCLK_TCK_clr();
     value >>= 1;
@@ -264,13 +249,11 @@ static void dap_swd_write_fast(uint32_t value, int size)
 }
 
 //-----------------------------------------------------------------------------
-static uint32_t dap_swd_read_fast(int size)
-{
+static uint32_t dap_swd_read_fast(int size) {
   uint32_t value = 0;
   uint32_t bit;
 
-  for (int i = 0; i < size; i++)
-  {
+  for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWCLK_TCK_clr();
     bit = DAP_CONFIG_SWDIO_TMS_read();
     DAP_CONFIG_SWCLK_TCK_set();
@@ -281,26 +264,24 @@ static uint32_t dap_swd_read_fast(int size)
 }
 
 //-----------------------------------------------------------------------------
-void dap_setup_clock(int cycles)
-{
-    dap_clock_delay = cycles;
-    if(cycles > 0){
-      //Serial.print("Using delayed clocking: "); Serial.println(dap_clock_delay);
-      dap_swd_clock = dap_swd_clock_slow;
-      dap_swd_write = dap_swd_write_slow;
-      dap_swd_read = dap_swd_read_slow;
-    }
-    else{
-      //Serial.print("Using fast clocking\n");
-      dap_swd_clock = dap_swd_clock_fast;
-      dap_swd_write = dap_swd_write_fast;
-      dap_swd_read = dap_swd_read_fast;
-    }
+void dap_setup_clock(int cycles) {
+  dap_clock_delay = cycles;
+  if (cycles > 0) {
+    // Serial.print("Using delayed clocking: ");
+    // Serial.println(dap_clock_delay);
+    dap_swd_clock = dap_swd_clock_slow;
+    dap_swd_write = dap_swd_write_slow;
+    dap_swd_read = dap_swd_read_slow;
+  } else {
+    // Serial.print("Using fast clocking\n");
+    dap_swd_clock = dap_swd_clock_fast;
+    dap_swd_write = dap_swd_write_fast;
+    dap_swd_read = dap_swd_read_fast;
+  }
 }
 
 //-----------------------------------------------------------------------------
-static inline uint32_t dap_parity(uint32_t value)
-{
+static inline uint32_t dap_parity(uint32_t value) {
   value ^= value >> 16;
   value ^= value >> 8;
   value ^= value >> 4;
@@ -310,8 +291,7 @@ static inline uint32_t dap_parity(uint32_t value)
 }
 
 //-----------------------------------------------------------------------------
-static int dap_swd_operation(int req, uint32_t *data)
-{
+static int dap_swd_operation(int req, uint32_t *data) {
   uint32_t value;
   int ack = 0;
 
@@ -323,10 +303,8 @@ static int dap_swd_operation(int req, uint32_t *data)
 
   ack = dap_swd_read(3);
 
-  if (DAP_TRANSFER_OK == ack)
-  {
-    if (req & DAP_TRANSFER_RnW)
-    {
+  if (DAP_TRANSFER_OK == ack) {
+    if (req & DAP_TRANSFER_RnW) {
       value = dap_swd_read(32);
 
       if (dap_parity(value) != dap_swd_read(1))
@@ -338,9 +316,7 @@ static int dap_swd_operation(int req, uint32_t *data)
       dap_swd_clock(dap_swd_turnaround);
 
       DAP_CONFIG_SWDIO_TMS_out();
-    }
-    else
-    {
+    } else {
       dap_swd_clock(dap_swd_turnaround);
 
       DAP_CONFIG_SWDIO_TMS_out();
@@ -353,8 +329,7 @@ static int dap_swd_operation(int req, uint32_t *data)
     dap_swd_clock(dap_idle_cycles);
   }
 
-  else if (DAP_TRANSFER_WAIT == ack || DAP_TRANSFER_FAULT == ack)
-  {
+  else if (DAP_TRANSFER_WAIT == ack || DAP_TRANSFER_FAULT == ack) {
     if (dap_swd_data_phase && (req & DAP_TRANSFER_RnW))
       dap_swd_clock(32 + 1);
 
@@ -362,15 +337,13 @@ static int dap_swd_operation(int req, uint32_t *data)
 
     DAP_CONFIG_SWDIO_TMS_out();
 
-    if (dap_swd_data_phase && (0 == (req & DAP_TRANSFER_RnW)))
-    {
+    if (dap_swd_data_phase && (0 == (req & DAP_TRANSFER_RnW))) {
       DAP_CONFIG_SWDIO_TMS_write(0);
       dap_swd_clock(32 + 1);
     }
   }
 
-  else
-  {
+  else {
     dap_swd_clock(dap_swd_turnaround + 32 + 1);
   }
 
@@ -380,14 +353,13 @@ static int dap_swd_operation(int req, uint32_t *data)
 }
 
 //-----------------------------------------------------------------------------
-static int dap_swd_transfer_word(int req, uint32_t *data)
-{
+static int dap_swd_transfer_word(int req, uint32_t *data) {
   int ack;
 
-  req &= (DAP_TRANSFER_APnDP | DAP_TRANSFER_RnW | DAP_TRANSFER_A2 | DAP_TRANSFER_A3);
+  req &= (DAP_TRANSFER_APnDP | DAP_TRANSFER_RnW | DAP_TRANSFER_A2 |
+          DAP_TRANSFER_A3);
 
-  for (int i = 0; i < dap_retry_count; i++)
-  {
+  for (int i = 0; i < dap_retry_count; i++) {
     ack = dap_swd_operation(req, data);
 
     if (DAP_TRANSFER_WAIT != ack || dap_abort)
@@ -398,8 +370,7 @@ static int dap_swd_transfer_word(int req, uint32_t *data)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
-{
+static void dap_swd_transfer(uint8_t *req, uint8_t *resp) {
   int req_count, resp_count, request, ack;
   uint8_t *req_data, *resp_data;
   bool posted_read, verify_write;
@@ -415,20 +386,15 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
   posted_read = false;
   verify_write = false;
 
-  while (req_count && !dap_abort)
-  {
+  while (req_count && !dap_abort) {
     verify_write = false;
     request = req_data[0];
     req_data++;
 
-    if (posted_read)
-    {
-      if ((request & DAP_TRANSFER_APnDP) && (request & DAP_TRANSFER_RnW))
-      {
+    if (posted_read) {
+      if ((request & DAP_TRANSFER_APnDP) && (request & DAP_TRANSFER_RnW)) {
         ack = dap_swd_transfer_word(request, &data);
-      }
-      else
-      {
+      } else {
         ack = dap_swd_transfer_word(SWD_DP_R_RDBUFF | DAP_TRANSFER_RnW, &data);
         posted_read = false;
       }
@@ -443,19 +409,18 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
       resp_data += 4;
     }
 
-    if (request & DAP_TRANSFER_RnW)
-    {
-      if (request & DAP_TRANSFER_MATCH_VALUE)
-      {
-        match_value = ((uint32_t)req_data[3] << 24) | ((uint32_t)req_data[2] << 16) |
+    if (request & DAP_TRANSFER_RnW) {
+      if (request & DAP_TRANSFER_MATCH_VALUE) {
+        match_value = ((uint32_t)req_data[3] << 24) |
+                      ((uint32_t)req_data[2] << 16) |
                       ((uint32_t)req_data[1] << 8) | req_data[0];
         req_data += 4;
 
-        for (int i = 0; i < dap_match_retry_count; i++)
-        {
+        for (int i = 0; i < dap_match_retry_count; i++) {
           ack = dap_swd_transfer_word(request, &data);
 
-          if (DAP_TRANSFER_OK != ack || (data & dap_match_mask) == match_value || dap_abort)
+          if (DAP_TRANSFER_OK != ack ||
+              (data & dap_match_mask) == match_value || dap_abort)
             break;
         };
 
@@ -464,13 +429,9 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
 
         if (ack != DAP_TRANSFER_OK)
           break;
-      }
-      else
-      {
-        if (request & DAP_TRANSFER_APnDP)
-        {
-          if (!posted_read)
-          {
+      } else {
+        if (request & DAP_TRANSFER_APnDP) {
+          if (!posted_read) {
             ack = dap_swd_transfer_word(request, NULL);
 
             if (ack != DAP_TRANSFER_OK)
@@ -478,9 +439,7 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
 
             posted_read = true;
           }
-        }
-        else
-        {
+        } else {
           ack = dap_swd_transfer_word(request, &data);
 
           if (DAP_TRANSFER_OK != ack)
@@ -493,20 +452,15 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
           resp_data += 4;
         }
       }
-    }
-    else
-    {
+    } else {
       data = ((uint32_t)req_data[3] << 24) | ((uint32_t)req_data[2] << 16) |
              ((uint32_t)req_data[1] << 8) | req_data[0];
       req_data += 4;
 
-      if (request & DAP_TRANSFER_MATCH_MASK)
-      {
+      if (request & DAP_TRANSFER_MATCH_MASK) {
         ack = DAP_TRANSFER_OK;
         dap_match_mask = data;
-      }
-      else
-      {
+      } else {
         ack = dap_swd_transfer_word(request, &data);
 
         if (ack != DAP_TRANSFER_OK)
@@ -520,20 +474,17 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
     resp_count++;
   }
 
-  if (DAP_TRANSFER_OK == ack)
-  {
-    if (posted_read)
-    {
+  if (DAP_TRANSFER_OK == ack) {
+    if (posted_read) {
       ack = dap_swd_transfer_word(SWD_DP_R_RDBUFF | DAP_TRANSFER_RnW, &data);
 
-      // Save data regardless of the ACK status, at this point it does not matter
+      // Save data regardless of the ACK status, at this point it does not
+      // matter
       resp_data[0] = data;
       resp_data[1] = data >> 8;
       resp_data[2] = data >> 16;
       resp_data[3] = data >> 24;
-    }
-    else if (verify_write)
-    {
+    } else if (verify_write) {
       ack = dap_swd_transfer_word(SWD_DP_R_RDBUFF | DAP_TRANSFER_RnW, NULL);
     }
   }
@@ -543,8 +494,7 @@ static void dap_swd_transfer(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_transfer_block(uint8_t *req, uint8_t *resp)
-{
+static void dap_swd_transfer_block(uint8_t *req, uint8_t *resp) {
   int req_count, resp_count, request, ack;
   uint8_t *req_data, *resp_data;
   uint32_t data;
@@ -564,12 +514,11 @@ static void dap_swd_transfer_block(uint8_t *req, uint8_t *resp)
   if (0 == req_count)
     return;
 
-  if (request & DAP_TRANSFER_RnW)
-  {
-    int transfers = (request & DAP_TRANSFER_APnDP) ? (req_count + 1) : req_count;
+  if (request & DAP_TRANSFER_RnW) {
+    int transfers =
+        (request & DAP_TRANSFER_APnDP) ? (req_count + 1) : req_count;
 
-    for (int i = 0; i < transfers; i++)
-    {
+    for (int i = 0; i < transfers; i++) {
       if (i == req_count) // This will only happen for AP transfers
         request = SWD_DP_R_RDBUFF | DAP_TRANSFER_RnW;
 
@@ -588,11 +537,8 @@ static void dap_swd_transfer_block(uint8_t *req, uint8_t *resp)
       resp_data += 4;
       resp_count++;
     }
-  }
-  else
-  {
-    for (int i = 0; i < req_count; i++)
-    {
+  } else {
+    for (int i = 0; i < req_count; i++) {
       data = ((uint32_t)req_data[3] << 24) | ((uint32_t)req_data[2] << 16) |
              ((uint32_t)req_data[1] << 8) | ((uint32_t)req_data[0] << 0);
       req_data += 4;
@@ -615,24 +561,17 @@ static void dap_swd_transfer_block(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_info(uint8_t *req, uint8_t *resp)
-{
+static void dap_info(uint8_t *req, uint8_t *resp) {
   int index = req[0];
 
-  if (DAP_INFO_VENDOR <= index && index <= DAP_INFO_DEVICE_NAME)
-  {
-    if (dap_info_strings[index])
-    {
+  if (DAP_INFO_VENDOR <= index && index <= DAP_INFO_DEVICE_NAME) {
+    if (dap_info_strings[index]) {
       resp[0] = strlen(dap_info_strings[index]) + 1;
       strcpy((char *)&resp[1], dap_info_strings[index]);
-    }
-    else
-    {
+    } else {
       resp[0] = 0;
     }
-  }
-  else if (DAP_INFO_CAPABILITIES == index)
-  {
+  } else if (DAP_INFO_CAPABILITIES == index) {
     resp[0] = 1;
     resp[1] = 0;
 
@@ -642,14 +581,10 @@ static void dap_info(uint8_t *req, uint8_t *resp)
 #ifdef DAP_CONFIG_ENABLE_JTAG
     resp[1] |= DAP_PORT_JTAG;
 #endif
-  }
-  else if (DAP_INFO_PACKET_COUNT == index)
-  {
+  } else if (DAP_INFO_PACKET_COUNT == index) {
     resp[0] = 1;
     resp[1] = DAP_CONFIG_PACKET_COUNT;
-  }
-  else if (DAP_INFO_PACKET_SIZE == index)
-  {
+  } else if (DAP_INFO_PACKET_SIZE == index) {
     resp[0] = 2;
     resp[1] = DAP_CONFIG_PACKET_SIZE;
     resp[2] = DAP_CONFIG_PACKET_SIZE >> 8;
@@ -657,8 +592,7 @@ static void dap_info(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_led(uint8_t *req, uint8_t *resp)
-{
+static void dap_led(uint8_t *req, uint8_t *resp) {
   int index = req[0];
   int state = req[1];
 
@@ -668,8 +602,7 @@ static void dap_led(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_connect(uint8_t *req, uint8_t *resp)
-{
+static void dap_connect(uint8_t *req, uint8_t *resp) {
   int port = req[0];
 
   if (DAP_PORT_AUTODETECT == port)
@@ -678,16 +611,14 @@ static void dap_connect(uint8_t *req, uint8_t *resp)
   dap_port = DAP_PORT_DISABLED;
 
 #ifdef DAP_CONFIG_ENABLE_SWD
-  if (DAP_PORT_SWD == port)
-  {
+  if (DAP_PORT_SWD == port) {
     DAP_CONFIG_CONNECT_SWD();
     dap_port = DAP_PORT_SWD;
   }
 #endif
 
 #ifdef DAP_CONFIG_ENABLE_JTAG
-  if (DAP_PORT_JTAG == port)
-  {
+  if (DAP_PORT_JTAG == port) {
     DAP_CONFIG_CONNECT_JTAG();
     dap_port = DAP_PORT_JTAG;
   }
@@ -697,8 +628,7 @@ static void dap_connect(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_disconnect(uint8_t *req, uint8_t *resp)
-{
+static void dap_disconnect(uint8_t *req, uint8_t *resp) {
   DAP_CONFIG_DISCONNECT();
 
   dap_port = DAP_PORT_DISABLED;
@@ -709,8 +639,7 @@ static void dap_disconnect(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_transfer_configure(uint8_t *req, uint8_t *resp)
-{
+static void dap_transfer_configure(uint8_t *req, uint8_t *resp) {
   dap_idle_cycles = req[0];
   dap_retry_count = ((int)req[2] << 8) | req[1];
   dap_match_retry_count = ((int)req[4] << 8) | req[3];
@@ -719,8 +648,7 @@ static void dap_transfer_configure(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_transfer(uint8_t *req, uint8_t *resp)
-{
+static void dap_transfer(uint8_t *req, uint8_t *resp) {
   resp[0] = 0;
   resp[1] = DAP_TRANSFER_INVALID;
 
@@ -736,8 +664,7 @@ static void dap_transfer(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_transfer_block(uint8_t *req, uint8_t *resp)
-{
+static void dap_transfer_block(uint8_t *req, uint8_t *resp) {
   resp[0] = 0;
   resp[1] = 0;
   resp[2] = DAP_TRANSFER_INVALID;
@@ -754,8 +681,7 @@ static void dap_transfer_block(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_transfer_abort(uint8_t *req, uint8_t *resp)
-{
+static void dap_transfer_abort(uint8_t *req, uint8_t *resp) {
   // This request is handled outside of the normal queue
   // TODO: verify entire transfer abort mechanism
   resp[0] = DAP_OK;
@@ -763,11 +689,9 @@ static void dap_transfer_abort(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_write_abort(uint8_t *req, uint8_t *resp)
-{
+static void dap_write_abort(uint8_t *req, uint8_t *resp) {
 #ifdef DAP_CONFIG_ENABLE_SWD
-  if (DAP_PORT_SWD == dap_port)
-  {
+  if (DAP_PORT_SWD == dap_port) {
     uint32_t data;
 
     data = ((uint32_t)req[4] << 24) | ((uint32_t)req[3] << 16) |
@@ -780,8 +704,7 @@ static void dap_write_abort(uint8_t *req, uint8_t *resp)
 #endif
 
 #ifdef DAP_CONFIG_ENABLE_JTAG
-  if (DAP_PORT_JTAG == dap_port)
-  {
+  if (DAP_PORT_JTAG == dap_port) {
     // TODO: implement
     resp[0] = DAP_OK;
   }
@@ -789,8 +712,7 @@ static void dap_write_abort(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_delay(uint8_t *req, uint8_t *resp)
-{
+static void dap_delay(uint8_t *req, uint8_t *resp) {
   int delay;
 
   delay = ((int)req[1] << 8) | req[0];
@@ -801,8 +723,7 @@ static void dap_delay(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_reset_target(uint8_t *req, uint8_t *resp)
-{
+static void dap_reset_target(uint8_t *req, uint8_t *resp) {
   resp[0] = DAP_OK;
 #ifdef DAP_CONFIG_RESET_TARGET_FN
   resp[1] = 1;
@@ -812,13 +733,13 @@ static void dap_reset_target(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swj_pins(uint8_t *req, uint8_t *resp)
-{
+static void dap_swj_pins(uint8_t *req, uint8_t *resp) {
   int value = req[0];
   int select = req[1];
   int wait;
-  
-  wait = ((int)req[5] << 24) | ((int)req[4] << 16) | ((int)req[3] << 8) | req[2];
+
+  wait =
+      ((int)req[5] << 24) | ((int)req[4] << 16) | ((int)req[3] << 8) | req[2];
 
   if (select & DAP_SWJ_SWCLK_TCK)
     DAP_CONFIG_SWCLK_TCK_write(value & DAP_SWJ_SWCLK_TCK);
@@ -837,20 +758,18 @@ static void dap_swj_pins(uint8_t *req, uint8_t *resp)
 
   delayMicroseconds(wait * 1000);
 
-  value =
-    (DAP_CONFIG_SWCLK_TCK_read() ? DAP_SWJ_SWCLK_TCK : 0) |
-    (DAP_CONFIG_SWDIO_TMS_read() ? DAP_SWJ_SWDIO_TMS : 0) |
-    (DAP_CONFIG_TDI_read()       ? DAP_SWJ_TDI       : 0) |
-    (DAP_CONFIG_TDO_read()       ? DAP_SWJ_TDO       : 0) |
-    (DAP_CONFIG_nTRST_read()     ? DAP_SWJ_nTRST     : 0) |
-    (DAP_CONFIG_nRESET_read()    ? DAP_SWJ_nRESET    : 0);
+  value = (DAP_CONFIG_SWCLK_TCK_read() ? DAP_SWJ_SWCLK_TCK : 0) |
+          (DAP_CONFIG_SWDIO_TMS_read() ? DAP_SWJ_SWDIO_TMS : 0) |
+          (DAP_CONFIG_TDI_read() ? DAP_SWJ_TDI : 0) |
+          (DAP_CONFIG_TDO_read() ? DAP_SWJ_TDO : 0) |
+          (DAP_CONFIG_nTRST_read() ? DAP_SWJ_nTRST : 0) |
+          (DAP_CONFIG_nRESET_read() ? DAP_SWJ_nRESET : 0);
 
   resp[0] = value;
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swj_clock(uint8_t *req, uint8_t *resp)
-{
+static void dap_swj_clock(uint8_t *req, uint8_t *resp) {
   uint32_t freq;
 
   freq = ((uint32_t)req[3] << 24) | ((uint32_t)req[2] << 16) |
@@ -862,14 +781,12 @@ static void dap_swj_clock(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swj_sequence(uint8_t *req, uint8_t *resp)
-{
+static void dap_swj_sequence(uint8_t *req, uint8_t *resp) {
   int size = req[0];
   uint8_t *data = &req[1];
   int offset = 0;
 
-  while (size)
-  {
+  while (size) {
     int sz = (size > 8) ? 8 : size;
 
     dap_swd_write(data[offset], sz);
@@ -882,13 +799,12 @@ static void dap_swj_sequence(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_swd_configure(uint8_t *req, uint8_t *resp)
-{
+static void dap_swd_configure(uint8_t *req, uint8_t *resp) {
 #ifdef DAP_CONFIG_ENABLE_SWD
   uint8_t data = req[0];
 
-  dap_swd_turnaround  = (data & 3) + 1;
-  dap_swd_data_phase  = (data & 4) ? 1 : 0;
+  dap_swd_turnaround = (data & 3) + 1;
+  dap_swd_data_phase = (data & 4) ? 1 : 0;
 
   resp[0] = DAP_OK;
 #endif
@@ -898,8 +814,7 @@ static void dap_swd_configure(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_jtag_sequence(uint8_t *req, uint8_t *resp)
-{
+static void dap_jtag_sequence(uint8_t *req, uint8_t *resp) {
 #ifdef DAP_CONFIG_ENABLE_JTAG
   // TODO: implement
   resp[0] = DAP_OK;
@@ -910,8 +825,7 @@ static void dap_jtag_sequence(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_jtag_configure(uint8_t *req, uint8_t *resp)
-{
+static void dap_jtag_configure(uint8_t *req, uint8_t *resp) {
 #ifdef DAP_CONFIG_ENABLE_JTAG
   // TODO: implement
   resp[0] = DAP_OK;
@@ -922,8 +836,7 @@ static void dap_jtag_configure(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-static void dap_jtag_idcode(uint8_t *req, uint8_t *resp)
-{
+static void dap_jtag_idcode(uint8_t *req, uint8_t *resp) {
 #ifdef DAP_CONFIG_ENABLE_JTAG
   // TODO: implement
   resp[0] = DAP_OK;
@@ -934,41 +847,40 @@ static void dap_jtag_idcode(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-bool dap_init(int swclk, int swdio, int nreset)
-{
+bool dap_init(int swclk, int swdio, int nreset) {
   DAP_CONFIG_SWCLK_PIN = swclk;
   DAP_CONFIG_SWDIO_PIN = swdio;
   DAP_CONFIG_nRESET_PIN = nreset;
-  
+
 #if defined(ARDUINO_ARCH_SAMD)
   SWCLK_OUTSETREG = &(PORT->Group[g_APinDescription[swclk].ulPort].OUTSET.reg);
   SWCLK_OUTCLRREG = &(PORT->Group[g_APinDescription[swclk].ulPort].OUTCLR.reg);
-  SWCLK_DIRREG    = portModeRegister(digitalPinToPort(swclk));
-  SWCLK_INREG     = portInputRegister(digitalPinToPort(swclk));
-  SWCLK_PINMASK   = digitalPinToBitMask(swclk);
+  SWCLK_DIRREG = portModeRegister(digitalPinToPort(swclk));
+  SWCLK_INREG = portInputRegister(digitalPinToPort(swclk));
+  SWCLK_PINMASK = digitalPinToBitMask(swclk);
 
   SWDIO_OUTSETREG = &(PORT->Group[g_APinDescription[swdio].ulPort].OUTSET.reg);
   SWDIO_OUTCLRREG = &(PORT->Group[g_APinDescription[swdio].ulPort].OUTCLR.reg);
-  SWDIO_INREG     = portInputRegister(digitalPinToPort(swdio));
-  SWDIO_DIRREG    = portModeRegister(digitalPinToPort(swdio));
-  SWDIO_PINMASK   = digitalPinToBitMask(swdio);
+  SWDIO_INREG = portInputRegister(digitalPinToPort(swdio));
+  SWDIO_DIRREG = portModeRegister(digitalPinToPort(swdio));
+  SWDIO_PINMASK = digitalPinToBitMask(swdio);
 #elif defined(TEENSYDUINO)
-    SWDIO_BITMASK = digitalPinToBitMask(swdio);
-    SWDIO_PORTCLEAR = portClearRegister(swdio);
-    SWDIO_PORTSET = portSetRegister(swdio);
-    SWDIO_PORTCONFIG = portConfigRegister(swdio);
-    SWDIO_PORTMODE = portModeRegister(swdio);
-    SWDIO_PORT_INPUT_REG = portInputRegister(swdio);
+  SWDIO_BITMASK = digitalPinToBitMask(swdio);
+  SWDIO_PORTCLEAR = portClearRegister(swdio);
+  SWDIO_PORTSET = portSetRegister(swdio);
+  SWDIO_PORTCONFIG = portConfigRegister(swdio);
+  SWDIO_PORTMODE = portModeRegister(swdio);
+  SWDIO_PORT_INPUT_REG = portInputRegister(swdio);
 
-    SWCLK_BITMASK = digitalPinToBitMask(swclk);
-    SWCLK_PORTCLEAR = portClearRegister(swclk);
-    SWCLK_PORTSET = portSetRegister(swclk);
-    SWCLK_PORTCONFIG = portConfigRegister(swclk);
-    SWCLK_PORTMODE = portModeRegister(swclk);
-    SWCLK_PORT_INPUT_REG = portInputRegister(swclk);
+  SWCLK_BITMASK = digitalPinToBitMask(swclk);
+  SWCLK_PORTCLEAR = portClearRegister(swclk);
+  SWCLK_PORTSET = portSetRegister(swclk);
+  SWCLK_PORTCONFIG = portConfigRegister(swclk);
+  SWCLK_PORTMODE = portModeRegister(swclk);
+  SWCLK_PORT_INPUT_REG = portInputRegister(swclk);
 #endif
 
-  dap_port  = 0;
+  dap_port = 0;
   dap_abort = false;
   dap_match_mask = 0;
   dap_idle_cycles = 0;
@@ -988,44 +900,39 @@ bool dap_init(int swclk, int swdio, int nreset)
 }
 
 //-----------------------------------------------------------------------------
-void dap_filter_request(uint8_t *req)
-{
+void dap_filter_request(uint8_t *req) {
   int cmd = req[0];
 
-  if (ID_DAP_TRANSFER_ABORT == cmd)
-  {
+  if (ID_DAP_TRANSFER_ABORT == cmd) {
     dap_abort = true;
   }
 }
 
 //-----------------------------------------------------------------------------
-void dap_process_request(uint8_t *req, uint8_t *resp)
-{
-  const struct
-  {
-    int    cmd;
-    void   (*handler)(uint8_t *, uint8_t *);
-  } handlers[] =
-  {
-    { ID_DAP_INFO,			dap_info },
-    { ID_DAP_LED,			dap_led },
-    { ID_DAP_CONNECT,			dap_connect },
-    { ID_DAP_DISCONNECT,		dap_disconnect },
-    { ID_DAP_TRANSFER_CONFIGURE,	dap_transfer_configure },
-    { ID_DAP_TRANSFER,			dap_transfer },
-    { ID_DAP_TRANSFER_BLOCK,		dap_transfer_block },
-    { ID_DAP_TRANSFER_ABORT,		dap_transfer_abort },
-    { ID_DAP_WRITE_ABORT,		dap_write_abort },
-    { ID_DAP_DELAY,			dap_delay },
-    { ID_DAP_RESET_TARGET,		dap_reset_target },
-    { ID_DAP_SWJ_PINS,			dap_swj_pins },
-    { ID_DAP_SWJ_CLOCK,			dap_swj_clock },
-    { ID_DAP_SWJ_SEQUENCE,		dap_swj_sequence },
-    { ID_DAP_SWD_CONFIGURE,		dap_swd_configure },
-    { ID_DAP_JTAG_SEQUENCE,		dap_jtag_sequence },
-    { ID_DAP_JTAG_CONFIGURE,		dap_jtag_configure },
-    { ID_DAP_JTAG_IDCODE,		dap_jtag_idcode },
-    { -1, NULL },
+void dap_process_request(uint8_t *req, uint8_t *resp) {
+  const struct {
+    int cmd;
+    void (*handler)(uint8_t *, uint8_t *);
+  } handlers[] = {
+      {ID_DAP_INFO, dap_info},
+      {ID_DAP_LED, dap_led},
+      {ID_DAP_CONNECT, dap_connect},
+      {ID_DAP_DISCONNECT, dap_disconnect},
+      {ID_DAP_TRANSFER_CONFIGURE, dap_transfer_configure},
+      {ID_DAP_TRANSFER, dap_transfer},
+      {ID_DAP_TRANSFER_BLOCK, dap_transfer_block},
+      {ID_DAP_TRANSFER_ABORT, dap_transfer_abort},
+      {ID_DAP_WRITE_ABORT, dap_write_abort},
+      {ID_DAP_DELAY, dap_delay},
+      {ID_DAP_RESET_TARGET, dap_reset_target},
+      {ID_DAP_SWJ_PINS, dap_swj_pins},
+      {ID_DAP_SWJ_CLOCK, dap_swj_clock},
+      {ID_DAP_SWJ_SEQUENCE, dap_swj_sequence},
+      {ID_DAP_SWD_CONFIGURE, dap_swd_configure},
+      {ID_DAP_JTAG_SEQUENCE, dap_jtag_sequence},
+      {ID_DAP_JTAG_CONFIGURE, dap_jtag_configure},
+      {ID_DAP_JTAG_IDCODE, dap_jtag_idcode},
+      {-1, NULL},
   };
   int cmd = req[0];
 
@@ -1036,10 +943,8 @@ void dap_process_request(uint8_t *req, uint8_t *resp)
   resp[0] = cmd;
   resp[1] = DAP_ERROR;
 
-  for (int i = 0; -1 != handlers[i].cmd; i++)
-  {
-    if (cmd == handlers[i].cmd)
-    {
+  for (int i = 0; - 1 != handlers[i].cmd; i++) {
+    if (cmd == handlers[i].cmd) {
       handlers[i].handler(&req[1], &resp[1]);
       return;
     }
@@ -1052,24 +957,18 @@ void dap_process_request(uint8_t *req, uint8_t *resp)
 }
 
 //-----------------------------------------------------------------------------
-void dap_clock_test(int delay)
-{
+void dap_clock_test(int delay) {
   DAP_CONFIG_CONNECT_SWD();
 
-  if (delay)
-  {
-    while (1)
-    {
+  if (delay) {
+    while (1) {
       DAP_CONFIG_SWCLK_TCK_clr();
       dap_delay_loop(delay);
       DAP_CONFIG_SWCLK_TCK_set();
       dap_delay_loop(delay);
     }
-  }
-  else
-  {
-    while (1)
-    {
+  } else {
+    while (1) {
       DAP_CONFIG_SWCLK_TCK_clr();
       DAP_CONFIG_SWCLK_TCK_set();
     }
