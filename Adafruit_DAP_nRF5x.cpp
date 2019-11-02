@@ -101,10 +101,10 @@
   volatile /*! Defines 'read / write' structure member permissions */
 
 /**
-  * @brief Non Volatile Memory Controller (NVMC)
-  */
+ * @brief Non Volatile Memory Controller (NVMC)
+ */
 
-typedef struct {/*!< NVMC Structure */
+typedef struct { /*!< NVMC Structure */
   __I uint32_t RESERVED0[256];
   __I uint32_t READY; /*!< Ready flag */
   __I uint32_t RESERVED1[64];

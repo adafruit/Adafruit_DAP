@@ -180,7 +180,7 @@ bool Adafruit_DAP_SAMx5::readCRC(uint32_t length, uint32_t *crc) {
   dap_write_word(DAP_DSU_ADDR, 0);
   dap_write_word(DAP_DSU_LENGTH, length);
 
-  dap_write_word(DAP_DSU_CTRL_STATUS, 0x00001f00); // Clear flags
+  dap_write_word(DAP_DSU_CTRL_STATUS, 0x00001f00);       // Clear flags
   dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_CTRL_CRC); // start CRC
 
   uint32_t status = 0;
