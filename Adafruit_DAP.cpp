@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2013-2017, Alex Taradov <alex@taradov.com>, Adafruit
  * <info@adafruit.com>
  * All rights reserved.
