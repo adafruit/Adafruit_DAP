@@ -24,6 +24,7 @@ before_install:
 
 install:
    - arduino --install-library "Adafruit SPIFlash"
+   - arduino --install-library "SdFat - Adafruit Fork"
 
 script:
    - python run-clang-format.py -r .

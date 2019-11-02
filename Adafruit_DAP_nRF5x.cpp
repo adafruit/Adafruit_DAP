@@ -126,7 +126,7 @@ typedef struct { /*!< NVMC Structure */
   __I uint32_t RESERVED2[10];
   __IO uint32_t ICACHECNF; /*!< I-Code cache configuration register. */
   __I uint32_t RESERVED3;
-  __IO uint32_t IHIT; /*!< I-Code cache hit counter. */
+  __IO uint32_t IHIT;  /*!< I-Code cache hit counter. */
   __IO uint32_t IMISS; /*!< I-Code cache miss counter. */
 } NRF_NVMC_Type;
 
