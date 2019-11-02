@@ -1,7 +1,6 @@
 #include "Adafruit_DAP.h"
-#include <SPI.h>
+#include <SdFat.h>
 #include <Adafruit_SPIFlash.h>
-#include <Adafruit_SPIFlash_FatFs.h>
 
 #define FILENAME "fw.bin"
 
@@ -10,23 +9,19 @@
 // Configuration of the flash chip pins and flash fatfs object.
 // You don't normally need to change these if using a Feather/Metro
 // M0 express board.
-#define FLASH_TYPE     SPIFLASHTYPE_W25Q16BV  // Flash chip type.
-                                              // If you change this be
-                                              // sure to change the fatfs
-                                              // object type below to match.
+#if defined(__SAMD51__) || defined(NRF52840_XXAA)
+  Adafruit_FlashTransport_QSPI flashTransport(PIN_QSPI_SCK, PIN_QSPI_CS, PIN_QSPI_IO0, PIN_QSPI_IO1, PIN_QSPI_IO2, PIN_QSPI_IO3);
+#else
+  #if (SPI_INTERFACES_COUNT == 1 || defined(ADAFRUIT_CIRCUITPLAYGROUND_M0))
+    Adafruit_FlashTransport_SPI flashTransport(SS, &SPI);
+  #else
+    Adafruit_FlashTransport_SPI flashTransport(SS1, &SPI1);
+  #endif
+#endif
 
-#define FLASH_SS       SS1                    // Flash chip SS pin.
-#define FLASH_SPI_PORT SPI1                   // What SPI port is Flash on?
-
-Adafruit_SPIFlash flash(FLASH_SS, &FLASH_SPI_PORT);     // Use hardware SPI 
-
-// Alternatively you can define and use non-SPI pins!
-//Adafruit_SPIFlash flash(SCK1, MISO1, MOSI1, FLASH_SS);
-
-// Finally create an Adafruit_M0_Express_CircuitPython object which gives
-// an SD card-like interface to interacting with files stored in CircuitPython's
-// flash filesystem.
-Adafruit_M0_Express_CircuitPython pythonfs(flash);
+Adafruit_SPIFlash flash(&flashTransport);
+// file system object from SdFat
+FatFileSystem fatfs;
 
 //create a seesaw with m0 DAP support
 dap_m0p dap;
@@ -43,22 +38,22 @@ void setup() {
   dap.begin(9,10,11);
   
   // Initialize flash library and check its chip ID.
-  if (!flash.begin(FLASH_TYPE)) {
+  if (!flash.begin()) {
     Serial.println("Error, failed to initialize flash chip!");
     while(1);
   }
-  Serial.print("Flash chip JEDEC ID: 0x"); Serial.println(flash.GetJEDECID(), HEX);
+  Serial.print("Flash chip JEDEC ID: 0x"); Serial.println(flash.getJEDECID(), HEX);
 
   // First call begin to mount the filesystem.  Check that it returns true
   // to make sure the filesystem was mounted.
-  if (!pythonfs.begin()) {
+  if (!fatfs.begin(&flash)) {
     Serial.println("Failed to mount filesystem!");
     Serial.println("Was CircuitPython loaded on the board first to create the filesystem?");
     while(1);
   }
   Serial.println("Mounted filesystem!");
 
-   File dataFile = pythonfs.open(FILENAME, FILE_READ);
+  File dataFile = fatfs.open(FILENAME, FILE_READ);
   uint8_t buf[256];
 
   if(dataFile){
