@@ -163,6 +163,7 @@ typedef struct {
   uint32_t n_pages;
 } device_t;
 
+// Generic DAP
 class Adafruit_DAP {
 public:
   // constructors
@@ -201,6 +202,7 @@ protected:
   ErrorHandler perror_exit;
 };
 
+// DAP for SAM
 class Adafruit_DAP_SAM : public Adafruit_DAP {
 public:
   Adafruit_DAP_SAM(void){};
@@ -267,6 +269,7 @@ public:
   USER_ROW _USER_ROW;
 };
 
+// DAP for SAMx5
 class Adafruit_DAP_SAMx5 : public Adafruit_DAP_SAM {
 public:
   Adafruit_DAP_SAMx5(void){};

@@ -33,6 +33,7 @@
 #ifndef ADAFRUIT_DAP_STM32_H_
 #define ADAFRUIT_DAP_STM32_H_
 
+// DAP for STM32
 class Adafruit_DAP_STM32 : public Adafruit_DAP {
 public:
   Adafruit_DAP_STM32(void);
