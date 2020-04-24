@@ -45,43 +45,43 @@
 #define VERIFY_DATA (1)
 
 /*- Definitions -------------------------------------------------------------*/
-#define NRF5X_FLASH_START       0
-#define NRF5X_FLASH_ROW_SIZE    256
-#define NRF5X_FLASH_PAGE_SIZE   64
+#define NRF5X_FLASH_START 0
+#define NRF5X_FLASH_ROW_SIZE 256
+#define NRF5X_FLASH_PAGE_SIZE 64
 
-#define NRF5X_DHCSR             0xe000edf0
-#define NRF5X_DEMCR             0xe000edfc
-#define NRF5X_AIRCR             0xe000ed0c
+#define NRF5X_DHCSR 0xe000edf0
+#define NRF5X_DEMCR 0xe000edfc
+#define NRF5X_AIRCR 0xe000ed0c
 
 #define NRF5X_FICR_CODEPAGESIZE 0x10000010 // Code memory page size
-#define NRF5X_FICR_CODESIZE     0x10000014 // Code size (in pages)
-#define NRF5X_FICR_HWID         0x10000100 // Part Code
-#define NRF5X_FICR_CHIPVARIANT  0x10000104 // Part Variant
-#define NRF5X_FICR_PACKAGEID    0x10000108 // Package Options
-#define NRF5X_FICR_SRAM         0x1000010C // RAM Variant
-#define NRF5X_FICR_FLASHSIZE    0x10000110 // Flash Variant
+#define NRF5X_FICR_CODESIZE 0x10000014     // Code size (in pages)
+#define NRF5X_FICR_HWID 0x10000100         // Part Code
+#define NRF5X_FICR_CHIPVARIANT 0x10000104  // Part Variant
+#define NRF5X_FICR_PACKAGEID 0x10000108    // Package Options
+#define NRF5X_FICR_SRAM 0x1000010C         // RAM Variant
+#define NRF5X_FICR_FLASHSIZE 0x10000110    // Flash Variant
 
 // TODO: Change these from SAMD to nRF5x compatible registers!
-#define NRF5X_DSU_CTRL_STATUS   0x41002100
+#define NRF5X_DSU_CTRL_STATUS 0x41002100
 
-#define NRF5X_NVMCTRL_CTRLA     0x41004000
-#define NRF5X_NVMCTRL_CTRLB     0x41004004
-#define NRF5X_NVMCTRL_PARAM     0x41004008
-#define NRF5X_NVMCTRL_INTFLAG   0x41004014
-#define NRF5X_NVMCTRL_STATUS    0x41004018
-#define NRF5X_NVMCTRL_ADDR      0x4100401c
+#define NRF5X_NVMCTRL_CTRLA 0x41004000
+#define NRF5X_NVMCTRL_CTRLB 0x41004004
+#define NRF5X_NVMCTRL_PARAM 0x41004008
+#define NRF5X_NVMCTRL_INTFLAG 0x41004014
+#define NRF5X_NVMCTRL_STATUS 0x41004018
+#define NRF5X_NVMCTRL_ADDR 0x4100401c
 
-#define NRF5X_NVMCTRL_CMD_ER    0xa502
-#define NRF5X_NVMCTRL_CMD_WP    0xa504
-#define NRF5X_NVMCTRL_CMD_EAR   0xa505
-#define NRF5X_NVMCTRL_CMD_WAP   0xa506
-#define NRF5X_NVMCTRL_CMD_WL    0xa50f
-#define NRF5X_NVMCTRL_CMD_UR    0xa541
-#define NRF5X_NVMCTRL_CMD_PBC   0xa544
-#define NRF5X_NVMCTRL_CMD_SSB   0xa545
+#define NRF5X_NVMCTRL_CMD_ER 0xa502
+#define NRF5X_NVMCTRL_CMD_WP 0xa504
+#define NRF5X_NVMCTRL_CMD_EAR 0xa505
+#define NRF5X_NVMCTRL_CMD_WAP 0xa506
+#define NRF5X_NVMCTRL_CMD_WL 0xa50f
+#define NRF5X_NVMCTRL_CMD_UR 0xa541
+#define NRF5X_NVMCTRL_CMD_PBC 0xa544
+#define NRF5X_NVMCTRL_CMD_SSB 0xa545
 
-#define NRF5X_USER_ROW_ADDR     0x00804000
-#define NRF5X_USER_ROW_SIZE     256
+#define NRF5X_USER_ROW_ADDR 0x00804000
+#define NRF5X_USER_ROW_SIZE 256
 
 // from nrf52.h
 
@@ -104,32 +104,35 @@
  * @brief Non Volatile Memory Controller (NVMC)
  */
 
-typedef struct {                       /*!< (@ 0x4001E000) NVMC Structure                                             */
-  __IM  uint32_t  RESERVED[256];
-  __IM  uint32_t  READY;               /*!< (@ 0x00000400) Ready flag                                                 */
-  __IM  uint32_t  RESERVED2[64];
-  __IOM uint32_t  CONFIG;              /*!< (@ 0x00000504) Configuration register                                     */
+typedef struct { /*!< (@ 0x4001E000) NVMC Structure */
+  __IM uint32_t RESERVED[256];
+  __IM uint32_t READY; /*!< (@ 0x00000400) Ready flag */
+  __IM uint32_t RESERVED2[64];
+  __IOM uint32_t CONFIG; /*!< (@ 0x00000504) Configuration register */
 
-  __IOM uint32_t  ERASEPAGE;           /*!< (@ 0x00000508) Register for erasing a page in code area                   */
-  __IOM uint32_t  ERASEALL;            /*!< (@ 0x0000050C) Register for erasing all non-volatile user memory          */
-  __IOM uint32_t  ERASEPCR0;           /*!< (@ 0x00000510) Deprecated register - Register for erasing a
-                                                           page in code area. Equivalent to ERASEPAGE.                */
-  __IOM uint32_t  ERASEUICR;           /*!< (@ 0x00000514) Register for erasing user information configuration
-                                                           registers                                                  */
-} NRF_NVMC_Type;                       /*!< Size = 1360 (0x550)                                                       */
+  __IOM uint32_t ERASEPAGE; /*!< (@ 0x00000508) Register for erasing a page in
+                               code area                   */
+  __IOM uint32_t ERASEALL;  /*!< (@ 0x0000050C) Register for erasing all
+                               non-volatile user memory          */
+  __IOM uint32_t
+      ERASEPCR0; /*!< (@ 0x00000510) Deprecated register - Register for erasing
+                    a page in code area. Equivalent to ERASEPAGE. */
+  __IOM uint32_t ERASEUICR; /*!< (@ 0x00000514) Register for erasing user
+                               information configuration registers */
+} NRF_NVMC_Type;            /*!< Size = 1360 (0x550)            */
 
-#define NRF_NVMC_BASE               (0x4001E000UL)
-#define NRF_NVMC                    ((NRF_NVMC_Type *)NRF_NVMC_BASE)
+#define NRF_NVMC_BASE (0x4001E000UL)
+#define NRF_NVMC ((NRF_NVMC_Type *)NRF_NVMC_BASE)
 
-#define NRF52840_FLASH_START        (0x00000000)
-#define NRF52840_FLASHALGO_START    (0X20000000)
-#define NRF52840_FLASHALGO_SIZE     (0x150)
-#define NRF52840_FLASHALGO_INIT     (0x20000021)
+#define NRF52840_FLASH_START (0x00000000)
+#define NRF52840_FLASHALGO_START (0X20000000)
+#define NRF52840_FLASHALGO_SIZE (0x150)
+#define NRF52840_FLASHALGO_INIT (0x20000021)
 #define NRF52840_FLASHALGO_STATBASE (0x20000020 + NRF52840_FLASHALGO_SIZE)
 #define NRF52840_FLASHALGO_STCKPNTR (0x20001000)
 #define NRF52840_FLASHALGO_BRKPOINT (0x20000001)
 
-static char _variant_name[30] = { 0 };
+static char _variant_name[30] = {0};
 
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
@@ -153,42 +156,41 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
 
   *found_id = hwid;
 
-  switch(hwid)
-  {
-    //------------- nRF51 -------------//
-    // Adafruit only use XXAC (32KB 256KB) variant
-    case 0x51422:
-      (void) chipvariant;
-      strcpy(_variant_name, "nRF51422_XXAC");
+  switch (hwid) {
+  //------------- nRF51 -------------//
+  // Adafruit only use XXAC (32KB 256KB) variant
+  case 0x51422:
+    (void)chipvariant;
+    strcpy(_variant_name, "nRF51422_XXAC");
     break;
 
-    case 0x51822:
-      (void) chipvariant;
-      strcpy(_variant_name, "nRF51822_XXAC");
+  case 0x51822:
+    (void)chipvariant;
+    strcpy(_variant_name, "nRF51822_XXAC");
     break;
 
-    //------------- nRF52832 -------------//
-    case 0x52832:
-      strcpy(_variant_name, "nRF52832_");
-      strncat(_variant_name, (char*) &chipvariant, 4);
+  //------------- nRF52832 -------------//
+  case 0x52832:
+    strcpy(_variant_name, "nRF52832_");
+    strncat(_variant_name, (char *)&chipvariant, 4);
     break;
 
-    //------------- nRF52833 -------------//
-    case 0x52833:
-      strcpy(_variant_name, "nRF52833_");
-      strncat(_variant_name, (char*) &chipvariant, 4);
+  //------------- nRF52833 -------------//
+  case 0x52833:
+    strcpy(_variant_name, "nRF52833_");
+    strncat(_variant_name, (char *)&chipvariant, 4);
     break;
 
-    //------------- nRF52840 -------------//
-    case 0x52840:
-      strcpy(_variant_name, "nRF52840_");
-      strncat(_variant_name, (char*) &chipvariant, 4);
+  //------------- nRF52840 -------------//
+  case 0x52840:
+    strcpy(_variant_name, "nRF52840_");
+    strncat(_variant_name, (char *)&chipvariant, 4);
     break;
 
-    // No matching device ID found
-    default:
-      Serial.printf("Unknown HWID = 0x%08X\n", hwid);
-      return false;
+  // No matching device ID found
+  default:
+    Serial.printf("Unknown HWID = 0x%08X\n", hwid);
+    return false;
   }
 
   codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
