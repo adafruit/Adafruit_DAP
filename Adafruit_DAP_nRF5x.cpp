@@ -45,43 +45,43 @@
 #define VERIFY_DATA (1)
 
 /*- Definitions -------------------------------------------------------------*/
-#define NRF5X_FLASH_START 0
-#define NRF5X_FLASH_ROW_SIZE 256
-#define NRF5X_FLASH_PAGE_SIZE 64
+#define NRF5X_FLASH_START       0
+#define NRF5X_FLASH_ROW_SIZE    256
+#define NRF5X_FLASH_PAGE_SIZE   64
 
-#define NRF5X_DHCSR 0xe000edf0
-#define NRF5X_DEMCR 0xe000edfc
-#define NRF5X_AIRCR 0xe000ed0c
+#define NRF5X_DHCSR             0xe000edf0
+#define NRF5X_DEMCR             0xe000edfc
+#define NRF5X_AIRCR             0xe000ed0c
 
 #define NRF5X_FICR_CODEPAGESIZE 0x10000010 // Code memory page size
-#define NRF5X_FICR_CODESIZE 0x10000014     // Code size (in pages)
-#define NRF5X_FICR_HWID 0x10000100         // Part Code
-#define NRF5X_FICR_CHIPVARIANT 0x10000104  // Part Variant
-#define NRF5X_FICR_PACKAGEID 0x10000108    // Package Options
-#define NRF5X_FICR_SRAM 0x1000010C         // RAM Variant
-#define NRF5X_FICR_FLASHSIZE 0x10000110    // Flash Variant
+#define NRF5X_FICR_CODESIZE     0x10000014 // Code size (in pages)
+#define NRF5X_FICR_HWID         0x10000100 // Part Code
+#define NRF5X_FICR_CHIPVARIANT  0x10000104 // Part Variant
+#define NRF5X_FICR_PACKAGEID    0x10000108 // Package Options
+#define NRF5X_FICR_SRAM         0x1000010C // RAM Variant
+#define NRF5X_FICR_FLASHSIZE    0x10000110 // Flash Variant
 
 // TODO: Change these from SAMD to nRF5x compatible registers!
-#define NRF5X_DSU_CTRL_STATUS 0x41002100
+#define NRF5X_DSU_CTRL_STATUS   0x41002100
 
-#define NRF5X_NVMCTRL_CTRLA 0x41004000
-#define NRF5X_NVMCTRL_CTRLB 0x41004004
-#define NRF5X_NVMCTRL_PARAM 0x41004008
-#define NRF5X_NVMCTRL_INTFLAG 0x41004014
-#define NRF5X_NVMCTRL_STATUS 0x41004018
-#define NRF5X_NVMCTRL_ADDR 0x4100401c
+#define NRF5X_NVMCTRL_CTRLA     0x41004000
+#define NRF5X_NVMCTRL_CTRLB     0x41004004
+#define NRF5X_NVMCTRL_PARAM     0x41004008
+#define NRF5X_NVMCTRL_INTFLAG   0x41004014
+#define NRF5X_NVMCTRL_STATUS    0x41004018
+#define NRF5X_NVMCTRL_ADDR      0x4100401c
 
-#define NRF5X_NVMCTRL_CMD_ER 0xa502
-#define NRF5X_NVMCTRL_CMD_WP 0xa504
-#define NRF5X_NVMCTRL_CMD_EAR 0xa505
-#define NRF5X_NVMCTRL_CMD_WAP 0xa506
-#define NRF5X_NVMCTRL_CMD_WL 0xa50f
-#define NRF5X_NVMCTRL_CMD_UR 0xa541
-#define NRF5X_NVMCTRL_CMD_PBC 0xa544
-#define NRF5X_NVMCTRL_CMD_SSB 0xa545
+#define NRF5X_NVMCTRL_CMD_ER    0xa502
+#define NRF5X_NVMCTRL_CMD_WP    0xa504
+#define NRF5X_NVMCTRL_CMD_EAR   0xa505
+#define NRF5X_NVMCTRL_CMD_WAP   0xa506
+#define NRF5X_NVMCTRL_CMD_WL    0xa50f
+#define NRF5X_NVMCTRL_CMD_UR    0xa541
+#define NRF5X_NVMCTRL_CMD_PBC   0xa544
+#define NRF5X_NVMCTRL_CMD_SSB   0xa545
 
-#define NRF5X_USER_ROW_ADDR 0x00804000
-#define NRF5X_USER_ROW_SIZE 256
+#define NRF5X_USER_ROW_ADDR     0x00804000
+#define NRF5X_USER_ROW_SIZE     256
 
 // from nrf52.h
 
@@ -104,60 +104,32 @@
  * @brief Non Volatile Memory Controller (NVMC)
  */
 
-typedef struct { /*!< NVMC Structure */
-  __I uint32_t RESERVED0[256];
-  __I uint32_t READY; /*!< Ready flag */
-  __I uint32_t RESERVED1[64];
-  __IO uint32_t CONFIG; /*!< Configuration register */
+typedef struct {                       /*!< (@ 0x4001E000) NVMC Structure                                             */
+  __IM  uint32_t  RESERVED[256];
+  __IM  uint32_t  READY;               /*!< (@ 0x00000400) Ready flag                                                 */
+  __IM  uint32_t  RESERVED2[64];
+  __IOM uint32_t  CONFIG;              /*!< (@ 0x00000504) Configuration register                                     */
 
-  union {
-    __IO uint32_t ERASEPCR1; /*!< Deprecated register - Register for erasing a
-                                page in Code area.
-                                  Equivalent to ERASEPAGE. */
-    __IO uint32_t ERASEPAGE; /*!< Register for erasing a page in Code area */
-  };
-  __IO uint32_t
-      ERASEALL; /*!< Register for erasing all non-volatile user memory */
-  __IO uint32_t ERASEPCR0; /*!< Deprecated register - Register for erasing a
-                              page in Code area.
-                                Equivalent to ERASEPAGE. */
-  __IO uint32_t ERASEUICR; /*!< Register for erasing User Information
-                              Configuration Registers         */
-  __I uint32_t RESERVED2[10];
-  __IO uint32_t ICACHECNF; /*!< I-Code cache configuration register. */
-  __I uint32_t RESERVED3;
-  __IO uint32_t IHIT;  /*!< I-Code cache hit counter. */
-  __IO uint32_t IMISS; /*!< I-Code cache miss counter. */
-} NRF_NVMC_Type;
+  __IOM uint32_t  ERASEPAGE;           /*!< (@ 0x00000508) Register for erasing a page in code area                   */
+  __IOM uint32_t  ERASEALL;            /*!< (@ 0x0000050C) Register for erasing all non-volatile user memory          */
+  __IOM uint32_t  ERASEPCR0;           /*!< (@ 0x00000510) Deprecated register - Register for erasing a
+                                                           page in code area. Equivalent to ERASEPAGE.                */
+  __IOM uint32_t  ERASEUICR;           /*!< (@ 0x00000514) Register for erasing user information configuration
+                                                           registers                                                  */
+} NRF_NVMC_Type;                       /*!< Size = 1360 (0x550)                                                       */
 
-#define NRF_NVMC_BASE 0x4001E000UL
-#define NRF_NVMC ((NRF_NVMC_Type *)NRF_NVMC_BASE)
+#define NRF_NVMC_BASE               (0x4001E000UL)
+#define NRF_NVMC                    ((NRF_NVMC_Type *)NRF_NVMC_BASE)
 
-/**
- * Flash algorithm below source: ARM DAPLink Interface Firmware
- * Copyright (c) 2009-2016, ARM Limited, All Rights Reserved
- * SPDX-License-Identifier: Apache-2.0
- */
-static const uint32_t nRF52832AA_FLM[] = {
-    0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA,
-    0x2A001E52, 0x4770D1F2, 0x47702000, 0x47702000, 0x4c2bb570, 0x60202002,
-    0x20014929, 0x60083108, 0x68284d28, 0xd00207c0, 0x60202000, 0xf000bd70,
-    0xe7f6f833, 0x4c22b570, 0x60212102, 0x2f10f1b0, 0x491fd303, 0x31102001,
-    0x491de001, 0x60081d09, 0xf0004d1c, 0x6828f821, 0xd0fa07c0, 0x60202000,
-    0xe92dbd70, 0xf8df41f0, 0x088e8058, 0x46142101, 0xf8c84605, 0x4f131000,
-    0xc501cc01, 0x07c06838, 0x1e76d007, 0x2100d1f8, 0x1000f8c8, 0xe8bd4608,
-    0xf00081f0, 0xe7f1f801, 0x6800480b, 0x00fff010, 0x490ad00c, 0x29006809,
-    0x4908d008, 0x31fc4a08, 0xd00007c3, 0x1d09600a, 0xd1f90840, 0x00004770,
-    0x4001e504, 0x4001e400, 0x40010404, 0x40010504, 0x6e524635, 0x00000000,
-};
-
-#define NRF52840_FLASH_START (0x00000000)
-#define NRF52840_FLASHALGO_START (0X20000000)
-#define NRF52840_FLASHALGO_SIZE (0x150)
-#define NRF52840_FLASHALGO_INIT (0x20000021)
+#define NRF52840_FLASH_START        (0x00000000)
+#define NRF52840_FLASHALGO_START    (0X20000000)
+#define NRF52840_FLASHALGO_SIZE     (0x150)
+#define NRF52840_FLASHALGO_INIT     (0x20000021)
 #define NRF52840_FLASHALGO_STATBASE (0x20000020 + NRF52840_FLASHALGO_SIZE)
 #define NRF52840_FLASHALGO_STCKPNTR (0x20001000)
 #define NRF52840_FLASHALGO_BRKPOINT (0x20000001)
+
+static char _variant_name[30] = { 0 };
 
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
@@ -172,86 +144,61 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
   dap_write_word(NRF5X_DEMCR, 0x00000001);
   dap_write_word(NRF5X_AIRCR, 0x05fa0004);
 
+  // Family ID
   hwid = dap_read_word(NRF5X_FICR_HWID);
+
+  // Variant ID and swap its endian
+  chipvariant = dap_read_word(NRF5X_FICR_CHIPVARIANT);
+  chipvariant = __builtin_bswap32(chipvariant);
 
   *found_id = hwid;
 
-  if (hwid == 0x52832) {
-    // Read other relevant registers
-    chipvariant = dap_read_word(NRF5X_FICR_CHIPVARIANT);
-    codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
-    codesize = dap_read_word(NRF5X_FICR_CODESIZE);
-    // sram = dap_read_word(NRF5X_FICR_SRAM);
+  switch(hwid)
+  {
+    //------------- nRF51 -------------//
+    // Adafruit only use XXAC (32KB 256KB) variant
+    case 0x51422:
+      (void) chipvariant;
+      strcpy(_variant_name, "nRF51422_XXAC");
+    break;
 
-    // Assign device details to target_device
-    target_device.dsu_did = hwid;
-    target_device.flash_size = codepagesize * codesize;
-    target_device.n_pages = codesize;
-    switch (chipvariant) {
-    case 0x41414141:
-      target_device.name = "nRF52832_AAAA";
-      break;
-    case 0x41414142:
-      target_device.name = "nRF52832_AAAB";
-      break;
-    case 0x41414241:
-      target_device.name = "nRF52832_AABA";
-      break;
-    case 0x41414242:
-      target_device.name = "nRF52832_AABB";
-      break;
-    case 0x41414230:
-      target_device.name = "nRF52832_AAB0";
-      break;
-    default:
-      target_device.name = "nRF52832_????";
-      break;
-    }
-  } else if (hwid == 0x52840) {
-    // TODO: Add nRF52840 support!
-    // Read other relevant registers
-    chipvariant = dap_read_word(NRF5X_FICR_CHIPVARIANT);
-    codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
-    codesize = dap_read_word(NRF5X_FICR_CODESIZE);
-    // sram = dap_read_word(NRF5X_FICR_SRAM);
+    case 0x51822:
+      (void) chipvariant;
+      strcpy(_variant_name, "nRF51822_XXAC");
+    break;
 
-    // Assign device details to target_device
-    target_device.dsu_did = hwid;
-    target_device.flash_size = codepagesize * codesize;
-    target_device.n_pages = codesize;
-    switch (chipvariant) {
-    case 0x41414141:
-      target_device.name = "nRF52840_AAAA";
-      break;
-    case 0x42414141:
-      target_device.name = "nRF52840_BAAA";
-      break;
-    case 0x41314141:
-      target_device.name = "nRF52840_CAAA";
-      break;
-    case 0x41414241:
-      target_device.name = "nRF52840_AABA";
-      break;
-    case 0x41414242:
-      target_device.name = "nRF52840_AABB";
-      break;
-    case 0x41414341:
-      target_device.name = "nRF52840_AACA";
-      break;
-    case 0x41414142:
-      target_device.name = "nRF52840_AAAB";
-      break;
-    case 0x41414330:
-      target_device.name = "nRF52840_AAC0";
-      break;
-    default:
-      target_device.name = "nRF52840_????";
-      break;
-    }
-  } else {
+    //------------- nRF52832 -------------//
+    case 0x52832:
+      strcpy(_variant_name, "nRF52832_");
+      strncat(_variant_name, (char*) &chipvariant, 4);
+    break;
+
+    //------------- nRF52833 -------------//
+    case 0x52833:
+      strcpy(_variant_name, "nRF52833_");
+      strncat(_variant_name, (char*) &chipvariant, 4);
+    break;
+
+    //------------- nRF52840 -------------//
+    case 0x52840:
+      strcpy(_variant_name, "nRF52840_");
+      strncat(_variant_name, (char*) &chipvariant, 4);
+    break;
+
     // No matching device ID found
-    return false;
+    default:
+      Serial.printf("Unknown HWID = 0x%08X\n", hwid);
+      return false;
   }
+
+  codepagesize = dap_read_word(NRF5X_FICR_CODEPAGESIZE);
+  codesize = dap_read_word(NRF5X_FICR_CODESIZE);
+
+  // Assign device details to target_device
+  target_device.dsu_did = hwid;
+  target_device.flash_size = codepagesize * codesize;
+  target_device.n_pages = codesize;
+  target_device.name = _variant_name;
 
   return true;
 }
@@ -300,131 +247,14 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
   //    perror_exit("device is locked, perform a chip erase before
   //    programming");
 
-  // TODO: comvert to slow/fast clock mode
+  // TODO: convert to slow/fast clock mode
   dap_setup_clock(0);
 
   return NRF5X_FLASH_START + offset;
 }
 
-// typedef struct {
-//     uint32_t r[16];
-//     uint32_t xpsr;
-// } DEBUG_STATE;
-//
-// /**
-//  * swd_write_debug_state source: ARM DAPLink Interface Firmware
-//  * Copyright (c) 2009-2016, ARM Limited, All Rights Reserved
-//  * SPDX-License-Identifier: Apache-2.0
-//  */
-// static uint8_t Adafruit_DAP_nRF5x::swd_write_debug_state(DEBUG_STATE *state)
-// {
-//     uint32_t i, status;
-//
-//     if (!swd_write_dp(DP_SELECT, 0)) {
-//         return 0;
-//     }
-//
-//     // R0, R1, R2, R3
-//     for (i = 0; i < 4; i++) {
-//         if (!swd_write_core_register(i, state->r[i])) {
-//             return 0;
-//         }
-//     }
-//
-//     // R9
-//     if (!swd_write_core_register(9, state->r[9])) {
-//         return 0;
-//     }
-//
-//     // R13, R14, R15
-//     for (i = 13; i < 16; i++) {
-//         if (!swd_write_core_register(i, state->r[i])) {
-//             return 0;
-//         }
-//     }
-//
-//     // xPSR
-//     if (!swd_write_core_register(16, state->xpsr)) {
-//         return 0;
-//     }
-//
-//     if (!swd_write_word(DBG_HCSR, DBGKEY | C_DEBUGEN)) {
-//         return 0;
-//     }
-//
-//     // check status
-//     if (!swd_read_dp(DP_CTRL_STAT, &status)) {
-//         return 0;
-//     }
-//
-//     if (status & (STICKYERR | WDATAERR)) {
-//         return 0;
-//     }
-//
-//     return 1;
-// }
-//
-// /**
-//  * swd_flash_syscall_exec source: ARM DAPLink Interface Firmware
-//  * Copyright (c) 2009-2016, ARM Limited, All Rights Reserved
-//  * SPDX-License-Identifier: Apache-2.0
-//  */
-// static bool Adafruit_DAP_nRF5x::swd_flash_syscall_exec(uint32_t entry,
-//     uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
-// {
-//     DEBUG_STATE state = {{0}, 0};
-//     // Call flash algorithm function on target and wait for result.
-//     // NOTE: ARM devices store the first four function args in R0..3
-//     state.r[0]     = arg1;                          // R0: Argument 1
-//     state.r[1]     = arg2;                          // R1: Argument 2
-//     state.r[2]     = arg3;                          // R2: Argument 3
-//     state.r[3]     = arg4;                          // R3: Argument 4
-//     state.r[9]     = NRF52840_FLASHALGO_STATBASE;   // SB: Static Base
-//     state.r[13]    = NRF52840_FLASHALGO_STCKPNTR;   // SP: Stack Pointer
-//     state.r[14]    = NRF52840_FLASHALGO_BRKPOINT;   // LR: Exit Point
-//     state.r[15]    = entry;                         // PC: Entry Point
-//     state.xpsr     = 0x01000000;                    // xPSR: T = 1, ISR = 0
-//
-//     if (!swd_write_debug_state(&state)) {
-//         return false;
-//     }
-//
-//     if (!swd_wait_until_halted()) {
-//         return false;
-//     }
-//
-//     if (!swd_read_core_register(0, &state.r[0])) {
-//         return false;
-//     }
-//
-//     // Flash functions return 0 if successful.
-//     if (state.r[0] != 0) {
-//         return false;
-//     }
-//
-//     return true;
-// }
-
 bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
                                  uint32_t count) {
-  // /* Reset and write flash algorithm to SRAM */
-  // Serial.println("Resetting target and writing flash algorithm to SRAM ...");
-  // startMillis = millis();
-  // dap_reset_target();
-  // dap_write_block((uint32_t)NRF52840_FLASHALGO_START,
-  //                 (uint8_t *)nRF52832AA_FLM,
-  //                 (int)NRF52840_FLASHALGO_SIZE);
-  // Serial.print("Done in "); Serial.print(millis() - startMillis);
-  // Serial.println(" ms");
-  //
-  // /* Execute the flash algorithm */
-  // if (false == swd_flash_syscall_exec(NRF52840_FLASHALGO_INIT,
-  //                                     NRF52840_FLASH_START,
-  //                                     0, 0, 0)) {
-  //   /* Flash algorithm init error! */
-  //   return false;
-  // }
-
   // address must be word-aligned
   if (addr & 0x03)
     return false;
