@@ -35,6 +35,7 @@
 
 #include "Adafruit_DAP.h"
 
+// DAP for nRF
 class Adafruit_DAP_nRF5x : public Adafruit_DAP {
 public:
   Adafruit_DAP_nRF5x(void){};
