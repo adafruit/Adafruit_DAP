@@ -1,4 +1,5 @@
-# Adafruit_DAP
+# Adafruit_DAP [![Build Status](https://github.com/adafruit/Adafruit_DAP/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/Adafruit_DAP/actions)
+
 Port of Free-DAP + edbg CMSIS-DAP controller software to Arduino
 
 This is a library that allows you to program Atmel Cortex M0 chips that support programming via DAP from an arduino-compatible board. Tested with a Metro M0 / Arduino Zero as the 'host' and with ATSAMD21's as the client but in theory any 3.3V Arduino board will work as host (just slower)
