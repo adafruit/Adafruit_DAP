@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#incl ude "Adafruit_DAP.h"
+#include "Adafruit_DAP.h"
 #include "dap.h"
 #include "dap_config.h"
 
