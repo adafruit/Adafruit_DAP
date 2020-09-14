@@ -189,7 +189,8 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
 
   // No matching device ID found
   default:
-    Serial.printf("Unknown HWID = 0x%08X\n", hwid);
+    Serial.print("Unknown HWID = 0x");
+    Serial.println(hwid, HEX);
     return false;
   }
 
