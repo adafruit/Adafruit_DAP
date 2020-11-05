@@ -1,16 +1,16 @@
 #include "Adafruit_DAP.h"
 #include <SdFat.h>
 #include <Adafruit_SPIFlash.h>
+#include "Adafruit_TinyUSB.h"
 
-#define FILENAME    "merged.bin"
+#define FILENAME    "blespifriend_067_s110_bootloader_merged.bin"
 #define BASE_ADDR   0
 
 /* UICR setting for bootloader */
 #define UICR_BOOTLOADER         0x10001014
 #define UICR_BOOTLOADER_VAL     0x0003C000
 
-
-
+// SWD pin configure
 #define SWDIO 11
 #define SWCLK 12
 #define SWRST 9
@@ -39,11 +39,12 @@ Adafruit_SPIFlash flash(&flashTransport);
 FatFileSystem fatfs;
 
 // USB Mass Storage object
+Adafruit_USBD_MSC usb_msc;
 
 // Function called when there's an SWD error
 void error(const char *text) {
   Serial.println(text);
-  while (1);
+  while (1) yield();
 }
 
 
@@ -51,19 +52,22 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
 
+  dap.begin(SWCLK, SWDIO, SWRST, &error);
+
+  // Init SPI flash
+  flash.begin();
+
+  // Set up USB MSC
+  usb_msc.setID("Adafruit", "External Flash", "1.0");
+  usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
+  usb_msc.setCapacity(flash.size()/512, 512);
+  usb_msc.setUnitReady(true);
+  usb_msc.begin();
+
   Serial.begin(115200);
   while(!Serial) {
     delay(1);         // will pause the chip until it opens serial console
   }
-
-  dap.begin(SWCLK, SWDIO, SWRST, &error);
-
-  // Initialize flash library and check its chip ID.
-  if (!flash.begin()) {
-    Serial.println("Error, failed to initialize flash chip!");
-    while(1) delay(1);
-  }
-  Serial.print("Flash chip JEDEC ID: 0x"); Serial.println(flash.getJEDECID(), HEX);
 
   // First call begin to mount the filesystem.  Check that it returns true
   // to make sure the filesystem was mounted.
@@ -129,10 +133,12 @@ void setup() {
 
 void write_bin_file(const char* filename, uint32_t addr)
 {
-  File dataFile = fatfs.open(FILENAME, FILE_READ);
+  File dataFile = fatfs.open(filename, FILE_READ);
 
   if(!dataFile){
-     error("Couldn't open file");
+    Serial.print("Couldn't open file ");
+    Serial.println(filename);
+    error("Try to copy file over USB MSC and reset the board");
   }
 
   Serial.print("Programming... ");
@@ -142,6 +148,7 @@ void write_bin_file(const char* filename, uint32_t addr)
   while (dataFile.available())
   {
     digitalWrite(LED_BUILTIN, 1-digitalRead(LED_BUILTIN));
+    yield(); // needed if use TinyUSB
 
     memset(buf, BUFSIZE, 0xFF);  // empty it out
     uint32_t count = dataFile.read(buf, BUFSIZE);
@@ -165,10 +172,53 @@ void write_bin_file(const char* filename, uint32_t addr)
   dataFile.close();
 }
 
-void loop() {
+void loop()
+{
+  // nothing to do
 }
 
+//--------------------------------------------------------------------+
+// USB MSC
+//--------------------------------------------------------------------+
 
+// Callback invoked when received READ10 command.
+// Copy disk's data to buffer (up to bufsize) and
+// return number of copied bytes (must be multiple of block size)
+int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
+{
+  // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+  // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+  return flash.readBlocks(lba, (uint8_t*) buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when received WRITE10 command.
+// Process data in buffer to disk's storage and
+// return number of written bytes (must be multiple of block size)
+int32_t msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
+{
+  digitalWrite(LED_BUILTIN, HIGH);
+
+  // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+  // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+  return flash.writeBlocks(lba, buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when WRITE10 command is completed (status received and accepted by host).
+// used to flush any pending cache.
+void msc_flush_cb (void)
+{
+  // sync with flash
+  flash.syncBlocks();
+
+  // clear file system's cache to force refresh
+  fatfs.cacheClear();
+
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+//--------------------------------------------------------------------+
+// For debugging
+//--------------------------------------------------------------------+
 static void dump_str_line(uint8_t const* buf, uint16_t count)
 {
   Serial.print(" |");
