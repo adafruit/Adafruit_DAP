@@ -39,7 +39,7 @@ void error(const char *text) {
 
 
 void setup() {
-  pinMode(13, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   while(!Serial) {
     delay(1);         // will pause the chip until it opens serial console
@@ -80,7 +80,7 @@ void setup() {
   if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
   if (! dap.dap_swd_configure(0))                  error(dap.error_message);
   if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))               error(dap.error_message);
+  if (! dap.dap_swj_clock(50))                     error(dap.error_message);
   dap.dap_target_prepare();
 
   uint32_t dsu_did;
@@ -134,8 +134,8 @@ void setup() {
 
 void loop() {
   //blink led on the host to show we're done
-  digitalWrite(13, HIGH);
-  delay(500); 
-  digitalWrite(13, LOW);
-  delay(500);  
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
 }

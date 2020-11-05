@@ -31,7 +31,7 @@ void error(const char *text) {
 }
 
 void setup() {
-  pinMode(SWRST, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   while(!Serial) {
     delay(1);         // will pause the chip until it opens serial console
@@ -134,8 +134,8 @@ void write_bin_file(const char* filename, uint32_t addr)
 
 void loop() {
   //blink led on the host to show we're done
-  digitalWrite(13, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   delay(500);
-  digitalWrite(13, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   delay(500);
 }

@@ -3,10 +3,9 @@
 #include <SD.h>
 
 //teensy only, otherwise change sd cs pin
-#define SD_CS 10
 #define SWDIO 11
 #define SWCLK 12
-#define SWRST 13
+#define SWRST 9
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -57,7 +56,6 @@ void setup() {
   Serial.println(dap.target_device.n_pages);
   //Serial.print("Page size: "); Serial.println(dap.target_device.flash_size / dap.target_device.n_pages);
 
-
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
@@ -80,8 +78,64 @@ void setup() {
   Serial.print(millis()-start_ms);
   Serial.println(" ms");
 
+
+#if 0
+  for (uint32_t addr=0; addr < dap.target_device.flash_size; addr += sizeof(buf))
+  {
+    print_memory(addr, buf, sizeof(buf));
+  }
+
+  print_memory(0x10001000, buf, 256);
+#endif
+
   dap.deselect();
   dap.dap_disconnect();
+}
+
+static void dump_str_line(uint8_t const* buf, uint16_t count)
+{
+  Serial.print(" |");
+
+  // each line is 16 bytes
+  for(uint16_t j=0; j<16; j++)
+  {
+    const char ch = buf[j];
+    Serial.print(isprint(ch) ? ch : '.');
+  }
+  Serial.println('|');
+}
+
+// dumping memory for verification
+void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
+{
+  memset(buffer, 0xff, bufsize);
+  dap.dap_read_block(addr, buffer, bufsize);
+
+  for(uint32_t i=0; i < bufsize; i++)
+  {
+    if (i % 16 == 0)
+    {
+      if ( i != 0 )
+      {
+        dump_str_line(&buffer[i-16], 16);
+      }
+
+      uint32_t offaddr = addr+i;
+      // print offset
+      if ( offaddr < 0x10000 ) Serial.print("0");
+      if ( offaddr < 0x1000  ) Serial.print("0");
+      if ( offaddr < 0x100   ) Serial.print("0");
+      if ( offaddr < 0x10    ) Serial.print("0");
+      Serial.print(offaddr, HEX);
+      Serial.print("  ");
+    }
+
+    if ( buffer[i] < 0x10 ) Serial.print("0");
+    Serial.print(buffer[i], HEX);
+    Serial.print(" ");
+  }
+
+  dump_str_line(&buffer[bufsize-16], 16);
 }
 
 void write_bin_file(const char* filename, uint32_t addr)
