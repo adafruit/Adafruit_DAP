@@ -142,6 +142,8 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
   uint32_t codesize;
   uint32_t sram;
 
+  dap_target_prepare();
+
   // Stop the core
   dap_write_word(NRF5X_DHCSR, 0xa05f0003);
   dap_write_word(NRF5X_DEMCR, 0x00000001);
