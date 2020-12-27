@@ -5,9 +5,6 @@
 #define SWCLK 8
 #define SWRST 7
 
-#define BUFSIZE 256       //don't change!
-//uint8_t buf[BUFSIZE];
-
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_SAM dap;
 
@@ -19,50 +16,35 @@ void error(const char *text) {
 
 
 void setup() {
-  pinMode(13, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   while(!Serial) {
     delay(1);         // will pause the chip until it opens serial console
   }
 
+  delay(2000);
+  Serial.println("Starting...");
+
   dap.begin(SWCLK, SWDIO, SWRST, &error);
-  
-  Serial.print("Connecting...");  
-  if (! dap.dap_disconnect())                      error(dap.error_message);
-  
-  char debuggername[100];
-  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
-  Serial.print(debuggername); Serial.print("\n\r");
-  
-  if (! dap.dap_connect())                         error(dap.error_message);
-  
-  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
-  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
-  if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))               error(dap.error_message);
-  dap.dap_target_prepare();
+
+  dap.targetConnect();
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {
     Serial.print("Unknown device found 0x"); Serial.print(dsu_did, HEX);
     error("Unknown device found");
   }
-  for (device_t *device = dap.devices; device->dsu_did > 0; device++) {
-    if (device->dsu_did == dsu_did) {
-      Serial.print("Found Target: ");
-      Serial.print(device->name);
-      Serial.print("\tFlash size: ");
-      Serial.print(device->flash_size);
-      Serial.print("\tFlash pages: ");
-      Serial.println(device->n_pages);
-      //Serial.print("Page size: "); Serial.println(device->flash_size / device->n_pages);
-    }
-  }
+  Serial.print("Found Target: ");
+  Serial.print(dap.target_device.name);
+  Serial.print("\tFlash size: ");
+  Serial.print(dap.target_device.flash_size);
+  Serial.print("\tFlash pages: ");
+  Serial.println(dap.target_device.n_pages);
 
   /* Example of how to read and set fuses
   Serial.print("Fuses... ");
   dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
-  dap._USER_ROW.WDT_Period = 0x0A;
+  dap._USER_ROW.bit.WDT_Period = 0x0A;
   dap.fuseWrite();
   */
         
@@ -71,17 +53,14 @@ void setup() {
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
-  
+
   Serial.print("Programming... ");
   unsigned long t = millis();
-  uint32_t addr = dap.program_start();
 
-  while(addr < sizeof(binfile)){
-    dap.programBlock(addr, binfile + addr);
-    addr += BUFSIZE;
-  }
-  
+  dap.programFlash(binfile, sizeof(binfile), true);
+
   Serial.println(millis() - t);
+  
   Serial.println("\nDone!");
   dap.dap_set_clock(50);
 
@@ -89,10 +68,11 @@ void setup() {
   dap.dap_disconnect();
 }
 
+
 void loop() {
   //blink led on the host to show we're done
-  digitalWrite(13, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   delay(500); 
-  digitalWrite(13, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   delay(500);  
 }
