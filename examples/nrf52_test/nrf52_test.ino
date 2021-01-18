@@ -65,7 +65,7 @@ void setup() {
   for(int i=0; i<8; i++) 
   {
     dap.program(addr, buf, sizeof(buf));
-    addr += 4096;
+    addr += BUFSIZE;
   }
 
   Serial.print("\nDone in ");
@@ -73,12 +73,12 @@ void setup() {
   Serial.println(" ms");
 
 
-#if 0
-  for (uint32_t addr=0; addr < dap.target_device.flash_size; addr += sizeof(buf))
+  for(int i=0; i<8; i++)
   {
-    print_memory(addr, buf, sizeof(buf));
+    print_memory(i*BUFSIZE, buf, sizeof(buf));
   }
 
+#if 0
   print_memory(0x10001000, buf, 256);
 #endif
 
