@@ -45,6 +45,26 @@ bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr) {
   // return true;
 }
 
+void Adafruit_DAP::targetConnect() {
+  Serial.println("Connecting...");
+  // First disconnect, in case this really is e reconnect
+  if (!dap_disconnect())                      perror_exit(error_message);
+
+  char debuggername[100];
+  if (!dap_get_debugger_info(debuggername))   perror_exit(error_message);
+  Serial.print(debuggername); Serial.print("\n\r");
+
+  if (!dap_connect())                         perror_exit(error_message);
+
+  //Serial.println("Configure transfer...");
+  if (!dap_transfer_configure(0, 128, 128))   perror_exit(error_message);
+  //Serial.println("SWD configure...");
+  if (!dap_swd_configure(0))                  perror_exit(error_message);
+
+  if (!dap_swj_clock(50))                     perror_exit(error_message);
+  if (!dap_reset_link())                      perror_exit(error_message);
+}
+
 bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize) {
   // TODO: leaving off here, we can only write 64 bytes at a time
   char cmd = data[0];
@@ -383,6 +403,8 @@ bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size) {
       // error_exit("invalid response while reading the block at 0x%08x (value =
       // %d)",
       //    addr, buf[2]);
+      Serial.println("invalid response while reading the block ");
+      Serial.println(buf[2]);
     }
 
     memcpy(&data[offs], &buf[3], sz);
@@ -422,6 +444,8 @@ bool Adafruit_DAP::dap_write_block(uint32_t addr, const uint8_t *data,
       // error_exit("invalid response while writing the block at 0x%08x (value =
       // %d)",
       //    addr, buf[2]);
+      Serial.println("invalid response while writing the block ");
+      Serial.println(buf[2]);
     }
 
     size -= sz;
@@ -477,10 +501,10 @@ bool Adafruit_DAP::dap_read_idcode(uint32_t *v) {
 
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP::dap_target_prepare(void) {
-  dap_write_reg(SWD_DP_W_ABORT, 0x00000016);
-  dap_write_reg(SWD_DP_W_SELECT, 0x00000000);
-  dap_write_reg(SWD_DP_W_CTRL_STAT, 0x50000f00);
-  dap_write_reg(SWD_AP_CSW, 0x23000052);
+  dap_write_reg(SWD_DP_W_ABORT, 0x00000016); // DP_ABORT_STKCMPCLR  = 2| DP_ABORT_STKERRCLR = 4 | DP_ABORT_ORUNERRCLR = 0x10
+  dap_write_reg(SWD_DP_W_SELECT, 0x00000000); // DP_SELECT_APBANKSEL(0) = 0 | DP_SELECT_APSEL(0) = 0
+  dap_write_reg(SWD_DP_W_CTRL_STAT, 0x50000f00); // DP_CST_CDBGPWRUPREQ = 0x10000000 | DP_CST_CSYSPWRUPREQ = 0x40000000| DP_CST_MASKLANE(0xf) = 0x0F00
+  dap_write_reg(SWD_AP_CSW, 0x23000052); // AP_CSW_ADDRINC_SINGLE = 0x10 | AP_CSW_DEVICEEN = 0x40 | AP_CSW_PROT(0x23) = 0x23000000 | AP_CSW_SIZE_WORD = 0x02
   return true;
 }
 

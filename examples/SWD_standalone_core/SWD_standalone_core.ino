@@ -138,25 +138,25 @@ void loop() {
     targetConnect();
     info("locking chip...");
     dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
-    uint64_t fuses = dap._USER_ROW.get();
+    uint64_t fuses = dap._USER_ROW.fuses;
     Serial.print("Fuse high: 0x"); Serial.println((uint32_t)(fuses >> 32), HEX);
     Serial.print("Fuse low: 0x"); Serial.println((uint32_t)(fuses & 0xFFFFFFFF), HEX);
-    Serial.print("Boot protect: 0x"); Serial.println(dap._USER_ROW.BOOTPROT, HEX);
+    Serial.print("Boot protect: 0x"); Serial.println(dap._USER_ROW.bit.BOOTPROT, HEX);
 
     uint16_t bootsize = arg.toInt();
     // lock it!
     if (bootsize == 8192) {
-      dap._USER_ROW.BOOTPROT = 0x02;
+      dap._USER_ROW.bit.BOOTPROT = 0x02;
     } else if (bootsize == 16384) {
-      dap._USER_ROW.BOOTPROT = 0x01;
+      dap._USER_ROW.bit.BOOTPROT = 0x01;
     } else {
       error("Unsupported bootprot size");
     }
     dap.fuseWrite();
-    fuses = dap._USER_ROW.get();
+    fuses = dap._USER_ROW.fuses;
     Serial.print("New Fuse high: 0x"); Serial.println((uint32_t)(fuses >> 32), HEX);
     Serial.print("New Fuse low: 0x"); Serial.println((uint32_t)(fuses & 0xFFFFFFFF), HEX);
-    Serial.print("New Boot protect: 0x"); Serial.println(dap._USER_ROW.BOOTPROT, HEX);
+    Serial.print("New Boot protect: 0x"); Serial.println(dap._USER_ROW.bit.BOOTPROT, HEX);
     info("done!\n");
     dap.deselect();
   }
@@ -165,18 +165,18 @@ void loop() {
     targetConnect();
     info("Unlocking chip...");
     dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
-    uint64_t fuses = dap._USER_ROW.get();
+    uint64_t fuses = dap._USER_ROW.fuses;
     Serial.print("Fuse high: 0x"); Serial.println((uint32_t)(fuses >> 32), HEX);
     Serial.print("Fuse low: 0x"); Serial.println((uint32_t)(fuses & 0xFFFFFFFF), HEX);
-    Serial.print("Boot protect: 0x"); Serial.println(dap._USER_ROW.BOOTPROT, HEX);
-    if (dap._USER_ROW.BOOTPROT != 0x07) {
+    Serial.print("Boot protect: 0x"); Serial.println(dap._USER_ROW.bit.BOOTPROT, HEX);
+    if (dap._USER_ROW.bit.BOOTPROT != 0x07) {
       // unlock it!
-      dap._USER_ROW.BOOTPROT = 0x07;
+      dap._USER_ROW.bit.BOOTPROT = 0x07;
       dap.fuseWrite();
-      fuses = dap._USER_ROW.get();
+      fuses = dap._USER_ROW.fuses;
       Serial.print("New Fuse high: 0x"); Serial.println((uint32_t)(fuses >> 32), HEX);
       Serial.print("New Fuse low: 0x"); Serial.println((uint32_t)(fuses & 0xFFFFFFFF), HEX);
-      Serial.print("New Boot protect: 0x"); Serial.println(dap._USER_ROW.BOOTPROT, HEX);
+      Serial.print("New Boot protect: 0x"); Serial.println(dap._USER_ROW.bit.BOOTPROT, HEX);
     }
     info("done!\n");
     dap.deselect();
@@ -417,34 +417,18 @@ void targetConnect(void) {
   char debuggername[250];
   
   info("Connecting...");  
-  if (! dap.dap_disconnect())                      error(dap.error_message);
-  
-  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
-  info(debuggername); info("\n\r");
-  
-  if (! dap.dap_connect())                         error(dap.error_message);
-  
-  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
-  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
-  if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))                     error(dap.error_message);
-  dap.dap_target_prepare();
+  dap.targetConnect();
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {
     Serial.print("Unknown device found 0x"); Serial.print(dsu_did, HEX);
     error("Unknown device found");
   }
-  for (device_t *device = dap.devices; device->dsu_did > 0; device++) {
-    if (device->dsu_did == dsu_did) {
-      Serial.print("Found Target: ");
-      Serial.print(device->name);
-      Serial.print("\tFlash size: ");
-      Serial.print(device->flash_size);
-      Serial.print("\tFlash pages: ");
-      Serial.println(device->n_pages);
-      //Serial.print("Page size: "); Serial.println(device->flash_size / device->n_pages);
-    }
-  }
+  Serial.print("Found Target: ");
+  Serial.print(dap.target_device.name);
+  Serial.print("\tFlash size: ");
+  Serial.print(dap.target_device.flash_size);
+  Serial.print("\tFlash pages: ");
+  Serial.println(dap.target_device.n_pages);
 }
 
