@@ -171,6 +171,11 @@ public:
   ~Adafruit_DAP(void){};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
+  // High level methods
+  bool targetConnect(uint32_t swj_clock = 50);
+
+  // Low level methods
+  bool select(uint32_t *id);
   bool dap_led(int index, int state);
   bool dap_connect(void);
   bool dap_disconnect(void);
@@ -193,6 +198,7 @@ public:
   void dap_set_clock(uint32_t clock);
 
   char *error_message;
+  device_t target_device;
 
 protected:
   uint8_t _i2caddr;
@@ -205,91 +211,87 @@ protected:
 // DAP for SAM
 class Adafruit_DAP_SAM : public Adafruit_DAP {
 public:
-  Adafruit_DAP_SAM(void){};
+  Adafruit_DAP_SAM(void) : locked(false) {};
   ~Adafruit_DAP_SAM(void){};
 
+  static const size_t PAGESIZE = SAM_PAGE_SIZE;
+  static const size_t USER_ROW_SIZE = 256;
   static device_t devices[];
-  device_t target_device;
+  bool locked;
 
   bool select(uint32_t *id);
+  virtual void resetWithExtension(void);
+  virtual void finishReset(void);
   void deselect(void);
   void erase(void);
   void lock(void);
-  void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = 256);
-  void readBlock(uint32_t addr, uint8_t *buf);
+  virtual size_t pageSize() { return PAGESIZE; }
+  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
+  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks = false);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
+  virtual void readBlock(uint32_t addr, uint8_t *buf);
   bool readCRC(uint32_t length, uint32_t *crc);
   // uint32_t verifyBlock(uint32_t addr);
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  uint32_t program_start(uint32_t offset = 0);
+  virtual uint32_t program_start(uint32_t offset = 0);
 
-  struct USER_ROW {
-
-    uint8_t BOOTPROT : 3;
-    uint8_t EEPROM : 3;
-    uint8_t BOD33_Level : 6;
-    uint8_t BOD33_Enable : 1;
-    uint8_t BOD33_Action : 2;
-    uint8_t WDT_Enable : 1;
-    uint8_t WDT_Always_On : 1;
-    uint8_t WDT_Period : 4;
-    uint8_t WDT_Window : 4;
-    uint8_t WDR_EWOFFSET : 4;
-    uint8_t WDR_WEN : 1;
-    uint8_t BOD33_Hysteresis : 1;
-    uint16_t LOCK : 16;
-
-    void set(uint64_t data) {
-      BOOTPROT = data & 0x07;
-      EEPROM = (data >> 4) & 0x07;
-      BOD33_Level = (data >> 8) & 0x3F;
-      BOD33_Enable = (data >> 14) & 0x01;
-      BOD33_Action = (data >> 15) & 0x03;
-      WDT_Enable = (data >> 25) & 0x01;
-      WDT_Always_On = (data >> 26) & 0x01;
-      WDT_Period = (data >> 27) & 0xF;
-      WDT_Window = (data >> 31) & 0xF;
-      WDR_EWOFFSET = (data >> 35) & 0xF;
-      WDR_WEN = (data >> 39) & 0x01;
-      BOD33_Hysteresis = (data >> 40) & 0x01;
-      LOCK = (data >> 48) & 0xFFFF;
-    }
-    uint64_t get() {
-      return ((uint64_t)LOCK << 48) | ((uint64_t)BOD33_Hysteresis << 40) |
-             ((uint64_t)WDR_WEN << 39) | ((uint64_t)WDR_EWOFFSET << 35) |
-             ((uint64_t)WDT_Window << 31) | ((uint64_t)WDT_Period << 27) |
-             ((uint64_t)WDT_Always_On << 26) | ((uint64_t)WDT_Enable << 25) |
-             ((uint64_t)BOD33_Action << 15) | ((uint64_t)BOD33_Enable << 14) |
-             ((uint64_t)BOD33_Level << 8) | ((uint64_t)EEPROM << 4) |
-             (uint64_t)BOOTPROT;
-    }
-  };
+  typedef union {
+    struct __attribute__((__packed__)) {
+      // The old USER_ROW erased the reserved BOD12 Voltage regulator config
+      uint8_t BOOTPROT : 3;
+      uint8_t _reserved1 : 1;
+      uint8_t EEPROM : 3;
+      uint8_t _reserved2 : 1;
+      uint8_t BOD33_Level : 6;
+      uint8_t BOD33_Enable : 1;
+      uint8_t BOD33_Action : 2;
+      uint8_t _reserved_BOD12_Config_Vreg: 8;
+      uint8_t WDT_Enable : 1;
+      uint8_t WDT_Always_On : 1;
+      uint8_t WDT_Period : 4;
+      uint8_t WDT_Window : 4;
+      uint8_t WDR_EWOFFSET : 4;
+      uint8_t WDR_WEN : 1;
+      uint8_t BOD33_Hysteresis : 1;
+      uint8_t _reserved_BOD12_Config : 1;
+      uint8_t _reserved3 : 6;
+      uint16_t LOCK : 16;
+    } bit;
+    uint64_t fuses;
+    uint32_t fuseParts[2];
+    uint8_t reg[USER_ROW_SIZE]; // Store a full page size
+  } USER_ROW;
   USER_ROW _USER_ROW;
 };
 
 // DAP for SAMx5
 class Adafruit_DAP_SAMx5 : public Adafruit_DAP_SAM {
 public:
-  Adafruit_DAP_SAMx5(void){};
+  Adafruit_DAP_SAMx5(void) : Adafruit_DAP_SAM() { };
   ~Adafruit_DAP_SAMx5(void){};
 
+  static const size_t PAGESIZE = SAMx5_PAGE_SIZE;
+
   static device_t devices[];
-  device_t target_device;
 
   bool select(uint32_t *id);
+  virtual void finishReset(void);
   void erase(void);
   void lock(void);
-  void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = 512);
-  void readBlock(uint32_t addr, uint8_t *buf);
+  virtual size_t pageSize() { return PAGESIZE; }
+  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks = false);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
+  virtual void readBlock(uint32_t addr, uint8_t *buf);
   bool readCRC(uint32_t length, uint32_t *crc);
   // uint32_t verifyBlock(uint32_t addr);
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  uint32_t program_start(uint32_t offset = 0);
+  virtual uint32_t program_start(uint32_t offset = 0);
 
   typedef union {
     struct __attribute__((__packed__)) {
@@ -312,7 +314,7 @@ public:
       uint8_t WDT_EWOFFSET : 4;
       uint8_t WDT_WEN : 1;
       uint8_t : 1;
-      uint16_t NVM_LOCKS : 16;
+      uint16_t NVM_LOCKS : 32; // As per SAM D5x/E5x Family datasheet page 53
       uint32_t User_Page : 32;
     } bit;
     uint8_t reg[32];
