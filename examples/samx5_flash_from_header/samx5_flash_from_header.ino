@@ -59,7 +59,7 @@ void setup() {
   
   unsigned long t = millis();
 
-  dap.programFlash(binfile, sizeof(binfile), true);
+  dap.programFlash(0, binfile, sizeof(binfile), true);
   
   Serial.println(millis() - t);
   Serial.println("\nDone!");

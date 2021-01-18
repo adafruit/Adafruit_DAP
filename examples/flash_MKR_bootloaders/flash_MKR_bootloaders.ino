@@ -147,7 +147,7 @@ void setup() {
   Serial.print(dap._USER_ROW.bit.LOCK);
   Serial.println();
 
-  dap.programFlash(selectedBoard->bootloader, selectedBoard->size, true);
+  dap.programFlash(0, selectedBoard->bootloader, selectedBoard->size, true);
 
   Serial.println("\nDone!");
 

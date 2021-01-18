@@ -152,38 +152,38 @@ void Adafruit_DAP_SAM::finishReset() {
 	dap_write_word(AIRCR, 0x05fa0004);
 }
 
-void Adafruit_DAP_SAM::programFlash(const uint8_t * source, uint16_t bootloaderSize, bool doVerify, uint32_t flashOffset) {
-  size_t bufSize = pageSize();
-  uint8_t verifyBuf[bufSize];
+void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
+  size_t const bufSize = pageSize();
 
   Serial.println("\nProgramming...");
   uint32_t startAddr = program_start(flashOffset);
-  uint32_t addr = startAddr;
-  while (addr < bootloaderSize) {
+
+  for(uint32_t count = 0; count < datalen; count += bufSize) {
     Serial.print(" 0x");
-    Serial.print(addr, HEX);
-    programBlock(addr, source + addr, bufSize);
-    addr += bufSize;
+    Serial.print(startAddr + count, HEX);
+    programBlock(startAddr + count, data + count, bufSize);
   }
 
   if (doVerify) {
+    uint8_t verifyBuf[bufSize];
+
     bool success = true;
     Serial.println("\nVerifying...");
 
-    addr = startAddr;
-    while (addr < bootloaderSize) {
+    for(uint32_t count = 0; count < datalen; count += bufSize) {
       Serial.print("Block: 0x");
-      Serial.print(addr, HEX);
+      Serial.print(startAddr + count, HEX);
       Serial.print(" ");
-      readBlock(addr, verifyBuf);
-      if (memcmp(verifyBuf, source + addr, bufSize) == 0) {
+
+      readBlock(startAddr + count, verifyBuf);
+
+      if (memcmp(verifyBuf, data + count, bufSize) == 0) {
         Serial.println("OK");
       }
       else {
         Serial.println("Failed compare!");
         success = false;
       }
-      addr += bufSize;
     }
 
     if (!success) {

@@ -226,7 +226,7 @@ public:
   void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
-  void programFlash(const uint8_t * source, uint16_t bootloaderSize, bool doVerify = false, uint32_t flashOffset = 0);
+  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks = false);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
