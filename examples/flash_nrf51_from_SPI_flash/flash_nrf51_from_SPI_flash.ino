@@ -11,8 +11,8 @@
 #define UICR_BOOTLOADER_VAL     0x0003C000
 
 // SWD pin configure
-#define SWDIO 11
-#define SWCLK 12
+#define SWDIO 12
+#define SWCLK 11
 #define SWRST 9
 
 #define BUFSIZE   (1024)

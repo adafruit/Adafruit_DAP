@@ -4,9 +4,9 @@
 
 #define SD_CS 10  /* 10 on Atmel M0/M4/32x, 11 on nRF52832 Feather */
 
-#define SWDIO 11
-#define SWCLK 12
-#define SWRST 13
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 9
 
 #define FILE_BLINKY         "40_BLINKY.bin"
 #define FILE_BOOTLOADER     "40_BOOT.bin"

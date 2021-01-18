@@ -1,8 +1,8 @@
 #include "Adafruit_DAP.h"
 
-#define SWDIO 11
-#define SWCLK 12
-#define SWRST 13
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 9
 
 // the more the better
 #define BUFSIZE   (16*1024)

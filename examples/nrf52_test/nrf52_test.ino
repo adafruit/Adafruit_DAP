@@ -3,8 +3,8 @@
 #include <SD.h>
 
 //teensy only, otherwise change sd cs pin
-#define SWDIO 11
-#define SWCLK 12
+#define SWDIO 12
+#define SWCLK 11
 #define SWRST 9
 
 #define BUFSIZE   4096

@@ -3,7 +3,7 @@
 
 #define SWDIO 12
 #define SWCLK 11
-#define SWRST 10
+#define SWRST 9
 
 //create a DAP for programming Atmel SAMx5 devices
 Adafruit_DAP_SAMx5 dap;

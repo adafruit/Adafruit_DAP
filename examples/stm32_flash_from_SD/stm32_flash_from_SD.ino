@@ -4,9 +4,9 @@
 
 #define SD_CS 10
 
-#define SWDIO 11
-#define SWCLK 12
-#define SWRST 13
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 9
 
 #define FILENAME "FIRMWARE.BIN"
 

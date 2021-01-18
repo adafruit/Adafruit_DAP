@@ -4,9 +4,9 @@
 
 #define SD_CS 10
 
-#define SWDIO 11
-#define SWCLK 12
-#define SWRST 13
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 9
 
 #define FILE_S132           "S132_201.BIN"
 #define FILE_BOOTLOADER     "FT52_050.BIN"
