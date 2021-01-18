@@ -162,7 +162,7 @@ void Adafruit_DAP_SAM::programFlash(const uint8_t * source, uint16_t bootloaderS
   while (addr < bootloaderSize) {
     Serial.print(" 0x");
     Serial.print(addr, HEX);
-    programBlock(addr, source + addr);
+    programBlock(addr, source + addr, bufSize);
     addr += bufSize;
   }
 
