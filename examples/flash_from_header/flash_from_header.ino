@@ -1,9 +1,9 @@
 #include "Adafruit_DAP.h"
 #include "2772cipy.h"
 
-#define SWDIO 9
-#define SWCLK 8
-#define SWRST 7
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 10
 
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_SAM dap;
@@ -27,7 +27,14 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
 
-  dap.targetConnect();
+  Serial.println("Connecting...");
+  if ( !dap.targetConnect() ) {
+    error(dap.error_message);
+  }
+
+  char debuggername[100];
+  dap.dap_get_debugger_info(debuggername);
+  Serial.print(debuggername); Serial.print("\n\r");
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {
@@ -46,9 +53,8 @@ void setup() {
   dap.fuseRead(); //MUST READ FUSES BEFORE SETTING OR WRITING ANY
   dap._USER_ROW.bit.WDT_Period = 0x0A;
   dap.fuseWrite();
-  */
-        
   Serial.println(" done.");
+  */
 
   Serial.print("Erasing... ");
   dap.erase();

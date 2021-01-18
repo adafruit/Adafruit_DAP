@@ -39,8 +39,14 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
 
-  Serial.print("Connecting...");
-  dap.targetConnect();
+  Serial.println("Connecting...");
+  if ( !dap.targetConnect() ) {
+    error(dap.error_message);
+  }
+
+  char debuggername[100];
+  dap.dap_get_debugger_info(debuggername);
+  Serial.print(debuggername); Serial.print("\n\r");
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {

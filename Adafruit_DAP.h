@@ -172,7 +172,7 @@ public:
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
   // High level methods
-  void targetConnect();
+  bool targetConnect(uint32_t swj_clock = 50);
 
   // Low level methods
   bool select(uint32_t *id);

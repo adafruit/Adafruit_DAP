@@ -220,7 +220,12 @@ void Adafruit_DAP_SAM::resetWithExtension(void)
   // Enter reset extension mode
   dap_reset_target_hw();
   delay(10);
-  targetConnect();
+
+  if ( !targetConnect() ) {
+    perror_exit(error_message);
+    return; // false
+  }
+
   Serial.println("Target prepare...");
   dap_target_prepare();
 }

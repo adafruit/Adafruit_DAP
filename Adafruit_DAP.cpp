@@ -45,24 +45,16 @@ bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr) {
   // return true;
 }
 
-void Adafruit_DAP::targetConnect() {
-  Serial.println("Connecting...");
+bool Adafruit_DAP::targetConnect(uint32_t swj_clock) {
   // First disconnect, in case this really is e reconnect
-  if (!dap_disconnect())                      perror_exit(error_message);
+  if (!dap_disconnect()) return false;
+  if (!dap_connect()) return false;
+  if (!dap_transfer_configure(0, 128, 128)) return false;
+  if (!dap_swd_configure(0))                return false;
+  if (!dap_swj_clock(swj_clock))            return false;
+  if (!dap_reset_link())                    return false;
 
-  char debuggername[100];
-  if (!dap_get_debugger_info(debuggername))   perror_exit(error_message);
-  Serial.print(debuggername); Serial.print("\n\r");
-
-  if (!dap_connect())                         perror_exit(error_message);
-
-  //Serial.println("Configure transfer...");
-  if (!dap_transfer_configure(0, 128, 128))   perror_exit(error_message);
-  //Serial.println("SWD configure...");
-  if (!dap_swd_configure(0))                  perror_exit(error_message);
-
-  if (!dap_swj_clock(50))                     perror_exit(error_message);
-  if (!dap_reset_link())                      perror_exit(error_message);
+  return true;
 }
 
 bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize) {
