@@ -11,8 +11,8 @@
 #define UICR_BOOTLOADER_VAL     0x0003C000
 
 // SWD pin configure
-#define SWDIO 11
-#define SWCLK 12
+#define SWDIO 12
+#define SWCLK 11
 #define SWRST 9
 
 #define BUFSIZE   (1024)
@@ -78,20 +78,14 @@ void setup() {
   }
   Serial.println("Mounted filesystem!");
 
-  Serial.print("Connecting...");
-  if (! dap.dap_disconnect())                      error(dap.error_message);
+  Serial.println("Connecting...");
+  if ( !dap.targetConnect() ) {
+    error(dap.error_message);
+  }
 
   char debuggername[100];
-  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
+  dap.dap_get_debugger_info(debuggername);
   Serial.print(debuggername); Serial.print("\n\r");
-
-  if (! dap.dap_connect())                         error(dap.error_message);
-
-  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
-  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
-  if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))                     error(dap.error_message);
-  dap.dap_target_prepare();
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {

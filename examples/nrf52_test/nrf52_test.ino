@@ -3,8 +3,8 @@
 #include <SD.h>
 
 //teensy only, otherwise change sd cs pin
-#define SWDIO 11
-#define SWCLK 12
+#define SWDIO 12
+#define SWCLK 11
 #define SWRST 9
 
 #define BUFSIZE   4096
@@ -28,20 +28,14 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
 
-  Serial.print("Connecting...");
-  if (! dap.dap_disconnect())                      error(dap.error_message);
+  Serial.println("Connecting...");
+  if ( !dap.targetConnect() ) {
+    error(dap.error_message);
+  }
 
   char debuggername[100];
-  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
+  dap.dap_get_debugger_info(debuggername);
   Serial.print(debuggername); Serial.print("\n\r");
-
-  if (! dap.dap_connect())                         error(dap.error_message);
-
-  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
-  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
-  if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))                     error(dap.error_message);
-  dap.dap_target_prepare();
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {
@@ -71,7 +65,7 @@ void setup() {
   for(int i=0; i<8; i++) 
   {
     dap.program(addr, buf, sizeof(buf));
-    addr += 4096;
+    addr += BUFSIZE;
   }
 
   Serial.print("\nDone in ");
@@ -79,12 +73,12 @@ void setup() {
   Serial.println(" ms");
 
 
-#if 0
-  for (uint32_t addr=0; addr < dap.target_device.flash_size; addr += sizeof(buf))
+  for(int i=0; i<8; i++)
   {
-    print_memory(addr, buf, sizeof(buf));
+    print_memory(i*BUFSIZE, buf, sizeof(buf));
   }
 
+#if 0
   print_memory(0x10001000, buf, 256);
 #endif
 

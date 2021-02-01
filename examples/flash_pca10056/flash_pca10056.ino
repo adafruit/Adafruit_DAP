@@ -4,9 +4,9 @@
 
 #define SD_CS 10  /* 10 on Atmel M0/M4/32x, 11 on nRF52832 Feather */
 
-#define SWDIO 11
-#define SWCLK 12
-#define SWRST 13
+#define SWDIO 12
+#define SWCLK 11
+#define SWRST 9
 
 #define FILE_BLINKY         "40_BLINKY.bin"
 #define FILE_BOOTLOADER     "40_BOOT.bin"
@@ -38,20 +38,14 @@ void setup() {
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
   
-  Serial.print("Connecting...");
-  if (! dap.dap_disconnect())                      error(dap.error_message);
+  Serial.println("Connecting...");
+  if ( !dap.targetConnect() ) {
+    error(dap.error_message);
+  }
 
   char debuggername[100];
-  if (! dap.dap_get_debugger_info(debuggername))   error(dap.error_message);
+  dap.dap_get_debugger_info(debuggername);
   Serial.print(debuggername); Serial.print("\n\r");
-
-  if (! dap.dap_connect())                         error(dap.error_message);
-
-  if (! dap.dap_transfer_configure(0, 128, 128))   error(dap.error_message);
-  if (! dap.dap_swd_configure(0))                  error(dap.error_message);
-  if (! dap.dap_reset_link())                      error(dap.error_message);
-  if (! dap.dap_swj_clock(50))                     error(dap.error_message);
-  dap.dap_target_prepare();
 
   uint32_t dsu_did;
   if (! dap.select(&dsu_did)) {

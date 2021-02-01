@@ -147,6 +147,8 @@ Adafruit_DAP_STM32::Adafruit_DAP_STM32(void) {
 bool Adafruit_DAP_STM32::select(uint32_t *found_id) {
   uint32_t mcuid;
 
+  dap_target_prepare();
+
   // Stop the core
   dap_write_word(DHCSR, 0xa05f0003);
   dap_write_word(DEMCR, 0x00000001);
