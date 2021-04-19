@@ -268,7 +268,11 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
 
   while (count) {
     uint8_t data[CHUNK_SIZE];
-    uint32_t bytes = min(count, CHUNK_SIZE);
+    #if defined(ESP8266) || defined(ESP32)
+      uint32_t bytes = _min(count, CHUNK_SIZE);
+    #else
+      uint32_t bytes = min(count, CHUNK_SIZE);
+    #endif
     bool hasdata = false;
 
     memset(data, 0xFF, CHUNK_SIZE);
