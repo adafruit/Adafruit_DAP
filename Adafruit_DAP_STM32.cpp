@@ -274,8 +274,11 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
   uint8_t buf[4 * 1024];
 
   while (size) {
-    uint32_t const count = min(size, sizeof(buf));
-
+    #if defined(ESP8266) || defined(ESP32)
+      uint32_t const count = _min(size, sizeof(buf));
+    #else
+      uint32_t const count = min(size, sizeof(buf));
+    #endif
     dap_read_block(addr, buf, count);
 
     if (memcmp(data, buf, count))
