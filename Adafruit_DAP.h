@@ -219,15 +219,17 @@ public:
   static device_t devices[];
   bool locked;
 
-  bool select(uint32_t *id);
-  virtual void resetWithExtension(void);
-  virtual void finishReset(void);
+  //------------- API for both SAMD21 and SAMD51 -------------//
+  void resetWithExtension(void);
+  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
   void deselect(void);
+
+  bool select(uint32_t *id);
+  virtual void finishReset(void);
   void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
-  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
-  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks = false);
+  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
   bool readCRC(uint32_t length, uint32_t *crc);
@@ -274,6 +276,7 @@ public:
   ~Adafruit_DAP_SAMx5(void){};
 
   static const size_t PAGESIZE = SAMx5_PAGE_SIZE;
+  static const size_t USER_ROW_SIZE = 32;
 
   static device_t devices[];
 
@@ -282,7 +285,7 @@ public:
   void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
-  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks = false);
+  virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
   bool readCRC(uint32_t length, uint32_t *crc);
@@ -317,7 +320,7 @@ public:
       uint16_t NVM_LOCKS : 32; // As per SAM D5x/E5x Family datasheet page 53
       uint32_t User_Page : 32;
     } bit;
-    uint8_t reg[32];
+    uint8_t reg[USER_ROW_SIZE];
   } USER_ROW;
   USER_ROW _USER_ROW;
 };
