@@ -111,46 +111,9 @@ device_t Adafruit_DAP_SAM::devices[] = {
     {0},
 };
 
-
-//-----------------------------------------------------------------------------
-bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
-  uint32_t DAP_DSU_did;
-
-  // Stopping the core fails on locked SAM D21/51, when not doing an Extended reset first.
-  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set, one must enter Reset Extension mode
-  // before issuing reads through DAP. Write mostly requires the Security Bit to be cleared by executing a Chip Erase, before entering Reset Extension mode
-  // once more, followed by a SWD reconnect.
-
-  resetWithExtension();
-
-  DAP_DSU_did = dap_read_word(DAP_DSU_DID);
-  *found_id = DAP_DSU_did;
-
-  for (device_t *device = devices; device->dsu_did > 0; device++) {
-    if (device->dsu_did == DAP_DSU_did) {
-      target_device = *device;
-
-      locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
-      if (locked) {
-        Serial.println("Device is locked, must be unlocked!");
-      }
-      else {
-        // Stop the core
-        finishReset();
-      }
-      return true;
-    }
-  }
-
-  return false;
-}
-
-void Adafruit_DAP_SAM::finishReset() {
-	// Stop the core
-	dap_write_word(DHCSR, 0xa05f0003);
-	dap_write_word(DEMCR, 0x00000001);
-	dap_write_word(AIRCR, 0x05fa0004);
-}
+//--------------------------------------------------------------------+
+// API for both SAMD21 and SAMD51
+//--------------------------------------------------------------------+
 
 void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
   size_t const bufSize = pageSize();
@@ -159,8 +122,8 @@ void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
   uint32_t startAddr = program_start(flashOffset);
 
   for(uint32_t count = 0; count < datalen; count += bufSize) {
-    Serial.print(" 0x");
-    Serial.print(startAddr + count, HEX);
+    // Serial.print(" 0x");
+    // Serial.print(startAddr + count, HEX);
     programBlock(startAddr + count, data + count, bufSize);
   }
 
@@ -192,27 +155,6 @@ void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
   }
 }
 
-void Adafruit_DAP_SAM::resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks) {
-  bool doFuseWrite = false;
-
-  fuseRead();
-
-  if (resetBootloaderProtection && _USER_ROW.bit.BOOTPROT != 7) {
-    Serial.print("Resetting BOOTPROT... ");
-    _USER_ROW.bit.BOOTPROT = 7;
-    doFuseWrite = true;
-  }
-  if (resetRegionLocks && _USER_ROW.bit.LOCK != 0xffffu) {
-    Serial.print(" Resetting NVM region LOCK... ");
-    _USER_ROW.bit.LOCK = 0xffffu;
-    doFuseWrite = true;
-  }
-
-  if (doFuseWrite) {
-    fuseWrite();
-  }
-}
-
 void Adafruit_DAP_SAM::resetWithExtension(void)
 {
   Serial.print("Enter Reset with Extension mode... ");
@@ -228,6 +170,71 @@ void Adafruit_DAP_SAM::resetWithExtension(void)
 
   Serial.println("Target prepare...");
   dap_target_prepare();
+}
+
+//--------------------------------------------------------------------+
+// API for SAMD21 only
+//--------------------------------------------------------------------+
+
+bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
+  uint32_t DAP_DSU_did;
+
+  // Stopping the core fails on locked SAM D21/51, when not doing an Extended reset first.
+  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set, one must enter Reset Extension mode
+  // before issuing reads through DAP. Write mostly requires the Security Bit to be cleared by executing a Chip Erase, before entering Reset Extension mode
+  // once more, followed by a SWD reconnect.
+
+  resetWithExtension();
+
+  DAP_DSU_did = dap_read_word(DAP_DSU_DID);
+  *found_id = DAP_DSU_did;
+
+  for (device_t *device = devices; device->dsu_did > 0; device++) {
+    if (device->dsu_did == DAP_DSU_did) {
+      target_device = *device;
+
+      locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
+      if (locked) {
+        Serial.println("Device is locked, must be unlocked first!");
+      }
+      else {
+        // Stop the core
+        finishReset();
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void Adafruit_DAP_SAM::finishReset() {
+	// Stop the core
+	dap_write_word(DHCSR, 0xa05f0003);
+	dap_write_word(DEMCR, 0x00000001);
+	dap_write_word(AIRCR, 0x05fa0004);
+}
+
+void Adafruit_DAP_SAM::resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks) {
+  bool doFuseWrite = false;
+
+  fuseRead();
+
+  if (resetBootloaderProtection && _USER_ROW.bit.BOOTPROT != 7) {
+    Serial.print("Resetting BOOTPROT... ");
+    _USER_ROW.bit.BOOTPROT = 7;
+    doFuseWrite = true;
+  }
+
+  if (resetRegionLocks && _USER_ROW.bit.LOCK != 0xffffu) {
+    Serial.print(" Resetting NVM region LOCK... ");
+    _USER_ROW.bit.LOCK = 0xffffu;
+    doFuseWrite = true;
+  }
+
+  if (doFuseWrite) {
+    fuseWrite();
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -292,28 +299,6 @@ void Adafruit_DAP_SAM::readBlock(uint32_t addr, uint8_t *buf) {
 
   dap_read_block(addr, buf, PAGESIZE);
 }
-
-/*
-uint32_t Adafruit_DAP_SAM::verifyBlock(uint32_t addr)
-{
-   dap_write_word(DAP_DSU_DATA, 0xFFFFFFFF);
-   dap_write_word(DAP_DSU_ADDR, (addr << 2));
-   dap_write_word(DAP_DSU_LENGTH, DAP_FLASH_ROW_SIZE);
-
-   dap_write_word(DAP_DSU_CTRL_STATUS, 0x00001f00); // Clear flags
-   dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_CTRL_CRC); //start CRC
-
-   uint32_t status = 0;
-   while(0 == (status & DAP_DSU_STATUSA_DONE) ){
-      status = dap_read_word(DAP_DSU_CTRL_STATUS);
-      if( (status & DAP_DSU_STATUSA_BERR) > 0){
-       Serial.println(status, BIN);
-       perror_exit("bus read error during verify!");
-     }
-   }
-   return dap_read_word(DAP_DSU_DATA);
-}
-*/
 
 bool Adafruit_DAP_SAM::readCRC(uint32_t length, uint32_t *crc) {
   /* to verify CRC, compare (dap_read_word(DAP_DSU_DATA) ^ 0xFFFFFFFF) to output

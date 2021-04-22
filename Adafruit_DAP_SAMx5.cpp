@@ -46,7 +46,7 @@
 #define DEMCR 0xe000edfc
 #define AIRCR 0xe000ed0c
 
-#define DAP_DSU_CTRL_STATUS 0x41002100
+#define DAP_DSU_CTRL_STATUS 0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external debugger
 #define DAP_DSU_DID 0x41002118
 #define DAP_DSU_ADDR 0x41002104
 #define DAP_DSU_DATA 0x4100210C
@@ -80,7 +80,6 @@
 #define NVMCTRL_CMD_CBPDIS 0xa51b  /* Clears STATUS.BPDIS, Boot loader protection is not off */
 
 #define USER_ROW_ADDR 0x00804000
-#define USER_ROW_SIZE 32
 
 /*- Variables ---------------------------------------------------------------*/
 device_t Adafruit_DAP_SAMx5::devices[] = {
@@ -101,6 +100,8 @@ device_t Adafruit_DAP_SAMx5::devices[] = {
     {0},
 };
 
+//-----------------------------------------------------------------------------
+
 bool Adafruit_DAP_SAMx5::select(uint32_t *found_id) {
   uint32_t DAP_DSU_did;
 
@@ -118,15 +119,15 @@ bool Adafruit_DAP_SAMx5::select(uint32_t *found_id) {
     if (device->dsu_did == DAP_DSU_did) {
       target_device = *device;
 
-    locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
-    if (locked) {
-      Serial.println("Device is locked, must be unlocked first!");
-    }
-    else {
-      // Stop the core
-      finishReset();
-    }
-    return true;
+      locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
+      if (locked) {
+        Serial.println("Device is locked, must be unlocked first!");
+      }
+      else {
+        // Stop the core
+        finishReset();
+      }
+      return true;
     }
   }
 
@@ -150,6 +151,7 @@ void Adafruit_DAP_SAMx5::resetProtectionFuses(bool resetBootloaderProtection, bo
     _USER_ROW.bit.NVM_BOOT = 0xf;
     doFuseWrite = true;
   }
+
   if (resetRegionLocks && _USER_ROW.bit.NVM_LOCKS != 0xffffffffu) {
     Serial.print(" Resetting NVM region LOCK... ");
     _USER_ROW.bit.NVM_LOCKS = 0xffffffffu;
@@ -184,6 +186,8 @@ uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset) {
 
   if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000)
     perror_exit("device is locked, perform a chip erase before programming");
+
+  resetProtectionFuses(true, false);
 
   // Temporarily turn off bootloader protection:
   dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_SBPDIS);
@@ -258,10 +262,7 @@ bool Adafruit_DAP_SAMx5::readCRC(uint32_t length, uint32_t *crc) {
 }
 
 void Adafruit_DAP_SAMx5::fuseRead() {
-  uint8_t buf[USER_ROW_SIZE];
-  dap_read_block(USER_ROW_ADDR, buf, USER_ROW_SIZE);
-
-  memcpy(_USER_ROW.reg, buf, USER_ROW_SIZE);
+  dap_read_block(USER_ROW_ADDR, _USER_ROW.reg, USER_ROW_SIZE);
 }
 
 void Adafruit_DAP_SAMx5::fuseWrite() {
