@@ -160,7 +160,7 @@ void Adafruit_DAP_SAM::resetWithExtension(void)
   Serial.print("Enter Reset with Extension mode... ");
 
   // Enter reset extension mode
-  dap_reset_target_hw();
+  dap_reset_target_hw(0);
   delay(10);
 
   if ( !targetConnect() ) {
@@ -180,9 +180,9 @@ bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
   uint32_t DAP_DSU_did;
 
   // Stopping the core fails on locked SAM D21/51, when not doing an Extended reset first.
-  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set, one must enter Reset Extension mode
-  // before issuing reads through DAP. Write mostly requires the Security Bit to be cleared by executing a Chip Erase, before entering Reset Extension mode
-  // once more, followed by a SWD reconnect.
+  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set,
+  // one must enter Reset Extension mode before issuing reads through DAP. Write mostly requires the Security Bit
+  // to be cleared by executing a Chip Erase, before entering Reset Extension mode once more, followed by a SWD reconnect.
 
   resetWithExtension();
 
