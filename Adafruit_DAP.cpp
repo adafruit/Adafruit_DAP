@@ -273,12 +273,13 @@ bool Adafruit_DAP::dap_reset_target(void) {
 }
 
 //-----------------------------------------------------------------------------
-bool Adafruit_DAP::dap_reset_target_hw(void) {
+bool Adafruit_DAP::dap_reset_target_hw(int state) {
   uint8_t buf[7];
+  int value = state ? (DAP_SWJ_SWCLK_TCK | DAP_SWJ_SWDIO_TMS) : 0;
 
   //-------------
   buf[0] = ID_DAP_SWJ_PINS;
-  buf[1] = 0;                                                      // Value
+  buf[1] = value;                                                  // Value
   buf[2] = DAP_SWJ_nRESET | DAP_SWJ_SWCLK_TCK | DAP_SWJ_SWDIO_TMS; // Select
   buf[3] = 0;                                                      // Wait
   buf[4] = 0;
@@ -287,9 +288,11 @@ bool Adafruit_DAP::dap_reset_target_hw(void) {
   if (!dbg_dap_cmd(buf, sizeof(buf), 7))
     return false;
 
+  delay(10);
+
   //-------------
   buf[0] = ID_DAP_SWJ_PINS;
-  buf[1] = DAP_SWJ_nRESET;                                         // Value
+  buf[1] = DAP_SWJ_nRESET | value;                                 // Value
   buf[2] = DAP_SWJ_nRESET | DAP_SWJ_SWCLK_TCK | DAP_SWJ_SWDIO_TMS; // Select
   buf[3] = 0;                                                      // Wait
   buf[4] = 0;
