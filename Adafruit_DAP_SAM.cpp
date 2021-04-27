@@ -210,10 +210,10 @@ bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
 }
 
 void Adafruit_DAP_SAM::finishReset() {
-	// Stop the core
-	dap_write_word(DHCSR, 0xa05f0003);
-	dap_write_word(DEMCR, 0x00000001);
-	dap_write_word(AIRCR, 0x05fa0004);
+  // Stop the core
+  dap_write_word(DHCSR, 0xa05f0003);
+  dap_write_word(DEMCR, 0x00000001);
+  dap_write_word(AIRCR, 0x05fa0004);
 
   // Release the reset
   dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_STATUSA_CRSTEXT);
