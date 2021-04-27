@@ -33,6 +33,9 @@
 #ifndef ADAFRUIT_DAP_SAM_H_
 #define ADAFRUIT_DAP_SAM_H_
 
+#define SAM_PAGE_SIZE   256
+#define SAMx5_PAGE_SIZE 512
+
 // DAP for SAM
 class Adafruit_DAP_SAM : public Adafruit_DAP {
 public:
@@ -46,11 +49,11 @@ public:
 
   //------------- API for both SAMD21 and SAMD51 -------------//
   void resetWithExtension(void);
+  void finishReset(void);
   void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
   void deselect(void);
 
   bool select(uint32_t *id);
-  virtual void finishReset(void);
   void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
@@ -106,7 +109,6 @@ public:
   static device_t devices[];
 
   bool select(uint32_t *id);
-  virtual void finishReset(void);
   void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }

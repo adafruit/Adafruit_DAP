@@ -43,37 +43,38 @@
 #define DAP_FLASH_ROW_SIZE 256
 #define DAP_FLASH_PAGE_SIZE 64
 
-#define DHCSR 0xe000edf0
-#define DEMCR 0xe000edfc
-#define AIRCR 0xe000ed0c
+#define DHCSR                   0xe000edf0
+#define DEMCR                   0xe000edfc
+#define AIRCR                   0xe000ed0c
 
-#define DAP_DSU_CTRL_STATUS 0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external debugger
-#define DAP_DSU_DID 0x41002118
-#define DAP_DSU_ADDR 0x41002104
-#define DAP_DSU_DATA 0x4100210C
-#define DAP_DSU_LENGTH 0x41002108
+#define DAP_DSU_CTRL_STATUS     0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external debugger
+#define DAP_DSU_DID             0x41002118
+#define DAP_DSU_ADDR            0x41002104
+#define DAP_DSU_DATA            0x4100210C
+#define DAP_DSU_LENGTH          0x41002108
 
-#define DAP_DSU_CTRL_CRC 0x00000004
-#define DAP_DSU_STATUSA_DONE 0x00000100
-#define DAP_DSU_STATUSA_BERR 0x00000400
+#define DAP_DSU_CTRL_CRC        0x00000004
+#define DAP_DSU_STATUSA_DONE    0x00000100
+#define DAP_DSU_STATUSA_CRSTEXT 0x00000200
+#define DAP_DSU_STATUSA_BERR    0x00000400
 
-#define NVMCTRL_CTRLA 0x41004000
-#define NVMCTRL_CTRLB 0x41004004
-#define NVMCTRL_PARAM 0x41004008
-#define NVMCTRL_INTFLAG 0x41004014
-#define NVMCTRL_STATUS 0x41004018
-#define NVMCTRL_ADDR 0x4100401c
+#define NVMCTRL_CTRLA           0x41004000
+#define NVMCTRL_CTRLB           0x41004004
+#define NVMCTRL_PARAM           0x41004008
+#define NVMCTRL_INTFLAG         0x41004014
+#define NVMCTRL_STATUS          0x41004018
+#define NVMCTRL_ADDR            0x4100401c
 
-#define NVMCTRL_CMD_ER 0xa502
-#define NVMCTRL_CMD_WP 0xa504
-#define NVMCTRL_CMD_EAR 0xa505
-#define NVMCTRL_CMD_WAP 0xa506
-#define NVMCTRL_CMD_WL 0xa50f
-#define NVMCTRL_CMD_UR 0xa541
-#define NVMCTRL_CMD_PBC 0xa544
-#define NVMCTRL_CMD_SSB 0xa545
+#define NVMCTRL_CMD_ER          0xa502
+#define NVMCTRL_CMD_WP          0xa504
+#define NVMCTRL_CMD_EAR         0xa505
+#define NVMCTRL_CMD_WAP         0xa506
+#define NVMCTRL_CMD_WL          0xa50f
+#define NVMCTRL_CMD_UR          0xa541
+#define NVMCTRL_CMD_PBC         0xa544
+#define NVMCTRL_CMD_SSB         0xa545
 
-#define USER_ROW_ADDR 0x00804000
+#define USER_ROW_ADDR           0x00804000
 
 /*- Variables ---------------------------------------------------------------*/
 device_t Adafruit_DAP_SAM::devices[] = {
@@ -157,7 +158,7 @@ void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
 
 void Adafruit_DAP_SAM::resetWithExtension(void)
 {
-  Serial.print("Enter Reset with Extension mode... ");
+  Serial.println("Enter Reset with Extension mode... ");
 
   // Enter reset extension mode
   dap_reset_target_hw(0);
@@ -213,6 +214,9 @@ void Adafruit_DAP_SAM::finishReset() {
 	dap_write_word(DHCSR, 0xa05f0003);
 	dap_write_word(DEMCR, 0x00000001);
 	dap_write_word(AIRCR, 0x05fa0004);
+
+  // Release the reset
+  dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_STATUSA_CRSTEXT);
 }
 
 void Adafruit_DAP_SAM::resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks) {

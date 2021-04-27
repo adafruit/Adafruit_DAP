@@ -151,9 +151,6 @@ enum {
   M0_PLUS,
 };
 
-#define SAM_PAGE_SIZE 256
-#define SAMx5_PAGE_SIZE 512
-
 typedef void (*ErrorHandler)(const char *error);
 
 typedef struct {
