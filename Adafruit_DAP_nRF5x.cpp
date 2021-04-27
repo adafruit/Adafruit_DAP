@@ -268,7 +268,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
 
   while (count) {
     uint8_t data[CHUNK_SIZE];
-    uint32_t bytes = min(count, CHUNK_SIZE);
+    uint32_t bytes = min(count, (uint32_t) CHUNK_SIZE);
     bool hasdata = false;
 
     memset(data, 0xFF, CHUNK_SIZE);

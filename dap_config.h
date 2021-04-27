@@ -252,9 +252,10 @@ static inline void DAP_CONFIG_SETUP() {
   // pinMode(DAP_CONFIG_TDO_PIN, INPUT);
   // pinMode(DAP_CONFIG_nTRST_PIN, INPUT);
   pinMode(DAP_CONFIG_nRESET_PIN, INPUT);
-
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
+  #ifdef LED_BUILTIN
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH);
+  #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -310,8 +311,10 @@ gpio_outset_bulk(PORTA, (1ul << CONFIG_DAP_nTRST));
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_LED(int index, int state) {
-  if (0 == index)
-    digitalWrite(LED_BUILTIN, !state);
+  #ifdef LED_BUILTIN
+    if (0 == index)
+      digitalWrite(LED_BUILTIN, !state);
+  #endif
 }
 
 #endif // _DAP_CONFIG_H_
