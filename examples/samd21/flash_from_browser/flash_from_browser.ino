@@ -90,7 +90,7 @@ void setup(void) {
   // Upload form
   server.on("/", HTTP_GET, []() {
     Serial.println("Serving upload form\n");
-    //server.sendHeader("Connection", "close");
+    server.sendHeader("Connection", "close");
     server.send(200, "text/html", serverIndex);
   });
   
