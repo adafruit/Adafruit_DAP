@@ -3,7 +3,14 @@
   Based on the webupdate example that comes with the ESP32 core and the flash from SD examples
   that come with the Adafruit_DAP library.
   
-  To upload through terminal you can use: curl -F "update=@firmware.bin" esp-webdap.local/update
+  This example let's you upload firmware to your DAP device directly from a browser.
+  After compiling and uploading this example open your Serial Monitor and look for the following message:
+  "Open http://esp-webdap.local or http://192.168.***.*** in your browser"
+  
+  If your system supports MDNS you can use the first address. Otherwise use the second. You will be greated
+  by a file select field and a update button. Select your firmware and click select.
+  
+  The more advanced users can also upload through a terminal. Use: curl -F "update=@firmware.bin" esp-webdap.local/update
 */
 
 #ifdef ESP8266
@@ -27,9 +34,9 @@
 #include <Adafruit_DAP.h>
 
 
-#define SWDIO 14  // 12
-#define SWCLK 33  // 11
-#define SWRST 26  // 9
+#define SWDIO 14
+#define SWCLK 33
+#define SWRST 26
 
 const char* host      = "esp-webdap";
 const char* ssid      = "........";
