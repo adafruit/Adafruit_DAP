@@ -1,6 +1,18 @@
 /*
   Update your DAP from SPIFFS. ESP8266 & ESP32
   Based on the flash from SD examples that come with the Adafruit_DAP library.
+  
+  This example uploads a firmware file stored in SPIFFS to your DAP device.
+  You can add your own files:
+  - by placing them in the /data folder of your sketch
+  - if necessary change the FILENAME(defined below)
+  - and uploading them to you ESP
+    - In Arduino IDE > Tools > ESP Sketch Data Upload
+    - In PlatformIO > Terminal > Run Task... > Upload File System Image
+  
+  For more info on using SPIFFS in the Arduino IDE:
+  - https://www.instructables.com/Using-ESP8266-SPIFFS/
+  - https://randomnerdtutorials.com/install-esp32-filesystem-uploader-arduino-ide/
 */
 
 #include <Adafruit_DAP.h>
@@ -10,9 +22,9 @@
 #endif
 
 
-#define SWDIO 14  // 12
-#define SWCLK 33  // 11
-#define SWRST 26  // 9
+#define SWDIO 14
+#define SWCLK 33
+#define SWRST 26
 
 #define FILENAME "/FIRMWARE.BIN"
 
