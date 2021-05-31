@@ -38,6 +38,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef USE_TINYUSB
+// For Serial when selecting TinyUSB
+#include <Adafruit_TinyUSB.h>
+#endif
+
 /*- Definitions -------------------------------------------------------------*/
 #define DAP_FLASH_START 0
 #define DAP_FLASH_ROW_SIZE 256
