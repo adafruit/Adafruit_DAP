@@ -34,6 +34,11 @@
 #include "dap.h"
 #include "dap_config.h"
 
+#ifdef USE_TINYUSB
+// For Serial when selecting TinyUSB
+#include <Adafruit_TinyUSB.h>
+#endif
+
 static uint8_t hid_buffer[256];
 #define REPORT_SIZE 64
 
