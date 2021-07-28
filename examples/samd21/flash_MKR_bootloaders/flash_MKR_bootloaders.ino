@@ -104,7 +104,7 @@ void setup() {
     Serial.println();
     Serial.print("Please enable No Line Ending with 115200 Baud in the serial monitor.");
     Serial.println();
-    Serial.print("Please select your board:");
+    Serial.print("Please select your board: ");
     while (!Serial.available());
     String choice = Serial.readStringUntil('\n');
     Serial.println();
