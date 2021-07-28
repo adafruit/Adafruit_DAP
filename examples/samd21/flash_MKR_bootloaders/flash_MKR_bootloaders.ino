@@ -102,7 +102,7 @@ void setup() {
       //Serial.println((uint32_t)board->bootloader, HEX);
     }
     Serial.println();
-    Serial.print("Select board: ");
+    Serial.print("Please select your board by entering the number. (Please enable No Line Ending with 115200 Baud in the serial monitor)");
     while (!Serial.available());
     String choice = Serial.readStringUntil('\n');
     Serial.println();
