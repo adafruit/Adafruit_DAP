@@ -345,31 +345,3 @@ void Adafruit_DAP_nRF5x::readBlock(uint32_t addr, uint8_t *buf) {
 
   dap_read_block(addr, buf, NRF5X_FLASH_ROW_SIZE);
 }
-
-void Adafruit_DAP_nRF5x::fuseRead() {
-  uint8_t buf[NRF5X_USER_ROW_SIZE];
-  dap_read_block(NRF5X_USER_ROW_ADDR, buf, NRF5X_USER_ROW_SIZE);
-
-  uint64_t fuses = ((uint64_t)buf[7] << 56) | ((uint64_t)buf[6] << 48) |
-                   ((uint64_t)buf[5] << 40) | ((uint64_t)buf[4] << 32) |
-                   ((uint64_t)buf[3] << 24) | ((uint64_t)buf[2] << 16) |
-                   ((uint64_t)buf[1] << 8) | (uint64_t)buf[0];
-
-  _USER_ROW.set(fuses);
-}
-
-void Adafruit_DAP_nRF5x::fuseWrite() {
-  uint64_t fuses = _USER_ROW.get();
-  uint8_t buf[NRF5X_USER_ROW_SIZE] = {
-      (uint8_t)fuses,         (uint8_t)(fuses >> 8),  (uint8_t)(fuses >> 16),
-      (uint8_t)(fuses >> 24), (uint8_t)(fuses >> 32), (uint8_t)(fuses >> 40),
-      (uint8_t)(fuses >> 48), (uint8_t)(fuses >> 56)};
-
-  dap_write_word(NRF5X_NVMCTRL_CTRLB, 0);
-  dap_write_word(NRF5X_NVMCTRL_ADDR, NRF5X_USER_ROW_ADDR >> 1);
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_EAR);
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
-
-  dap_write_block(NRF5X_USER_ROW_ADDR, buf, NRF5X_USER_ROW_SIZE);
-}
