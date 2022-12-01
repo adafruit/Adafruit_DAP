@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 
 #define SD_CS 10  /* 10 on Atmel M0/M4/32x, 11 on nRF52832 Feather */
 
@@ -23,6 +23,8 @@ uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
 // Create a DAP instance for nRF5x devices
 Adafruit_DAP_nRF5x dap;
+
+SdFat SD;
 
 // Function called when there's an SWD error
 void error(const char *text) {
@@ -94,7 +96,7 @@ void setup() {
 
 void write_bin_file(const char* filename, uint32_t addr)
 {
-  File dataFile = SD.open(filename);
+  File32 dataFile = SD.open(filename);
   if(!dataFile){
      error("Couldn't open file");
   }

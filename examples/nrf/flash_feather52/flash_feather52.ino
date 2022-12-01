@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SD.h>
+#include "SdFat.h"
 
 #define SD_CS 10
 
@@ -20,6 +20,8 @@
 
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
+
+SdFat SD;
 
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_nRF5x dap;
@@ -97,7 +99,7 @@ void setup() {
 
 void write_bin_file(const char* filename, uint32_t addr)
 {
-  File dataFile = SD.open(filename);
+  File32 dataFile = SD.open(filename);
   if(!dataFile){
      error("Couldn't open file");
   }

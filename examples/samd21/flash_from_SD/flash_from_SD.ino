@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 
 #define SD_CS 4
 #define SWDIO 12
@@ -14,6 +14,8 @@ uint8_t buf[BUFSIZE];
 
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_SAM dap;
+
+SdFat SD;
 
 // Function called when there's an SWD error
 void error(const char *text) {
@@ -37,7 +39,7 @@ void setup() {
   }
   Serial.println("Card initialized");
 
-  File dataFile = SD.open(FILENAME);
+  File32 dataFile = SD.open(FILENAME);
 
   if(!dataFile){
      error("Couldn't open file");

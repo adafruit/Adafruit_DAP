@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 
 #define SD_CS 10
 
@@ -18,6 +18,8 @@ uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
 //create a DAP for programming Atmel SAM devices
 Adafruit_DAP_STM32 dap;
+
+SdFat SD;
 
 // STM32 auto map 0x00 to 0x08000000, use 0 for simplicity
 #define FLASH_START_ADDR    0
@@ -45,7 +47,7 @@ void setup() {
   }
   Serial.println("Card initialized");
 
-  File dataFile = SD.open(FILENAME);
+  File32 dataFile = SD.open(FILENAME);
 
   if(!dataFile){
      error("Couldn't open file");
