@@ -44,7 +44,11 @@ public:
   bool select(uint32_t *id);
   void deselect(void);
 
-  void programPrepare(uint32_t addr, uint32_t size);
+  void eraseFlash(uint32_t addr, uint32_t size);
+  void programPrepare(uint32_t addr, uint32_t size) {
+    eraseFlash(addr, size);
+  }
+
   void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
   bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
 

@@ -280,7 +280,7 @@ void Adafruit_DAP_SAMx5::fuseWrite() {
     }
   }
 
-  for (int i = 0; i < USER_ROW_SIZE; i += 16) {
+  for (size_t i = 0; i < USER_ROW_SIZE; i += 16) {
     dap_write_block(USER_ROW_ADDR + i, ((uint8_t *)&_USER_ROW) + i, 16);
 
     dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_WQW);

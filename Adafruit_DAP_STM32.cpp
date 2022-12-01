@@ -185,8 +185,10 @@ bool Adafruit_DAP_STM32::flash_busy(void) {
 
 void Adafruit_DAP_STM32::erase(void) {
   flash_unlock();
-  while (flash_busy())
+
+  while (flash_busy()) {
     yield();
+  }
 
   // Mass erase with FLASH_VOLTAGE_RANGE_3 (32-bit operation)
   // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
@@ -194,15 +196,17 @@ void Adafruit_DAP_STM32::erase(void) {
   dap_write_word(FLASH_CR, FLASH_CR_MER | FLASH_CR_STRT | FLASH_CR_PSIZE_WORD);
 
   // Mass erase take ~8-9 seconds
-  while (flash_busy())
+  while (flash_busy()) {
     delay(100);
+  }
 
   flash_lock();
 }
 
-void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size) {
-  if (addr >= FLASH_START_ADDR)
+void Adafruit_DAP_STM32::eraseFlash(uint32_t addr, uint32_t size) {
+  if (addr >= FLASH_START_ADDR) {
     addr -= FLASH_START_ADDR;
+  }
 
   // in unit of KBs
   const uint32_t flash_sectors[] = {
@@ -222,8 +226,9 @@ void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size) {
   uint32_t tempaddr = 0;
 
   for (uint32_t i = 0; i < sector_count; i++) {
-    if (tempaddr <= addr)
+    if (tempaddr <= addr) {
       sec_start = i;
+    }
 
     if ((addr + size) <= tempaddr) {
       sec_end = i - 1;
@@ -236,16 +241,19 @@ void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size) {
   flash_unlock();
 
   for (uint32_t i = sec_start; i <= sec_end; i++) {
-    while (flash_busy())
+    while (flash_busy()) {
       yield();
+    }
 
     // Set SER, Sector Number, and PSize and Start bit
     dap_write_word(FLASH_CR, FLASH_CR_SER | FLASH_CR_STRT |
                                  (i << FLASH_CR_SNB_Pos) | FLASH_CR_PSIZE_WORD);
   }
 
-  while (flash_busy())
+  while (flash_busy()) {
     yield();
+  }
+
   flash_lock();
 }
 
