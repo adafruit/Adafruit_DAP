@@ -137,7 +137,7 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
   uint32_t chipvariant;
   uint32_t codepagesize;
   uint32_t codesize;
-  uint32_t sram;
+  // uint32_t sram;
 
   dap_target_prepare();
 
@@ -236,12 +236,6 @@ void Adafruit_DAP_nRF5x::erase(void) {
 
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 0); // Disable Erase
 }
-
-void Adafruit_DAP_nRF5x::erasePage(uint32_t page) {}
-
-void Adafruit_DAP_nRF5x::eraseUICR(void) {}
-
-void Adafruit_DAP_nRF5x::eraseFICR(void) {}
 
 //-----------------------------------------------------------------------------
 uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
