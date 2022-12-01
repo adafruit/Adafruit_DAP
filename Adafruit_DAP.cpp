@@ -63,9 +63,10 @@ bool Adafruit_DAP::targetConnect(uint32_t swj_clock) {
 }
 
 bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize) {
+  (void) rsize;
+
   // TODO: leaving off here, we can only write 64 bytes at a time
   char cmd = data[0];
-  int res;
 
   memset(hid_buffer, 0xff, REPORT_SIZE + 1);
 
