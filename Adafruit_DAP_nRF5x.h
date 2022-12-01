@@ -47,14 +47,20 @@ public:
   bool select(uint32_t *id);
   void deselect(void);
 
+  //------------- Flash API -------------//
   void erase(void);
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
 
   void erasePage(uint32_t page);
   void eraseUICR(void);
   void eraseFICR(void);
 
-  bool program(uint32_t addr, const uint8_t *buf, uint32_t count);
   void programUICR(uint32_t addr, uint32_t value);
+
+  // alias to programFlash
+  bool program(uint32_t addr, const uint8_t *buf, uint32_t count, bool verify = true) {
+    return programFlash(addr, buf, count, verify);
+  }
 
   bool flashWaitReady(void);
   bool flashReady(void);

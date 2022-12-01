@@ -10,7 +10,7 @@
 // buffer should be word algined for STM32
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
-//create a DAP for programming Atmel SAM devices
+//create a programming DAP
 Adafruit_DAP_STM32 dap;
 
 // STM32 auto map 0x00 to 0x08000000, use 0 for simplicity
@@ -91,11 +91,8 @@ void setup() {
   Serial.print(duaration);
   Serial.println(" ms");
 
-  // verify if all memory is 0xff
-  //print_memory(0, buf, sizeof(buf));
-
   //------------- Programming -------------//
-  Serial.print("Programming ");
+  Serial.print("Programming & Verifying ");
   Serial.print(sizeof(buf)/1024);
   Serial.print(" KBs ...");
   
@@ -103,7 +100,7 @@ void setup() {
   for(uint32_t i=0; i<sizeof(buf); i++) buf[i] = i;
 
   start_ms = millis();
-  dap.programBlock(FLASH_START_ADDR, buf, sizeof(buf));
+  bool verified = dap.programFlash(FLASH_START_ADDR, buf, sizeof(buf), true);
   
   duaration = millis()-start_ms;
   Serial.print(" done in ");
@@ -114,22 +111,12 @@ void setup() {
   Serial.print((double) sizeof(buf)/(duaration*1.024) );
   Serial.println(" KBs/s");
 
-  //------------- Veify contents -------------//
-  start_ms = millis();
-  Serial.print("Verifying ... ");
-  if ( dap.verifyFlash(FLASH_START_ADDR, buf, sizeof(buf)) ) {
-    Serial.print("Matched");
+  Serial.print("Verified: ");
+  if (verified) {
+    Serial.println("matched");
   }else {
-    Serial.print("MisMatched");
+    Serial.print("mis-matched");
   }
-  
-  duaration = millis()-start_ms;
-  Serial.print(" done in ");
-  Serial.print(duaration);
-  Serial.print(" ms, ");
-
-  // verify if data is written
-  //print_memory(0, buf, sizeof(buf));
 
   dap.deselect();
   dap.dap_disconnect();

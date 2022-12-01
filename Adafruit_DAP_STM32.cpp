@@ -251,12 +251,15 @@ void Adafruit_DAP_STM32::programPrepare(uint32_t addr, uint32_t size) {
 
 void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf,
                                       uint32_t size) {
-  if (!size)
+  if (!size) {
     return;
+  }
 
   flash_unlock();
-  while (flash_busy())
+
+  while (flash_busy()) {
     yield();
+  }
 
   // Enable programming bit: PG
   dap_write_word(FLASH_CR, FLASH_CR_PG | FLASH_CR_PSIZE_WORD);
@@ -264,8 +267,10 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf,
   // Program the whole buffer
   dap_write_block(addr, buf, size);
 
-  while (flash_busy())
+  while (flash_busy()) {
     yield();
+  }
+
   flash_lock();
 }
 
@@ -278,12 +283,23 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
 
     dap_read_block(addr, buf, count);
 
-    if (memcmp(data, buf, count))
+    if (memcmp(data, buf, count)) {
       return false;
+    }
 
     data += count;
     addr += count;
     size -= count;
+  }
+
+  return true;
+}
+
+bool Adafruit_DAP_STM32::programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) {
+  programBlock(addr, buf, count);
+
+  if (do_verify) {
+    return verifyFlash(addr, buf, count);
   }
 
   return true;

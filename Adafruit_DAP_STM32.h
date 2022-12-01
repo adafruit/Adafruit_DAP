@@ -43,12 +43,14 @@ public:
 
   bool select(uint32_t *id);
   void deselect(void);
-  void erase(void);
 
   void programPrepare(uint32_t addr, uint32_t size);
   void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
-
   bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
+
+  //------------- Flash API -------------//
+  void erase(void);
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
 
 private:
   bool flash_busy(void);

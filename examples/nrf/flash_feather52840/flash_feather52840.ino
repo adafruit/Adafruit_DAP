@@ -107,7 +107,7 @@ void write_bin_file(const char* filename, uint32_t addr)
   {
     memset(buf, BUFSIZE, 0xFF);  // empty it out
     uint32_t count = dataFile.read(buf, BUFSIZE);
-    bool rc = dap.program(addr, buf, count);
+    bool rc = dap.programFlash(addr, buf, count);
     if (!rc) {
       Serial.print("Failed writing at 0x");
       Serial.print(addr, HEX);

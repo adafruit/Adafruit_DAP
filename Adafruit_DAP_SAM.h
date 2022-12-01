@@ -47,14 +47,16 @@ public:
   static device_t devices[];
   bool locked;
 
+  //------------- Flash API -------------//
+  void erase(void);
+  bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
+
   //------------- API for both SAMD21 and SAMD51 -------------//
   void resetWithExtension(void);
   void finishReset(void);
-  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
   void deselect(void);
 
   bool select(uint32_t *id);
-  void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);

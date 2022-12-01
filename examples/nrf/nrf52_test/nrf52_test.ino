@@ -1,6 +1,5 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SD.h>
 
 //teensy only, otherwise change sd cs pin
 #define SWDIO 12
@@ -10,7 +9,7 @@
 #define BUFSIZE   4096
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
 
-//create a DAP for programming Atmel SAM devices
+//create a programming DAP
 Adafruit_DAP_nRF5x dap;
 
 // Function called when there's an SWD error
@@ -60,11 +59,11 @@ void setup() {
   Serial.print("Programming 32K ... ");
   
   uint32_t addr = 0;
-  for(int i=0; i<sizeof(buf); i++) buf[i] = i;
+  for(size_t i=0; i<sizeof(buf); i++) buf[i] = i;
 
   for(int i=0; i<8; i++) 
   {
-    dap.program(addr, buf, sizeof(buf));
+    dap.programFlash(addr, buf, sizeof(buf));
     addr += BUFSIZE;
   }
 
@@ -130,27 +129,6 @@ void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
   }
 
   dump_str_line(&buffer[bufsize-16], 16);
-}
-
-void write_bin_file(const char* filename, uint32_t addr)
-{
-  File dataFile = SD.open(filename);
-  if(!dataFile){
-     error("Couldn't open file");
-  }
-
-  Serial.print("Programming... ");
-  Serial.println(filename);
-
-  while (dataFile.available()) 
-  {
-    memset(buf, BUFSIZE, 0xFF);  // empty it out
-    uint32_t count = dataFile.read(buf, BUFSIZE);
-    dap.program(addr, buf, count);
-    addr += count;
-  }
-  
-  dataFile.close();  
 }
 
 void loop() {

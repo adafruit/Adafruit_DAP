@@ -41,9 +41,6 @@
 /* The number of bytes to write at one time in program(). */
 #define CHUNK_SIZE (1024)
 
-/* Enable to verify written data (slow!) */
-#define VERIFY_DATA (1)
-
 /*- Definitions -------------------------------------------------------------*/
 #define NRF5X_FLASH_START 0
 #define NRF5X_FLASH_ROW_SIZE 256
@@ -258,11 +255,12 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
   return NRF5X_FLASH_START + offset;
 }
 
-bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
-                                 uint32_t count) {
+bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
+                                 uint32_t count, bool do_verify) {
   // address must be word-aligned
-  if (addr & 0x03)
+  if (addr & 0x03) {
     return false;
+  }
 
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 1); // Write Enable
 
@@ -288,7 +286,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
     }
 
     /* Optionally verify the written data */
-    if (hasdata && VERIFY_DATA) {
+    if (hasdata && do_verify) {
       uint8_t read_buf[CHUNK_SIZE] = {0};
       dap_read_block(addr, read_buf, (int)bytes);
       int equal = memcmp(read_buf, data, bytes);

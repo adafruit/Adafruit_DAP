@@ -197,6 +197,13 @@ public:
   char *error_message;
   device_t target_device;
 
+  //------------- Flash API -------------//
+  // erase all chip
+  virtual void erase(void) = 0;
+
+  // program to flash (without erase)
+  virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
+
 protected:
   uint8_t _i2caddr;
   bool dbg_dap_cmd(uint8_t *data, int size, int rsize);

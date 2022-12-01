@@ -116,7 +116,7 @@ device_t Adafruit_DAP_SAM::devices[] = {
 // API for both SAMD21 and SAMD51
 //--------------------------------------------------------------------+
 
-void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
+bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
   size_t const bufSize = pageSize();
 
   Serial.println("\nProgramming...");
@@ -153,7 +153,11 @@ void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
     if (!success) {
       perror_exit("Error validating ");
     }
+
+    return success;
   }
+
+  return true;
 }
 
 void Adafruit_DAP_SAM::resetWithExtension(void)
