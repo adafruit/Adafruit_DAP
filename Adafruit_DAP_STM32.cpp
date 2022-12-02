@@ -203,7 +203,7 @@ void Adafruit_DAP_STM32::erase(void) {
   flash_lock();
 }
 
-void Adafruit_DAP_STM32::eraseFlash(uint32_t addr, uint32_t size) {
+uint32_t Adafruit_DAP_STM32::program_start(uint32_t addr, uint32_t size) {
   if (addr >= FLASH_START_ADDR) {
     addr -= FLASH_START_ADDR;
   }
@@ -255,6 +255,8 @@ void Adafruit_DAP_STM32::eraseFlash(uint32_t addr, uint32_t size) {
   }
 
   flash_lock();
+
+  return addr;
 }
 
 void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf,
@@ -319,3 +321,12 @@ void Adafruit_DAP_STM32::deselect(void) {
   dap_write_word(DEMCR, 0x00000000);
   dap_write_word(AIRCR, 0x05fa0004);
 }
+
+bool Adafruit_DAP_STM32::protectBoot(void) {
+  return true;
+}
+
+bool Adafruit_DAP_STM32::unprotectBoot(void) {
+  return true;
+}
+

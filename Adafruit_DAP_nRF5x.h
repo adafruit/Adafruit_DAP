@@ -33,8 +33,6 @@
 #ifndef ADAFRUIT_DAP_NRF5X_H_
 #define ADAFRUIT_DAP_NRF5X_H_
 
-#include "Adafruit_DAP.h"
-
 // DAP for nRF
 class Adafruit_DAP_nRF5x : public Adafruit_DAP {
 public:
@@ -47,9 +45,18 @@ public:
   bool select(uint32_t *id);
   void deselect(void);
 
-  //------------- Flash API -------------//
+  //------------- Common API -------------//
+  virtual uint32_t getTargetMCU(void) {
+    return MCU_TARGET_NRF5X;
+  }
+
   void erase(void);
+  uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
+  void programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size);
   bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
+
+  bool protectBoot(void);
+  bool unprotectBoot(void);
 
   void programUICR(uint32_t addr, uint32_t value);
 
@@ -62,10 +69,8 @@ public:
   bool flashReady(void);
 
   void lock(void);
-  void programBlock(uint32_t addr, uint8_t *buf);
   void readBlock(uint32_t addr, uint8_t *buf);
 
-  uint32_t program_start(uint32_t offset = 0);
 };
 
 #endif /* ADAFRUIT_DAP_NRF5X_H_ */

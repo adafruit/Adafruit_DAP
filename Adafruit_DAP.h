@@ -151,6 +151,14 @@ enum {
   M0_PLUS,
 };
 
+enum {
+  MCU_TARGET_GENERIC = 0,
+  MCU_TARGET_SAMX2, // SAM D21
+  MCU_TARGET_SAMX5, // SAM D51, E51
+  MCU_TARGET_NRF5X,
+  MCU_TARGET_STM32
+};
+
 typedef void (*ErrorHandler)(const char *error);
 
 typedef struct {
@@ -196,15 +204,28 @@ public:
   char *error_message;
   device_t target_device;
 
-  //------------- Flash API -------------//
+  //------------- Common API -------------//
+  virtual uint32_t getTargetMCU(void) = 0;
   virtual bool select(uint32_t *id) = 0;
   virtual void deselect(void) = 0;
 
   // erase all chip
   virtual void erase(void) = 0;
 
-  // program to flash (without erase)
+  // prepare to program flash
+  virtual uint32_t program_start(uint32_t addr, uint32_t size) = 0;
+
+  // program a block (page) of flash
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size) = 0;
+
+  // program to flash with (without erase)
   virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
+
+  // unlock bootloader
+  virtual bool protectBoot(void) = 0;
+
+  // lock bootloader
+  virtual bool unprotectBoot(void) = 0;
 
 protected:
   uint8_t _i2caddr;

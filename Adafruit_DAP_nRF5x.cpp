@@ -238,7 +238,9 @@ void Adafruit_DAP_nRF5x::erase(void) {
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
+uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset, uint32_t size) {
+  (void) size;
+
   //  if (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00010000)
   //    perror_exit("device is locked, perform a chip erase before
   //    programming");
@@ -319,17 +321,10 @@ void Adafruit_DAP_nRF5x::lock(void) {
                  NRF5X_NVMCTRL_CMD_SSB); // Set Security Bit
 }
 
-void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, uint8_t *buf) {
-  dap_write_word(NRF5X_NVMCTRL_ADDR, addr >> 1);
-
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_UR); // Unlock Region
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
-
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_ER); // Erase Row
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
-  dap_write_block(addr, buf, NRF5X_FLASH_ROW_SIZE);
+void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size) {
+  (void) addr;
+  (void) buf;
+  (void) page_size;
 }
 
 //-----------------------------------------------------------------------------
@@ -339,3 +334,13 @@ void Adafruit_DAP_nRF5x::readBlock(uint32_t addr, uint8_t *buf) {
 
   dap_read_block(addr, buf, NRF5X_FLASH_ROW_SIZE);
 }
+
+
+bool Adafruit_DAP_nRF5x::protectBoot(void) {
+  return true;
+}
+
+bool Adafruit_DAP_nRF5x::unprotectBoot(void) {
+  return true;
+}
+

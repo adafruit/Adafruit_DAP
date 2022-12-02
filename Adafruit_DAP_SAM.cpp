@@ -270,9 +270,13 @@ void Adafruit_DAP_SAM::lock(void) {
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset) {
-  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) // DSU.STATUSB.PROT
+uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset, uint32_t size) {
+  (void) size; // not used
+
+  // DSU.STATUSB.PROT
+  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
+}
 
   resetProtectionFuses(true, false);
 
@@ -354,3 +358,25 @@ void Adafruit_DAP_SAM::fuseWrite() {
   resetWithExtension();
   finishReset();
 }
+
+bool Adafruit_DAP_SAM::protectBoot(void) {
+  fuseRead();
+  _USER_ROW.bit.BOOTPROT = 0x02;
+  fuseWrite();
+
+  return true;
+}
+
+bool Adafruit_DAP_SAM::unprotectBoot(void) {
+  fuseRead();
+
+  // if locked then unlock
+  if (_USER_ROW.bit.BOOTPROT != 0x07) {
+    _USER_ROW.bit.BOOTPROT = 0x07;
+    fuseWrite();
+  }
+
+  return true;
+}
+
+

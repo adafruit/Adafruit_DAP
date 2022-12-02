@@ -47,9 +47,14 @@ public:
   static device_t devices[];
   bool locked;
 
-  //------------- Flash API -------------//
-  void erase(void);
-  bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
+  //------------- Common API -------------//
+  virtual uint32_t getTargetMCU(void) {
+    return MCU_TARGET_SAMX2;
+  }
+  virtual void erase(void);
+  virtual bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
+  virtual bool protectBoot(void);
+  virtual bool unprotectBoot(void);
 
   //------------- API for both SAMD21 and SAMD51 -------------//
   void resetWithExtension(void);
@@ -62,13 +67,13 @@ public:
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
-  bool readCRC(uint32_t length, uint32_t *crc);
+  virtual bool readCRC(uint32_t length, uint32_t *crc);
   // uint32_t verifyBlock(uint32_t addr);
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  virtual uint32_t program_start(uint32_t offset = 0);
+  virtual uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
 
   typedef union {
     struct __attribute__((__packed__)) {
@@ -110,20 +115,30 @@ public:
 
   static device_t devices[];
 
-  bool select(uint32_t *id);
-  void erase(void);
+  //------------- Common API -------------//
+  virtual uint32_t getTargetMCU(void) {
+    return MCU_TARGET_SAMX5;
+  }
+
+  virtual bool select(uint32_t *id);
+  virtual void erase(void);
+  virtual uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
+
+  virtual bool protectBoot(void);
+  virtual bool unprotectBoot(void);
+
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
   bool readCRC(uint32_t length, uint32_t *crc);
   // uint32_t verifyBlock(uint32_t addr);
+
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  virtual uint32_t program_start(uint32_t offset = 0);
 
   typedef union {
     struct __attribute__((__packed__)) {

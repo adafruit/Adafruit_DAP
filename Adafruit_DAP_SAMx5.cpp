@@ -177,10 +177,12 @@ void Adafruit_DAP_SAMx5::lock(void) {
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset) {
+uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset, uint32_t size) {
+  (void) size;
 
-  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000)
+  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
+  }
 
   resetProtectionFuses(true, false);
 
@@ -292,4 +294,27 @@ void Adafruit_DAP_SAMx5::fuseWrite() {
   delay(100);
   resetWithExtension();
   finishReset();
+}
+
+bool Adafruit_DAP_SAMx5::protectBoot(void) {
+  fuseRead();
+  _USER_ROW.bit.NVM_BOOT = 0x0D;
+  fuseWrite();
+
+  return 0x0D == _USER_ROW.bit.NVM_BOOT;
+}
+
+bool Adafruit_DAP_SAMx5::unprotectBoot(void) {
+  fuseRead();
+
+  // if locked then unlock
+  if (_USER_ROW.bit.NVM_BOOT != 0x0F) {
+    _USER_ROW.bit.NVM_BOOT = 0x0F;
+    fuseWrite();
+
+    fuseRead();
+    return 0x0F == _USER_ROW.bit.NVM_BOOT;
+  }
+
+  return true;
 }
