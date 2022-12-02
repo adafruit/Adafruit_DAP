@@ -73,24 +73,24 @@ public:
   typedef union {
     struct __attribute__((__packed__)) {
       // The old USER_ROW erased the reserved BOD12 Voltage regulator config
-      uint8_t BOOTPROT : 3;
-      uint8_t _reserved1 : 1;
-      uint8_t EEPROM : 3;
-      uint8_t _reserved2 : 1;
-      uint8_t BOD33_Level : 6;
-      uint8_t BOD33_Enable : 1;
-      uint8_t BOD33_Action : 2;
-      uint8_t _reserved_BOD12_Config_Vreg: 8;
-      uint8_t WDT_Enable : 1;
-      uint8_t WDT_Always_On : 1;
-      uint8_t WDT_Period : 4;
-      uint8_t WDT_Window : 4;
-      uint8_t WDR_EWOFFSET : 4;
-      uint8_t WDR_WEN : 1;
-      uint8_t BOD33_Hysteresis : 1;
-      uint8_t _reserved_BOD12_Config : 1;
-      uint8_t _reserved3 : 6;
-      uint16_t LOCK : 16;
+      uint64_t BOOTPROT : 3;
+      uint64_t _reserved1 : 1;
+      uint64_t EEPROM : 3;
+      uint64_t _reserved2 : 1;
+      uint64_t BOD33_Level : 6;
+      uint64_t BOD33_Enable : 1;
+      uint64_t BOD33_Action : 2;
+      uint64_t _reserved_BOD12_Config_Vreg: 8;
+      uint64_t WDT_Enable : 1;
+      uint64_t WDT_Always_On : 1;
+      uint64_t WDT_Period : 4;
+      uint64_t WDT_Window : 4;
+      uint64_t WDR_EWOFFSET : 4;
+      uint64_t WDR_WEN : 1;
+      uint64_t BOD33_Hysteresis : 1;
+      uint64_t _reserved_BOD12_Config : 1;
+      uint64_t _reserved3 : 6;
+      uint64_t LOCK : 16;
     } bit;
     uint64_t fuses;
     uint32_t fuseParts[2];
