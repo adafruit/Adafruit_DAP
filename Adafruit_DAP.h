@@ -165,14 +165,13 @@ class Adafruit_DAP {
 public:
   // constructors
   Adafruit_DAP(void){};
-  ~Adafruit_DAP(void){};
+  virtual ~Adafruit_DAP(void){};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
   // High level methods
   bool targetConnect(uint32_t swj_clock = 50);
 
   // Low level methods
-  bool select(uint32_t *id);
   bool dap_led(int index, int state);
   bool dap_connect(void);
   bool dap_disconnect(void);
@@ -198,6 +197,9 @@ public:
   device_t target_device;
 
   //------------- Flash API -------------//
+  virtual bool select(uint32_t *id) = 0;
+  virtual void deselect(void) = 0;
+
   // erase all chip
   virtual void erase(void) = 0;
 
