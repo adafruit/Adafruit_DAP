@@ -215,8 +215,8 @@ public:
   // prepare to program flash
   virtual uint32_t program_start(uint32_t addr, uint32_t size) = 0;
 
-  // program a block (page) of flash
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size) = 0;
+  // program a block of flash
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) = 0;
 
   // program to flash with (without erase)
   virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;

@@ -288,7 +288,7 @@ uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset, uint32_t size) {
 }
 
 void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf,
-                                    uint16_t size) {
+                                    uint32_t size) {
   /* DM: this is actually unnecessary after a chip erase
   dap_write_word(NVMCTRL_ADDR, addr >> 1);
 

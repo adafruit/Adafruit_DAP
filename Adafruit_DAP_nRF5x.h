@@ -52,7 +52,7 @@ public:
 
   void erase(void);
   uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
-  void programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size);
+  void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
   bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
 
   bool protectBoot(void);

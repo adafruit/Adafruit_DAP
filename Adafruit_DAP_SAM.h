@@ -52,6 +52,7 @@ public:
     return MCU_TARGET_SAMX2;
   }
   virtual void erase(void);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
   virtual bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
   virtual bool protectBoot(void);
   virtual bool unprotectBoot(void);
@@ -65,7 +66,6 @@ public:
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
   virtual bool readCRC(uint32_t length, uint32_t *crc);
   // uint32_t verifyBlock(uint32_t addr);
@@ -123,7 +123,7 @@ public:
   virtual bool select(uint32_t *id);
   virtual void erase(void);
   virtual uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
 
   virtual bool protectBoot(void);
   virtual bool unprotectBoot(void);

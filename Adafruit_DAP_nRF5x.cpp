@@ -321,10 +321,10 @@ void Adafruit_DAP_nRF5x::lock(void) {
                  NRF5X_NVMCTRL_CMD_SSB); // Set Security Bit
 }
 
-void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint16_t page_size) {
+void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) {
   (void) addr;
   (void) buf;
-  (void) page_size;
+  (void) size;
 }
 
 //-----------------------------------------------------------------------------
