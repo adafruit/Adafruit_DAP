@@ -46,8 +46,8 @@ public:
   void deselect(void);
 
   //------------- Common API -------------//
-  virtual uint32_t getTargetMCU(void) {
-    return MCU_TARGET_NRF5X;
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_NRF5X;
   }
 
   void erase(void);

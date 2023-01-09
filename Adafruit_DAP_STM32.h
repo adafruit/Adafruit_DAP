@@ -42,8 +42,8 @@ public:
   device_t target_device;
 
   //------------- Common API -------------//
-  virtual uint32_t getTargetMCU(void) {
-    return MCU_TARGET_STM32;
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_STM32;
   }
 
   bool select(uint32_t *id);

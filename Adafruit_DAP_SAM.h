@@ -48,8 +48,8 @@ public:
   bool locked;
 
   //------------- Common API -------------//
-  virtual uint32_t getTargetMCU(void) {
-    return MCU_TARGET_SAMX2;
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_SAM;
   }
   virtual void erase(void);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
@@ -116,8 +116,8 @@ public:
   static device_t devices[];
 
   //------------- Common API -------------//
-  virtual uint32_t getTargetMCU(void) {
-    return MCU_TARGET_SAMX5;
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_SAMX5;
   }
 
   virtual bool select(uint32_t *id);

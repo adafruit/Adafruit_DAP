@@ -152,11 +152,11 @@ enum {
 };
 
 enum {
-  MCU_TARGET_GENERIC = 0,
-  MCU_TARGET_SAMX2, // SAM D21
-  MCU_TARGET_SAMX5, // SAM D51, E51
-  MCU_TARGET_NRF5X,
-  MCU_TARGET_STM32
+  DAP_TYPEID_GENERIC = 0,
+  DAP_TYPEID_SAM, // Adafruit_DAP_SAM
+  DAP_TYPEID_SAMX5, // SAM D51, E51
+  DAP_TYPEID_NRF5X,
+  DAP_TYPEID_STM32
 };
 
 typedef void (*ErrorHandler)(const char *error);
@@ -205,7 +205,7 @@ public:
   device_t target_device;
 
   //------------- Common API -------------//
-  virtual uint32_t getTargetMCU(void) = 0;
+  virtual uint32_t getTypeID(void) = 0;
   virtual bool select(uint32_t *id) = 0;
   virtual void deselect(void) = 0;
 
