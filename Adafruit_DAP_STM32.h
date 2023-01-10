@@ -50,11 +50,11 @@ public:
   void erase(void);
   uint32_t program_start(uint32_t addr, uint32_t size);
   void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
-  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
 
   bool protectBoot(void);
   bool unprotectBoot(void);
 
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
   bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
 
   // backward compatible

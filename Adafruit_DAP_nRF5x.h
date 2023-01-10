@@ -41,18 +41,17 @@ public:
 
   static device_t devices[];
 
-  bool select(uint32_t *id);
-  void deselect(void);
-
   //------------- Common API -------------//
   virtual uint32_t getTypeID(void) {
     return DAP_TYPEID_NRF5X;
   }
 
+  bool select(uint32_t *id);
+  void deselect(void);
+
   void erase(void);
   uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
   void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
-  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
 
   bool protectBoot(void);
   bool unprotectBoot(void);
@@ -60,7 +59,7 @@ public:
   void programUICR(uint32_t addr, uint32_t value);
   void programUICR_AdafruitBootloader(void);
 
-  // alias to programFlash
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
   bool program(uint32_t addr, const uint8_t *buf, uint32_t count, bool verify = true) {
     return programFlash(addr, buf, count, verify);
   }

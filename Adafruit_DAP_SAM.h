@@ -51,18 +51,20 @@ public:
   virtual uint32_t getTypeID(void) {
     return DAP_TYPEID_SAM;
   }
+  virtual bool select(uint32_t *id);
+  virtual void deselect(void);
+
   virtual void erase(void);
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
   virtual bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
+
   virtual bool protectBoot(void);
   virtual bool unprotectBoot(void);
 
   //------------- API for both SAMD21 and SAMD51 -------------//
   void resetWithExtension(void);
   void finishReset(void);
-  void deselect(void);
 
-  bool select(uint32_t *id);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
