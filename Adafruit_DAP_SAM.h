@@ -67,7 +67,17 @@ public:
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
+
   virtual bool readCRC(uint32_t length, uint32_t *crc);
+
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size) {
+    if ( addr != 0 ) {
+      return 0;
+    }
+    uint32_t crc32;
+    return readCRC(size, &crc32) ? (crc32 ^ 0xFFFFFFFFUL) : 0;
+  }
+
   // uint32_t verifyBlock(uint32_t addr);
   void fuse(void);
   void fuseRead();
@@ -132,7 +142,17 @@ public:
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
+
   bool readCRC(uint32_t length, uint32_t *crc);
+
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size) {
+    if ( addr != 0 ) {
+      return 0;
+    }
+    uint32_t crc32;
+    return readCRC(size, &crc32) ? (crc32 ^ 0xFFFFFFFFUL) : 0;
+  }
+
   // uint32_t verifyBlock(uint32_t addr);
 
   void fuse(void);

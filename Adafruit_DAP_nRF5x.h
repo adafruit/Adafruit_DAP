@@ -40,7 +40,6 @@ public:
   ~Adafruit_DAP_nRF5x(void){};
 
   static device_t devices[];
-  device_t target_device;
 
   bool select(uint32_t *id);
   void deselect(void);
@@ -59,6 +58,7 @@ public:
   bool unprotectBoot(void);
 
   void programUICR(uint32_t addr, uint32_t value);
+  void programUICR_AdafruitBootloader(void);
 
   // alias to programFlash
   bool program(uint32_t addr, const uint8_t *buf, uint32_t count, bool verify = true) {
@@ -67,10 +67,6 @@ public:
 
   bool flashWaitReady(void);
   bool flashReady(void);
-
-  void lock(void);
-  void readBlock(uint32_t addr, uint8_t *buf);
-
 };
 
 #endif /* ADAFRUIT_DAP_NRF5X_H_ */

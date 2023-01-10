@@ -510,3 +510,20 @@ bool Adafruit_DAP::dap_target_prepare(void) {
 }
 
 void Adafruit_DAP::dap_set_clock(uint32_t clock) { dap_setup_clock(clock); }
+
+uint32_t Adafruit_DAP::computeFlashCRC32(uint32_t addr, uint32_t size) {
+  Adafruit_DAP_CRC32 crc32;
+  uint8_t buf[512];
+
+  while(size) {
+    uint32_t count = min(size, sizeof(buf));
+
+    dap_read_block(addr, buf, (int) count);
+    crc32.add(buf, count);
+
+    addr += count;
+    size -= count;
+  }
+
+  return crc32.get();
+}

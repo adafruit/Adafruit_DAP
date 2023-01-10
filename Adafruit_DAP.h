@@ -221,6 +221,9 @@ public:
   // program to flash with (without erase)
   virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
 
+  // compute flash crc32
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size);
+
   // unlock bootloader
   virtual bool protectBoot(void) = 0;
 
@@ -234,6 +237,34 @@ protected:
 
   ErrorHandler perror_exit;
 };
+
+// Simple and low code CRC calculation (copied from arduino-rp2040's PicoOTA)
+class Adafruit_DAP_CRC32 {
+public:
+  Adafruit_DAP_CRC32() { crc = 0xffffffff; }
+
+  ~Adafruit_DAP_CRC32() {}
+
+  void add(const void *d, uint32_t len) {
+    const uint8_t *data = (const uint8_t *)d;
+    for (uint32_t i = 0; i < len; i++) {
+      crc ^= data[i];
+      for (int j = 0; j < 8; j++) {
+        if (crc & 1) {
+          crc = (crc >> 1) ^ 0xedb88320;
+        } else {
+          crc >>= 1;
+        }
+      }
+    }
+  }
+
+  uint32_t get() { return ~crc; }
+
+private:
+  uint32_t crc;
+};
+
 
 #include "Adafruit_DAP_SAM.h"
 #include "Adafruit_DAP_STM32.h"
