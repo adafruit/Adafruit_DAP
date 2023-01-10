@@ -39,8 +39,6 @@ public:
   Adafruit_DAP_STM32(void);
   ~Adafruit_DAP_STM32(void){};
 
-  device_t target_device;
-
   //------------- Common API -------------//
   virtual uint32_t getTypeID(void) {
     return DAP_TYPEID_STM32;
