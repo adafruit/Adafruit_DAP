@@ -24,7 +24,30 @@ Adafruit_DAP_nRF5x dap;
 // Configuration of the flash chip pins and flash fatfs object.
 // You don't normally need to change these if using a Feather/Metro
 // M0 express board.
-#if defined(__SAMD51__) || defined(NRF52840_XXAA)
+#if defined(ARDUINO_ARCH_ESP32)
+
+  // ESP32 use same flash device that store code for file system.
+  // SPIFlash will parse partition.cvs to detect FATFS partition to use
+  Adafruit_FlashTransport_ESP32 flashTransport;
+
+#elif defined(ARDUINO_ARCH_RP2040)
+
+  // RP2040 use same flash device that store code for file system. Therefore we
+  // only need to specify start address and size (no need SPI or SS)
+  // By default (start=0, size=0), values that match file system setting in
+  // 'Tools->Flash Size' menu selection will be used.
+  Adafruit_FlashTransport_RP2040 flashTransport;
+
+  // To be compatible with CircuitPython partition scheme (start_address = 1 MB,
+  // size = total flash - 1 MB) use const value (CPY_START_ADDR, CPY_SIZE) or
+  // subclass Adafruit_FlashTransport_RP2040_CPY. Un-comment either of the
+  // following line:
+  //  Adafruit_FlashTransport_RP2040
+  //    flashTransport(Adafruit_FlashTransport_RP2040::CPY_START_ADDR,
+  //                   Adafruit_FlashTransport_RP2040::CPY_SIZE);
+  //  Adafruit_FlashTransport_RP2040_CPY flashTransport;
+
+#elif defined(__SAMD51__) || defined(NRF52840_XXAA)
   Adafruit_FlashTransport_QSPI flashTransport(PIN_QSPI_SCK, PIN_QSPI_CS, PIN_QSPI_IO0, PIN_QSPI_IO1, PIN_QSPI_IO2, PIN_QSPI_IO3);
 #else
   #if (SPI_INTERFACES_COUNT == 1 || defined(ADAFRUIT_CIRCUITPLAYGROUND_M0))
@@ -36,7 +59,7 @@ Adafruit_DAP_nRF5x dap;
 
 Adafruit_SPIFlash flash(&flashTransport);
 // file system object from SdFat
-FatFileSystem fatfs;
+FatVolume fatfs;
 
 // USB Mass Storage object
 Adafruit_USBD_MSC usb_msc;
@@ -127,7 +150,7 @@ void setup() {
 
 void write_bin_file(const char* filename, uint32_t addr)
 {
-  File dataFile = fatfs.open(filename, FILE_READ);
+  File32 dataFile = fatfs.open(filename, FILE_READ);
 
   if(!dataFile){
     Serial.print("Couldn't open file ");
@@ -147,7 +170,7 @@ void write_bin_file(const char* filename, uint32_t addr)
     memset(buf, BUFSIZE, 0xFF);  // empty it out
     uint32_t count = dataFile.read(buf, BUFSIZE);
 
-    bool rc = dap.program(addr, buf, count);
+    bool rc = dap.programFlash(addr, buf, count);
     if (!rc) {
       Serial.print("Failed writing at 0x");
       Serial.print(addr, HEX);
@@ -213,7 +236,7 @@ void msc_flush_cb (void)
 //--------------------------------------------------------------------+
 // For debugging
 //--------------------------------------------------------------------+
-static void dump_str_line(uint8_t const* buf, uint16_t count)
+static void dump_str_line(uint8_t const* buf)
 {
   Serial.print(" |");
 
@@ -238,7 +261,7 @@ void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
     {
       if ( i != 0 )
       {
-        dump_str_line(&buffer[i-16], 16);
+        dump_str_line(&buffer[i-16]);
       }
 
       uint32_t offaddr = addr+i;
@@ -256,5 +279,5 @@ void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
     Serial.print(" ");
   }
 
-  dump_str_line(&buffer[bufsize-16], 16);
+  dump_str_line(&buffer[bufsize-16]);
 }

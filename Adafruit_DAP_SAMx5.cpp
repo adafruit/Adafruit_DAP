@@ -99,7 +99,7 @@ device_t Adafruit_DAP_SAMx5::devices[] = {
     {0x60060008, "SAMD51G18A", 256 * 1024, 512},
     {0x61810002, "SAME51J19A", 512 * 1024, 1024},
     {0x61810302, "SAME51J19A", 512 * 1024, 1024},
-    {0},
+    {0, NULL, 0, 0},
 };
 
 //-----------------------------------------------------------------------------
@@ -177,10 +177,12 @@ void Adafruit_DAP_SAMx5::lock(void) {
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset) {
+uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset, uint32_t size) {
+  (void) size;
 
-  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000)
+  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
+  }
 
   resetProtectionFuses(true, false);
 
@@ -197,7 +199,7 @@ uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset) {
 }
 
 void Adafruit_DAP_SAMx5::programBlock(uint32_t addr, const uint8_t *buf,
-                                      uint16_t size) {
+                                      uint32_t size) {
 
   // Even after a chip erase with reset, a temporary Unlock region might be necessary
   dap_write_word(NVMCTRL_ADDR, addr);
@@ -280,7 +282,7 @@ void Adafruit_DAP_SAMx5::fuseWrite() {
     }
   }
 
-  for (int i = 0; i < USER_ROW_SIZE; i += 16) {
+  for (size_t i = 0; i < USER_ROW_SIZE; i += 16) {
     dap_write_block(USER_ROW_ADDR + i, ((uint8_t *)&_USER_ROW) + i, 16);
 
     dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_WQW);
@@ -292,4 +294,27 @@ void Adafruit_DAP_SAMx5::fuseWrite() {
   delay(100);
   resetWithExtension();
   finishReset();
+}
+
+bool Adafruit_DAP_SAMx5::protectBoot(void) {
+  fuseRead();
+  _USER_ROW.bit.NVM_BOOT = 0x0D;
+  fuseWrite();
+
+  return 0x0D == _USER_ROW.bit.NVM_BOOT;
+}
+
+bool Adafruit_DAP_SAMx5::unprotectBoot(void) {
+  fuseRead();
+
+  // if locked then unlock
+  if (_USER_ROW.bit.NVM_BOOT != 0x0F) {
+    _USER_ROW.bit.NVM_BOOT = 0x0F;
+    fuseWrite();
+
+    fuseRead();
+    return 0x0F == _USER_ROW.bit.NVM_BOOT;
+  }
+
+  return true;
 }

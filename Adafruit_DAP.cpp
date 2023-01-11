@@ -63,9 +63,10 @@ bool Adafruit_DAP::targetConnect(uint32_t swj_clock) {
 }
 
 bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize) {
+  (void) rsize;
+
   // TODO: leaving off here, we can only write 64 bytes at a time
   char cmd = data[0];
-  int res;
 
   memset(hid_buffer, 0xff, REPORT_SIZE + 1);
 
@@ -509,3 +510,20 @@ bool Adafruit_DAP::dap_target_prepare(void) {
 }
 
 void Adafruit_DAP::dap_set_clock(uint32_t clock) { dap_setup_clock(clock); }
+
+uint32_t Adafruit_DAP::computeFlashCRC32(uint32_t addr, uint32_t size) {
+  Adafruit_DAP_CRC32 crc32;
+  uint8_t buf[512];
+
+  while(size) {
+    uint32_t count = min(size, sizeof(buf));
+
+    dap_read_block(addr, buf, (int) count);
+    crc32.add(buf, count);
+
+    addr += count;
+    size -= count;
+  }
+
+  return crc32.get();
+}

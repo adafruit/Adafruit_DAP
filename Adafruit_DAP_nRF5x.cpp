@@ -41,13 +41,8 @@
 /* The number of bytes to write at one time in program(). */
 #define CHUNK_SIZE (1024)
 
-/* Enable to verify written data (slow!) */
-#define VERIFY_DATA (1)
-
 /*- Definitions -------------------------------------------------------------*/
 #define NRF5X_FLASH_START 0
-#define NRF5X_FLASH_ROW_SIZE 256
-#define NRF5X_FLASH_PAGE_SIZE 64
 
 #define NRF5X_DHCSR 0xe000edf0
 #define NRF5X_DEMCR 0xe000edfc
@@ -60,6 +55,9 @@
 #define NRF5X_FICR_PACKAGEID 0x10000108    // Package Options
 #define NRF5X_FICR_SRAM 0x1000010C         // RAM Variant
 #define NRF5X_FICR_FLASHSIZE 0x10000110    // Flash Variant
+
+#define NRF5X_UICR_BOOTLOADER 0x10001014
+#define NRF5X_UICR_MBR_PARAM_PAGE 0x10001018
 
 // TODO: Change these from SAMD to nRF5x compatible registers!
 #define NRF5X_DSU_CTRL_STATUS 0x41002100
@@ -79,9 +77,6 @@
 #define NRF5X_NVMCTRL_CMD_UR 0xa541
 #define NRF5X_NVMCTRL_CMD_PBC 0xa544
 #define NRF5X_NVMCTRL_CMD_SSB 0xa545
-
-#define NRF5X_USER_ROW_ADDR 0x00804000
-#define NRF5X_USER_ROW_SIZE 256
 
 // from nrf52.h
 
@@ -140,7 +135,7 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
   uint32_t chipvariant;
   uint32_t codepagesize;
   uint32_t codesize;
-  uint32_t sram;
+  // uint32_t sram;
 
   dap_target_prepare();
 
@@ -201,9 +196,9 @@ bool Adafruit_DAP_nRF5x::select(uint32_t *found_id) {
 
   // Assign device details to target_device
   target_device.dsu_did = hwid;
+  target_device.name = _variant_name;
   target_device.flash_size = codepagesize * codesize;
   target_device.n_pages = codesize;
-  target_device.name = _variant_name;
 
   return true;
 }
@@ -240,17 +235,9 @@ void Adafruit_DAP_nRF5x::erase(void) {
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 0); // Disable Erase
 }
 
-void Adafruit_DAP_nRF5x::erasePage(uint32_t page) {}
-
-void Adafruit_DAP_nRF5x::eraseUICR(void) {}
-
-void Adafruit_DAP_nRF5x::eraseFICR(void) {}
-
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
-  //  if (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00010000)
-  //    perror_exit("device is locked, perform a chip erase before
-  //    programming");
+uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset, uint32_t size) {
+  (void) size;
 
   // TODO: convert to slow/fast clock mode
   dap_setup_clock(0);
@@ -258,11 +245,50 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset) {
   return NRF5X_FLASH_START + offset;
 }
 
-bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
-                                 uint32_t count) {
+void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) {
   // address must be word-aligned
-  if (addr & 0x03)
+  if (addr & 0x03) {
+    return;
+  }
+
+  dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 1); // Write Enable
+
+  while (size) {
+    uint32_t bytes = min(size, (uint32_t) CHUNK_SIZE);
+    bool hasdata = false;
+
+    /* If data is all 0xff, this chunk is empty. Don't bother writing it since
+     * we've already erased the flash memory. */
+    for (uint32_t i = 0; i < bytes; i++) {
+      if (buf[i] != 0xFF) {
+        hasdata = true;
+        break;
+      }
+    }
+
+    if (hasdata) {
+      dap_write_block(addr, buf, (int)bytes);
+    }
+
+    addr += bytes;
+    buf += bytes;
+    size -= bytes;
+
+    if (!flashWaitReady()) {
+      // Flash timed out before being ready!
+      break;
+    };
+  }
+
+  dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 0); // Write Disable
+}
+
+bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
+                                 uint32_t count, bool do_verify) {
+  // address must be word-aligned
+  if (addr & 0x03) {
     return false;
+  }
 
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 1); // Write Enable
 
@@ -274,7 +300,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
     memset(data, 0xFF, CHUNK_SIZE);
     memcpy(data, buf, bytes);
 
-    /* If data is all 0x00, this chunk is empty. Don't bother writing it since
+    /* If data is all 0xff, this chunk is empty. Don't bother writing it since
      * we've already erased the flash memory. */
     for (uint32_t i = 0; i < CHUNK_SIZE; i++) {
       if (data[i] != 0xFF) {
@@ -288,7 +314,7 @@ bool Adafruit_DAP_nRF5x::program(uint32_t addr, const uint8_t *buf,
     }
 
     /* Optionally verify the written data */
-    if (hasdata && VERIFY_DATA) {
+    if (hasdata && do_verify) {
       uint8_t read_buf[CHUNK_SIZE] = {0};
       dap_read_block(addr, read_buf, (int)bytes);
       int equal = memcmp(read_buf, data, bytes);
@@ -321,57 +347,49 @@ void Adafruit_DAP_nRF5x::programUICR(uint32_t addr, uint32_t value) {
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 0); // Write Disable
 }
 
-//-----------------------------------------------------------------------------
-void Adafruit_DAP_nRF5x::lock(void) {
-  dap_write_word(NRF5X_NVMCTRL_CTRLA,
-                 NRF5X_NVMCTRL_CMD_SSB); // Set Security Bit
+void Adafruit_DAP_nRF5x::programUICR_AdafruitBootloader(void) {
+  uint32_t uicr_boot = 0;
+  uint32_t uicr_mbr_param = 0;
+  switch (target_device.flash_size)
+  {
+    case 1024*1024:
+      uicr_boot = 0xF4000;
+      uicr_mbr_param = 0xFE000;
+    break;
+
+    case 512*1024:
+      uicr_boot = 0x74000;
+      uicr_mbr_param = 0x7E000;
+    break;
+
+    case 256*1024:
+      uicr_boot = 0x3C000;
+      uicr_mbr_param = 0; // not use
+    break;
+
+    default: return;
+  }
+
+  if (uicr_boot) {
+    programUICR(NRF5X_UICR_BOOTLOADER, uicr_boot);
+  }
+
+  if (uicr_mbr_param) {
+    programUICR(NRF5X_UICR_MBR_PARAM_PAGE, uicr_mbr_param);
+  }
 }
 
-void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, uint8_t *buf) {
-  dap_write_word(NRF5X_NVMCTRL_ADDR, addr >> 1);
+bool Adafruit_DAP_nRF5x::protectBoot(void) {
+  // TODO not implemented yet
 
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_UR); // Unlock Region
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
+  // This is not bootloader protected, but this is convenient place to program UICR
+  programUICR_AdafruitBootloader();
 
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_ER); // Erase Row
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
-  dap_write_block(addr, buf, NRF5X_FLASH_ROW_SIZE);
+  return true;
 }
 
-//-----------------------------------------------------------------------------
-void Adafruit_DAP_nRF5x::readBlock(uint32_t addr, uint8_t *buf) {
-  if (dap_read_word(NRF5X_DSU_CTRL_STATUS) & 0x00010000)
-    perror_exit("device is locked, unable to read");
-
-  dap_read_block(addr, buf, NRF5X_FLASH_ROW_SIZE);
+bool Adafruit_DAP_nRF5x::unprotectBoot(void) {
+  // TODO not implemented yet
+  return true;
 }
 
-void Adafruit_DAP_nRF5x::fuseRead() {
-  uint8_t buf[NRF5X_USER_ROW_SIZE];
-  dap_read_block(NRF5X_USER_ROW_ADDR, buf, NRF5X_USER_ROW_SIZE);
-
-  uint64_t fuses = ((uint64_t)buf[7] << 56) | ((uint64_t)buf[6] << 48) |
-                   ((uint64_t)buf[5] << 40) | ((uint64_t)buf[4] << 32) |
-                   ((uint64_t)buf[3] << 24) | ((uint64_t)buf[2] << 16) |
-                   ((uint64_t)buf[1] << 8) | (uint64_t)buf[0];
-
-  _USER_ROW.set(fuses);
-}
-
-void Adafruit_DAP_nRF5x::fuseWrite() {
-  uint64_t fuses = _USER_ROW.get();
-  uint8_t buf[NRF5X_USER_ROW_SIZE] = {
-      (uint8_t)fuses,         (uint8_t)(fuses >> 8),  (uint8_t)(fuses >> 16),
-      (uint8_t)(fuses >> 24), (uint8_t)(fuses >> 32), (uint8_t)(fuses >> 40),
-      (uint8_t)(fuses >> 48), (uint8_t)(fuses >> 56)};
-
-  dap_write_word(NRF5X_NVMCTRL_CTRLB, 0);
-  dap_write_word(NRF5X_NVMCTRL_ADDR, NRF5X_USER_ROW_ADDR >> 1);
-  dap_write_word(NRF5X_NVMCTRL_CTRLA, NRF5X_NVMCTRL_CMD_EAR);
-  while (0 == (dap_read_word(NRF5X_NVMCTRL_INTFLAG) & 1))
-    ;
-
-  dap_write_block(NRF5X_USER_ROW_ADDR, buf, NRF5X_USER_ROW_SIZE);
-}

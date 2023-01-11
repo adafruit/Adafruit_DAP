@@ -47,48 +47,67 @@ public:
   static device_t devices[];
   bool locked;
 
+  //------------- Common API -------------//
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_SAM;
+  }
+  virtual bool select(uint32_t *id);
+  virtual void deselect(void);
+
+  virtual void erase(void);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
+  virtual bool programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = true);
+
+  virtual bool protectBoot(void);
+  virtual bool unprotectBoot(void);
+
   //------------- API for both SAMD21 and SAMD51 -------------//
   void resetWithExtension(void);
   void finishReset(void);
-  void programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify = false);
-  void deselect(void);
 
-  bool select(uint32_t *id);
-  void erase(void);
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
-  bool readCRC(uint32_t length, uint32_t *crc);
+
+  virtual bool readCRC(uint32_t length, uint32_t *crc);
+
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size) {
+    if ( addr != 0 ) {
+      return 0;
+    }
+    uint32_t crc32;
+    return readCRC(size, &crc32) ? (crc32 ^ 0xFFFFFFFFUL) : 0;
+  }
+
   // uint32_t verifyBlock(uint32_t addr);
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  virtual uint32_t program_start(uint32_t offset = 0);
+  virtual uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
 
   typedef union {
     struct __attribute__((__packed__)) {
       // The old USER_ROW erased the reserved BOD12 Voltage regulator config
-      uint8_t BOOTPROT : 3;
-      uint8_t _reserved1 : 1;
-      uint8_t EEPROM : 3;
-      uint8_t _reserved2 : 1;
-      uint8_t BOD33_Level : 6;
-      uint8_t BOD33_Enable : 1;
-      uint8_t BOD33_Action : 2;
-      uint8_t _reserved_BOD12_Config_Vreg: 8;
-      uint8_t WDT_Enable : 1;
-      uint8_t WDT_Always_On : 1;
-      uint8_t WDT_Period : 4;
-      uint8_t WDT_Window : 4;
-      uint8_t WDR_EWOFFSET : 4;
-      uint8_t WDR_WEN : 1;
-      uint8_t BOD33_Hysteresis : 1;
-      uint8_t _reserved_BOD12_Config : 1;
-      uint8_t _reserved3 : 6;
-      uint16_t LOCK : 16;
+      uint64_t BOOTPROT : 3;
+      uint64_t _reserved1 : 1;
+      uint64_t EEPROM : 3;
+      uint64_t _reserved2 : 1;
+      uint64_t BOD33_Level : 6;
+      uint64_t BOD33_Enable : 1;
+      uint64_t BOD33_Action : 2;
+      uint64_t _reserved_BOD12_Config_Vreg: 8;
+      uint64_t WDT_Enable : 1;
+      uint64_t WDT_Always_On : 1;
+      uint64_t WDT_Period : 4;
+      uint64_t WDT_Window : 4;
+      uint64_t WDR_EWOFFSET : 4;
+      uint64_t WDR_WEN : 1;
+      uint64_t BOD33_Hysteresis : 1;
+      uint64_t _reserved_BOD12_Config : 1;
+      uint64_t _reserved3 : 6;
+      uint64_t LOCK : 16;
     } bit;
     uint64_t fuses;
     uint32_t fuseParts[2];
@@ -108,20 +127,40 @@ public:
 
   static device_t devices[];
 
-  bool select(uint32_t *id);
-  void erase(void);
+  //------------- Common API -------------//
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_SAMX5;
+  }
+
+  virtual bool select(uint32_t *id);
+  virtual void erase(void);
+  virtual uint32_t program_start(uint32_t offset = 0, uint32_t size = 0);
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size = PAGESIZE);
+
+  virtual bool protectBoot(void);
+  virtual bool unprotectBoot(void);
+
   void lock(void);
   virtual size_t pageSize() { return PAGESIZE; }
   virtual void resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks);
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint16_t size = PAGESIZE);
   virtual void readBlock(uint32_t addr, uint8_t *buf);
+
   bool readCRC(uint32_t length, uint32_t *crc);
+
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size) {
+    if ( addr != 0 ) {
+      return 0;
+    }
+    uint32_t crc32;
+    return readCRC(size, &crc32) ? (crc32 ^ 0xFFFFFFFFUL) : 0;
+  }
+
   // uint32_t verifyBlock(uint32_t addr);
+
   void fuse(void);
   void fuseRead();
   void fuseWrite();
 
-  virtual uint32_t program_start(uint32_t offset = 0);
 
   typedef union {
     struct __attribute__((__packed__)) {

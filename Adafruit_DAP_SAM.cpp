@@ -109,14 +109,14 @@ device_t Adafruit_DAP_SAM::devices[] = {
     {0x1081020f, (char *)"SAM L21J18B (Rev C)", 256 * 1024, 4096},
     {0x1081021e, (char *)"SAM R30G18A", 256 * 1024, 4096},
     {0x1081021f, (char *)"SAM R30E18A", 256 * 1024, 4096},
-    {0},
+    {0, NULL, 0, 0},
 };
 
 //--------------------------------------------------------------------+
 // API for both SAMD21 and SAMD51
 //--------------------------------------------------------------------+
 
-void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
+bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
   size_t const bufSize = pageSize();
 
   Serial.println("\nProgramming...");
@@ -153,7 +153,11 @@ void Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
     if (!success) {
       perror_exit("Error validating ");
     }
+
+    return success;
   }
+
+  return true;
 }
 
 void Adafruit_DAP_SAM::resetWithExtension(void)
@@ -266,9 +270,13 @@ void Adafruit_DAP_SAM::lock(void) {
 }
 
 //-----------------------------------------------------------------------------
-uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset) {
-  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) // DSU.STATUSB.PROT
+uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset, uint32_t size) {
+  (void) size; // not used
+
+  // DSU.STATUSB.PROT
+  if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
+}
 
   resetProtectionFuses(true, false);
 
@@ -280,7 +288,7 @@ uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset) {
 }
 
 void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf,
-                                    uint16_t size) {
+                                    uint32_t size) {
   /* DM: this is actually unnecessary after a chip erase
   dap_write_word(NVMCTRL_ADDR, addr >> 1);
 
@@ -350,3 +358,25 @@ void Adafruit_DAP_SAM::fuseWrite() {
   resetWithExtension();
   finishReset();
 }
+
+bool Adafruit_DAP_SAM::protectBoot(void) {
+  fuseRead();
+  _USER_ROW.bit.BOOTPROT = 0x02;
+  fuseWrite();
+
+  return true;
+}
+
+bool Adafruit_DAP_SAM::unprotectBoot(void) {
+  fuseRead();
+
+  // if locked then unlock
+  if (_USER_ROW.bit.BOOTPROT != 0x07) {
+    _USER_ROW.bit.BOOTPROT = 0x07;
+    fuseWrite();
+  }
+
+  return true;
+}
+
+

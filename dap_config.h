@@ -114,11 +114,13 @@ static inline void DAP_CONFIG_SWDIO_TMS_write(int value) {
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_TDO_write(int value) {
+  (void) value;
   // DAP_gpio_write(DAP_CONFIG_TDO.ulPort, DAP_CONFIG_TDO.ulPin, value);
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_nTRST_write(int value) {
+  (void) value;
   // DAP_gpio_write(DAP_CONFIG_nTRST.ulPort, DAP_CONFIG_nTRST.ulPin, value);
 }
 
@@ -277,7 +279,7 @@ static inline void DAP_CONFIG_CONNECT_SWD(void) {
   digitalWrite(DAP_CONFIG_SWCLK_PIN, HIGH);
 
   pinMode(DAP_CONFIG_nRESET_PIN, OUTPUT);
-  for (int i = 0; i < 1000000ul; i++) {
+  for (size_t i = 0; i < 1000000ul; i++) {
     asm("nop");
   }
   digitalWrite(DAP_CONFIG_nRESET_PIN, HIGH);

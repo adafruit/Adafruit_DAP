@@ -151,6 +151,14 @@ enum {
   M0_PLUS,
 };
 
+enum {
+  DAP_TYPEID_GENERIC = 0,
+  DAP_TYPEID_SAM, // Adafruit_DAP_SAM
+  DAP_TYPEID_SAMX5, // SAM D51, E51
+  DAP_TYPEID_NRF5X,
+  DAP_TYPEID_STM32
+};
+
 typedef void (*ErrorHandler)(const char *error);
 
 typedef struct {
@@ -165,14 +173,13 @@ class Adafruit_DAP {
 public:
   // constructors
   Adafruit_DAP(void){};
-  ~Adafruit_DAP(void){};
+  virtual ~Adafruit_DAP(void){};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
   // High level methods
   bool targetConnect(uint32_t swj_clock = 50);
 
   // Low level methods
-  bool select(uint32_t *id);
   bool dap_led(int index, int state);
   bool dap_connect(void);
   bool dap_disconnect(void);
@@ -197,6 +204,32 @@ public:
   char *error_message;
   device_t target_device;
 
+  //------------- Common API -------------//
+  virtual uint32_t getTypeID(void) = 0;
+  virtual bool select(uint32_t *id) = 0;
+  virtual void deselect(void) = 0;
+
+  // erase all chip
+  virtual void erase(void) = 0;
+
+  // prepare to program flash
+  virtual uint32_t program_start(uint32_t addr, uint32_t size) = 0;
+
+  // program a block of flash
+  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) = 0;
+
+  // program to flash with (without erase)
+  virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
+
+  // compute flash crc32
+  virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size);
+
+  // unlock bootloader
+  virtual bool protectBoot(void) = 0;
+
+  // lock bootloader
+  virtual bool unprotectBoot(void) = 0;
+
 protected:
   uint8_t _i2caddr;
   bool dbg_dap_cmd(uint8_t *data, int size, int rsize);
@@ -204,6 +237,34 @@ protected:
 
   ErrorHandler perror_exit;
 };
+
+// Simple and low code CRC calculation (copied from arduino-rp2040's PicoOTA)
+class Adafruit_DAP_CRC32 {
+public:
+  Adafruit_DAP_CRC32() { crc = 0xffffffff; }
+
+  ~Adafruit_DAP_CRC32() {}
+
+  void add(const void *d, uint32_t len) {
+    const uint8_t *data = (const uint8_t *)d;
+    for (uint32_t i = 0; i < len; i++) {
+      crc ^= data[i];
+      for (int j = 0; j < 8; j++) {
+        if (crc & 1) {
+          crc = (crc >> 1) ^ 0xedb88320;
+        } else {
+          crc >>= 1;
+        }
+      }
+    }
+  }
+
+  uint32_t get() { return ~crc; }
+
+private:
+  uint32_t crc;
+};
+
 
 #include "Adafruit_DAP_SAM.h"
 #include "Adafruit_DAP_STM32.h"

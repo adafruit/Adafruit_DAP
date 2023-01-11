@@ -39,16 +39,28 @@ public:
   Adafruit_DAP_STM32(void);
   ~Adafruit_DAP_STM32(void){};
 
-  device_t target_device;
+  //------------- Common API -------------//
+  virtual uint32_t getTypeID(void) {
+    return DAP_TYPEID_STM32;
+  }
 
   bool select(uint32_t *id);
   void deselect(void);
-  void erase(void);
 
-  void programPrepare(uint32_t addr, uint32_t size);
+  void erase(void);
+  uint32_t program_start(uint32_t addr, uint32_t size);
   void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size);
 
+  bool protectBoot(void);
+  bool unprotectBoot(void);
+
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
   bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
+
+  // backward compatible
+  void programPrepare(uint32_t addr, uint32_t size) {
+    program_start(addr, size);
+  }
 
 private:
   bool flash_busy(void);
