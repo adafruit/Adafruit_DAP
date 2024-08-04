@@ -516,7 +516,7 @@ uint32_t Adafruit_DAP::computeFlashCRC32(uint32_t addr, uint32_t size) {
   uint8_t buf[512];
 
   while(size) {
-    uint32_t count = min(size, sizeof(buf));
+    uint32_t count = min(size, (uint32_t) sizeof(buf));
 
     dap_read_block(addr, buf, (int) count);
     crc32.add(buf, count);
