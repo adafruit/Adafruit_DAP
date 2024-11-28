@@ -289,7 +289,7 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
   uint8_t buf[4 * 1024];
 
   while (size) {
-    uint32_t const count = min(size, sizeof(buf));
+    uint32_t const count = min(size, (uint32_t) sizeof(buf));
 
     dap_read_block(addr, buf, count);
 
