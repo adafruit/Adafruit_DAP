@@ -218,7 +218,7 @@ public:
   // program a block of flash
   virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) = 0;
 
-  // program to flash with (without erase)
+  // program to flash with (without erase), same as programBlock with verify option
   virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
 
   // compute flash crc32
