@@ -90,24 +90,25 @@ public:
   typedef union {
     struct __attribute__((__packed__)) {
       // The old USER_ROW erased the reserved BOD12 Voltage regulator config
-      uint64_t BOOTPROT : 3;
-      uint64_t _reserved1 : 1;
-      uint64_t EEPROM : 3;
-      uint64_t _reserved2 : 1;
-      uint64_t BOD33_Level : 6;
-      uint64_t BOD33_Enable : 1;
-      uint64_t BOD33_Action : 2;
-      uint64_t _reserved_BOD12_Config_Vreg: 8;
-      uint64_t WDT_Enable : 1;
-      uint64_t WDT_Always_On : 1;
-      uint64_t WDT_Period : 4;
-      uint64_t WDT_Window : 4;
-      uint64_t WDR_EWOFFSET : 4;
-      uint64_t WDR_WEN : 1;
-      uint64_t BOD33_Hysteresis : 1;
-      uint64_t _reserved_BOD12_Config : 1;
-      uint64_t _reserved3 : 6;
-      uint64_t LOCK : 16;
+      uint64_t BOOTPROT                    : 3;  // 0..2
+      uint64_t _reserved1                  : 1;  // 3
+      uint64_t EEPROM                      : 3;  // 4..6
+      uint64_t _reserved2                  : 1;  // 7
+      uint64_t BOD33_Level                 : 6;  // 8..13
+      uint64_t BOD33_Enable                : 1;  // 14
+      uint64_t BOD33_Action                : 2;  // 15..16
+      uint64_t _reserved_BOD12_Config_Vreg : 8;  // 17..24
+      uint64_t WDT_Enable                  : 1;  // 25
+      uint64_t WDT_Always_On               : 1;  // 26
+      uint64_t WDT_Period                  : 4;  // 27..30
+      uint64_t WDT_Window                  : 4;  // 31..34
+      uint64_t WDR_EWOFFSET                : 4;  // 35..38
+      uint64_t WDR_WEN                     : 1;  // 39
+      uint64_t BOD33_Hysteresis            : 1;  // 40
+      uint64_t _reserved_BOD12_Config      : 1;  // 41
+      uint64_t _reserved3                  : 6;  // 42..47
+      uint64_t LOCK                        : 16; // 48..63
+
     } bit;
     uint64_t fuses;
     uint32_t fuseParts[2];
@@ -163,28 +164,33 @@ public:
 
 
   typedef union {
+    // As per SAM D5x/E5x Family datasheet page 53
     struct __attribute__((__packed__)) {
-      uint8_t BOD33_Disable : 1;
-      uint8_t BOD33_Level : 8;
-      uint8_t BOD33_Action : 2;
-      uint8_t BOD33_Hysteresis : 4;
-      uint8_t : 8;
-      uint8_t : 3;
-      uint8_t NVM_BOOT : 4;
-      uint8_t : 2;
-      uint8_t SEESBLK : 4;
-      uint8_t SEEPSZ : 3;
-      uint8_t RAM_ECCDIS : 1;
-      uint8_t : 8;
-      uint8_t WDT_Enable : 1;
-      uint8_t WDT_Always_On : 1;
-      uint8_t WDT_Period : 4;
-      uint8_t WDT_Window : 4;
-      uint8_t WDT_EWOFFSET : 4;
-      uint8_t WDT_WEN : 1;
-      uint8_t : 1;
-      uint16_t NVM_LOCKS : 32; // As per SAM D5x/E5x Family datasheet page 53
-      uint32_t User_Page : 32;
+      // word 0
+      uint32_t BOD33_Disable : 1;    // 0
+      uint32_t BOD33_Level : 8;      // 1..8
+      uint32_t BOD33_Action : 2;     // 9..10
+      uint32_t BOD33_Hysteresis : 4; // 11..14
+      uint32_t BOD12_CalibPara: 11;  // 15..25
+      uint32_t NVM_BOOT : 4;         // 26..29
+      uint32_t : 2;                  // 30..31
+      // word 1
+      uint32_t SEESBLK : 4;           // 32..35
+      uint32_t SEEPSZ : 3;            // 36..38
+      uint32_t RAM_ECCDIS : 1;        // 39
+      uint32_t : 8;                   // 40..47
+      uint32_t WDT_Enable : 1;        // 48
+      uint32_t WDT_Always_On : 1;     // 49
+      uint32_t WDT_Period : 4;        // 50..53
+      uint32_t WDT_Window : 4;        // 54..57
+      uint32_t WDT_EWOFFSET : 4;      // 58..61
+      uint32_t WDT_WEN : 1;           // 62
+      uint32_t : 1;                   // 63
+      // word 2
+      uint32_t NVM_LOCKS;            // 64..95
+      // word 3
+      uint32_t User_Page;            // 96..127
+
     } bit;
     uint8_t reg[USER_ROW_SIZE];
   } USER_ROW;

@@ -274,7 +274,7 @@ void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_
     buf += bytes;
     size -= bytes;
 
-    if (!flashWaitReady()) {
+    if (hasdata && !flashWaitReady()) {
       // Flash timed out before being ready!
       break;
     };
@@ -311,16 +311,14 @@ bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
 
     if (hasdata) {
       dap_write_block(addr, data, (int)bytes);
-    }
 
-    /* Optionally verify the written data */
-    if (hasdata && do_verify) {
-      uint8_t read_buf[CHUNK_SIZE] = {0};
-      dap_read_block(addr, read_buf, (int)bytes);
-      int equal = memcmp(read_buf, data, bytes);
-      if (equal != 0) {
-        /* Verify failed! */
-        return false;
+      /* Optionally verify the written data */
+      if (do_verify) {
+        uint8_t read_buf[CHUNK_SIZE] = {0};
+        dap_read_block(addr, read_buf, (int)bytes);
+        if (0 != memcmp(read_buf, data, bytes)) {
+          return false;
+        }
       }
     }
 
