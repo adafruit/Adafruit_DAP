@@ -47,7 +47,7 @@ void setup() {
   }
   Serial.println("Card initialized");
 
-  File32 dataFile = SD.open(FILENAME);
+  FsFile dataFile = SD.open(FILENAME);
 
   if (!dataFile) {
     error("Couldn't open file");
