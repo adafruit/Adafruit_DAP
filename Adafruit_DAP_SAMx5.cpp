@@ -42,45 +42,52 @@
 #define FLASH_START 0
 #define FLASH_ROW_SIZE 512
 
-#define DHCSR                   0xe000edf0
-#define DEMCR                   0xe000edfc
-#define AIRCR                   0xe000ed0c
+#define DHCSR 0xe000edf0
+#define DEMCR 0xe000edfc
+#define AIRCR 0xe000ed0c
 
-#define DAP_DSU_CTRL_STATUS     0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external debugger
-#define DAP_DSU_DID             0x41002118
-#define DAP_DSU_ADDR            0x41002104
-#define DAP_DSU_DATA            0x4100210C
-#define DAP_DSU_LENGTH          0x41002108
+#define DAP_DSU_CTRL_STATUS                                                    \
+  0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external
+             // debugger
+#define DAP_DSU_DID 0x41002118
+#define DAP_DSU_ADDR 0x41002104
+#define DAP_DSU_DATA 0x4100210C
+#define DAP_DSU_LENGTH 0x41002108
 
-#define DAP_DSU_CTRL_CRC        0x00000004
-#define DAP_DSU_STATUSA_DONE    0x00000100
+#define DAP_DSU_CTRL_CRC 0x00000004
+#define DAP_DSU_STATUSA_DONE 0x00000100
 #define DAP_DSU_STATUSA_CRSTEXT 0x00000200
-#define DAP_DSU_STATUSA_BERR    0x00000400
+#define DAP_DSU_STATUSA_BERR 0x00000400
 
-#define NVMCTRL_CTRLA           0x41004000
-#define NVMCTRL_CTRLB           0x41004004
-#define NVMCTRL_PARAM           0x41004008
-#define NVMCTRL_INTFLAG         0x41004010
-#define NVMCTRL_STATUS          0x41004012
-#define NVMCTRL_ADDR            0x41004014
-#define NVMCTRL_RUNLOCK         0x41004018
+#define NVMCTRL_CTRLA 0x41004000
+#define NVMCTRL_CTRLB 0x41004004
+#define NVMCTRL_PARAM 0x41004008
+#define NVMCTRL_INTFLAG 0x41004010
+#define NVMCTRL_STATUS 0x41004012
+#define NVMCTRL_ADDR 0x41004014
+#define NVMCTRL_RUNLOCK 0x41004018
 
-#define NVMCTRL_CMD_EP          0xa500   /* Erase Page */
-#define NVMCTRL_CMD_EB          0xa501   /* Erase Block */
-#define NVMCTRL_CMD_WP          0xa503   /* Write Page */
-#define NVMCTRL_CMD_WQW         0xa504  /* Write 128 bit word */
-#define NVMCTRL_CMD_LR          0xa511   /* Lock Region */
-#define NVMCTRL_CMD_UR          0xa512   /* Unlock Region */
-#define NVMCTRL_CMD_SPRM        0xa513 /* Set Power Reduction Mode */
-#define NVMCTRL_CMD_CPRM        0xa514 /* Clear Power Reduction Mode */
-#define NVMCTRL_CMD_PBC         0xa515  /* Page Buffer Clear */
-#define NVMCTRL_CMD_SSB         0xa516  /* Set Security Bit */
-#define NVMCTRL_CMD_CELCK       0xa518  /* Chip Erase Lock - DSU.CTRL.CE command is not available */
-#define NVMCTRL_CMD_CEULCK      0xa519  /* Chip Erase Unlock - DSU.CTRL.CE command is available */
-#define NVMCTRL_CMD_SBPDIS      0xa51a  /* Sets STATUS.BPDIS, Boot loader protection is off until CBPDIS is issued or next start-up sequence. Page 628 */
-#define NVMCTRL_CMD_CBPDIS      0xa51b  /* Clears STATUS.BPDIS, Boot loader protection is not off */
+#define NVMCTRL_CMD_EP 0xa500   /* Erase Page */
+#define NVMCTRL_CMD_EB 0xa501   /* Erase Block */
+#define NVMCTRL_CMD_WP 0xa503   /* Write Page */
+#define NVMCTRL_CMD_WQW 0xa504  /* Write 128 bit word */
+#define NVMCTRL_CMD_LR 0xa511   /* Lock Region */
+#define NVMCTRL_CMD_UR 0xa512   /* Unlock Region */
+#define NVMCTRL_CMD_SPRM 0xa513 /* Set Power Reduction Mode */
+#define NVMCTRL_CMD_CPRM 0xa514 /* Clear Power Reduction Mode */
+#define NVMCTRL_CMD_PBC 0xa515  /* Page Buffer Clear */
+#define NVMCTRL_CMD_SSB 0xa516  /* Set Security Bit */
+#define NVMCTRL_CMD_CELCK                                                      \
+  0xa518 /* Chip Erase Lock - DSU.CTRL.CE command is not available */
+#define NVMCTRL_CMD_CEULCK                                                     \
+  0xa519 /* Chip Erase Unlock - DSU.CTRL.CE command is available */
+#define NVMCTRL_CMD_SBPDIS                                                     \
+  0xa51a /* Sets STATUS.BPDIS, Boot loader protection is off until CBPDIS is   \
+            issued or next start-up sequence. Page 628 */
+#define NVMCTRL_CMD_CBPDIS                                                     \
+  0xa51b /* Clears STATUS.BPDIS, Boot loader protection is not off */
 
-#define USER_ROW_ADDR           0x00804000
+#define USER_ROW_ADDR 0x00804000
 
 /*- Variables ---------------------------------------------------------------*/
 device_t Adafruit_DAP_SAMx5::devices[] = {
@@ -117,10 +124,12 @@ device_t Adafruit_DAP_SAMx5::devices[] = {
 bool Adafruit_DAP_SAMx5::select(uint32_t *found_id) {
   uint32_t DAP_DSU_did;
 
-  // Stopping the core fails on locked SAM D21/51, when not doing an Extended reset first.
-  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set,
-  // one must enter Reset Extension mode before issuing reads through DAP. Write mostly requires the Security Bit
-  // to be cleared by executing a Chip Erase, before entering Reset Extension mode once more, followed by a SWD reconnect.
+  // Stopping the core fails on locked SAM D21/51, when not doing an Extended
+  // reset first. As per the ataradov/edbg source code, for SAMD MCUs which is
+  // locked by having the Security Bit set, one must enter Reset Extension mode
+  // before issuing reads through DAP. Write mostly requires the Security Bit to
+  // be cleared by executing a Chip Erase, before entering Reset Extension mode
+  // once more, followed by a SWD reconnect.
 
   resetWithExtension();
 
@@ -134,8 +143,7 @@ bool Adafruit_DAP_SAMx5::select(uint32_t *found_id) {
       locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
       if (locked) {
         Serial.println("Device is locked, must be unlocked first!");
-      }
-      else {
+      } else {
         // Stop the core
         finishReset();
       }
@@ -146,7 +154,8 @@ bool Adafruit_DAP_SAMx5::select(uint32_t *found_id) {
   return false;
 }
 
-void Adafruit_DAP_SAMx5::resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks) {
+void Adafruit_DAP_SAMx5::resetProtectionFuses(bool resetBootloaderProtection,
+                                              bool resetRegionLocks) {
   bool doFuseWrite = false;
 
   fuseRead();
@@ -188,7 +197,7 @@ void Adafruit_DAP_SAMx5::lock(void) {
 
 //-----------------------------------------------------------------------------
 uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset, uint32_t size) {
-  (void) size;
+  (void)size;
 
   if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
@@ -211,10 +220,12 @@ uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset, uint32_t size) {
 void Adafruit_DAP_SAMx5::programBlock(uint32_t addr, const uint8_t *buf,
                                       uint32_t size) {
 
-  // Even after a chip erase with reset, a temporary Unlock region might be necessary
+  // Even after a chip erase with reset, a temporary Unlock region might be
+  // necessary
   dap_write_word(NVMCTRL_ADDR, addr);
   dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_UR); // Unlock Region temporary
-  while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
+  while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1))
+    ;
 
   uint32_t status = 0;
 

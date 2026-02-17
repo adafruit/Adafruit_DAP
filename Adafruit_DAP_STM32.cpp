@@ -289,7 +289,7 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
   uint8_t buf[4 * 1024];
 
   while (size) {
-    uint32_t const count = min(size, (uint32_t) sizeof(buf));
+    uint32_t const count = min(size, (uint32_t)sizeof(buf));
 
     dap_read_block(addr, buf, count);
 
@@ -305,7 +305,8 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
   return true;
 }
 
-bool Adafruit_DAP_STM32::programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) {
+bool Adafruit_DAP_STM32::programFlash(uint32_t addr, const uint8_t *buf,
+                                      uint32_t count, bool do_verify) {
   programBlock(addr, buf, count);
 
   if (do_verify) {
@@ -322,11 +323,6 @@ void Adafruit_DAP_STM32::deselect(void) {
   dap_write_word(AIRCR, 0x05fa0004);
 }
 
-bool Adafruit_DAP_STM32::protectBoot(void) {
-  return true;
-}
+bool Adafruit_DAP_STM32::protectBoot(void) { return true; }
 
-bool Adafruit_DAP_STM32::unprotectBoot(void) {
-  return true;
-}
-
+bool Adafruit_DAP_STM32::unprotectBoot(void) { return true; }
