@@ -36,15 +36,13 @@
 // DAP for nRF
 class Adafruit_DAP_nRF5x : public Adafruit_DAP {
 public:
-  Adafruit_DAP_nRF5x(void){};
-  ~Adafruit_DAP_nRF5x(void){};
+  Adafruit_DAP_nRF5x(void) {};
+  ~Adafruit_DAP_nRF5x(void) {};
 
   static device_t devices[];
 
   //------------- Common API -------------//
-  virtual uint32_t getTypeID(void) {
-    return DAP_TYPEID_NRF5X;
-  }
+  virtual uint32_t getTypeID(void) { return DAP_TYPEID_NRF5X; }
 
   bool select(uint32_t *id);
   void deselect(void);
@@ -59,8 +57,10 @@ public:
   void programUICR(uint32_t addr, uint32_t value);
   void programUICR_AdafruitBootloader(void);
 
-  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
-  bool program(uint32_t addr, const uint8_t *buf, uint32_t count, bool verify = true) {
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count,
+                    bool do_verify = true);
+  bool program(uint32_t addr, const uint8_t *buf, uint32_t count,
+               bool verify = true) {
     return programFlash(addr, buf, count, verify);
   }
 

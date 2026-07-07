@@ -37,12 +37,10 @@
 class Adafruit_DAP_STM32 : public Adafruit_DAP {
 public:
   Adafruit_DAP_STM32(void);
-  ~Adafruit_DAP_STM32(void){};
+  ~Adafruit_DAP_STM32(void) {};
 
   //------------- Common API -------------//
-  virtual uint32_t getTypeID(void) {
-    return DAP_TYPEID_STM32;
-  }
+  virtual uint32_t getTypeID(void) { return DAP_TYPEID_STM32; }
 
   bool select(uint32_t *id);
   void deselect(void);
@@ -54,7 +52,8 @@ public:
   bool protectBoot(void);
   bool unprotectBoot(void);
 
-  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify = true);
+  bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count,
+                    bool do_verify = true);
   bool verifyFlash(uint32_t addr, const uint8_t *data, uint32_t size);
 
   // backward compatible
