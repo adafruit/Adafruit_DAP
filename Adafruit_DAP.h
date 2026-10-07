@@ -153,7 +153,7 @@ enum {
 
 enum {
   DAP_TYPEID_GENERIC = 0,
-  DAP_TYPEID_SAM, // Adafruit_DAP_SAM
+  DAP_TYPEID_SAM,   // Adafruit_DAP_SAM
   DAP_TYPEID_SAMX5, // SAM D51, E51
   DAP_TYPEID_NRF5X,
   DAP_TYPEID_STM32
@@ -172,8 +172,8 @@ typedef struct {
 class Adafruit_DAP {
 public:
   // constructors
-  Adafruit_DAP(void){};
-  virtual ~Adafruit_DAP(void){};
+  Adafruit_DAP(void) {};
+  virtual ~Adafruit_DAP(void) {};
   bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
   // High level methods
@@ -216,10 +216,13 @@ public:
   virtual uint32_t program_start(uint32_t addr, uint32_t size) = 0;
 
   // program a block of flash
-  virtual void programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) = 0;
+  virtual void programBlock(uint32_t addr, const uint8_t *buf,
+                            uint32_t size) = 0;
 
-  // program to flash with (without erase), same as programBlock with verify option
-  virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) = 0;
+  // program to flash with (without erase), same as programBlock with verify
+  // option
+  virtual bool programFlash(uint32_t addr, const uint8_t *buf, uint32_t count,
+                            bool do_verify) = 0;
 
   // compute flash crc32
   virtual uint32_t computeFlashCRC32(uint32_t addr, uint32_t size);
@@ -264,7 +267,6 @@ public:
 private:
   uint32_t crc;
 };
-
 
 #include "Adafruit_DAP_SAM.h"
 #include "Adafruit_DAP_STM32.h"

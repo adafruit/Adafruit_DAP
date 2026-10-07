@@ -237,7 +237,7 @@ void Adafruit_DAP_nRF5x::erase(void) {
 
 //-----------------------------------------------------------------------------
 uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset, uint32_t size) {
-  (void) size;
+  (void)size;
 
   // TODO: convert to slow/fast clock mode
   dap_setup_clock(0);
@@ -245,7 +245,8 @@ uint32_t Adafruit_DAP_nRF5x::program_start(uint32_t offset, uint32_t size) {
   return NRF5X_FLASH_START + offset;
 }
 
-void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_t size) {
+void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf,
+                                      uint32_t size) {
   // address must be word-aligned
   if (addr & 0x03) {
     return;
@@ -254,7 +255,7 @@ void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 1); // Write Enable
 
   while (size) {
-    uint32_t bytes = min(size, (uint32_t) CHUNK_SIZE);
+    uint32_t bytes = min(size, (uint32_t)CHUNK_SIZE);
     bool hasdata = false;
 
     /* If data is all 0xff, this chunk is empty. Don't bother writing it since
@@ -284,7 +285,7 @@ void Adafruit_DAP_nRF5x::programBlock(uint32_t addr, const uint8_t *buf, uint32_
 }
 
 bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
-                                 uint32_t count, bool do_verify) {
+                                      uint32_t count, bool do_verify) {
   // address must be word-aligned
   if (addr & 0x03) {
     return false;
@@ -294,7 +295,7 @@ bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
 
   while (count) {
     uint8_t data[CHUNK_SIZE];
-    uint32_t bytes = min(count, (uint32_t) CHUNK_SIZE);
+    uint32_t bytes = min(count, (uint32_t)CHUNK_SIZE);
     bool hasdata = false;
 
     memset(data, 0xFF, CHUNK_SIZE);
@@ -348,24 +349,24 @@ void Adafruit_DAP_nRF5x::programUICR(uint32_t addr, uint32_t value) {
 void Adafruit_DAP_nRF5x::programUICR_AdafruitBootloader(void) {
   uint32_t uicr_boot = 0;
   uint32_t uicr_mbr_param = 0;
-  switch (target_device.flash_size)
-  {
-    case 1024*1024:
-      uicr_boot = 0xF4000;
-      uicr_mbr_param = 0xFE000;
+  switch (target_device.flash_size) {
+  case 1024 * 1024:
+    uicr_boot = 0xF4000;
+    uicr_mbr_param = 0xFE000;
     break;
 
-    case 512*1024:
-      uicr_boot = 0x74000;
-      uicr_mbr_param = 0x7E000;
+  case 512 * 1024:
+    uicr_boot = 0x74000;
+    uicr_mbr_param = 0x7E000;
     break;
 
-    case 256*1024:
-      uicr_boot = 0x3C000;
-      uicr_mbr_param = 0; // not use
+  case 256 * 1024:
+    uicr_boot = 0x3C000;
+    uicr_mbr_param = 0; // not use
     break;
 
-    default: return;
+  default:
+    return;
   }
 
   if (uicr_boot) {
@@ -380,7 +381,8 @@ void Adafruit_DAP_nRF5x::programUICR_AdafruitBootloader(void) {
 bool Adafruit_DAP_nRF5x::protectBoot(void) {
   // TODO not implemented yet
 
-  // This is not bootloader protected, but this is convenient place to program UICR
+  // This is not bootloader protected, but this is convenient place to program
+  // UICR
   programUICR_AdafruitBootloader();
 
   return true;
@@ -390,4 +392,3 @@ bool Adafruit_DAP_nRF5x::unprotectBoot(void) {
   // TODO not implemented yet
   return true;
 }
-

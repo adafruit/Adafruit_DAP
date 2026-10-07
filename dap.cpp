@@ -943,7 +943,7 @@ void dap_process_request(uint8_t *req, uint8_t *resp) {
   resp[0] = cmd;
   resp[1] = DAP_ERROR;
 
-  for (int i = 0; - 1 != handlers[i].cmd; i++) {
+  for (int i = 0; -1 != handlers[i].cmd; i++) {
     if (cmd == handlers[i].cmd) {
       handlers[i].handler(&req[1], &resp[1]);
       return;

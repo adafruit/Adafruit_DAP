@@ -12,7 +12,7 @@
 const int BUFSIZE = Adafruit_DAP_SAM::PAGESIZE;
 uint8_t buf[BUFSIZE];
 
-//create a DAP for programming Atmel SAM devices
+// create a DAP for programming Atmel SAM devices
 Adafruit_DAP_SAM dap;
 
 SdFat SD;
@@ -20,43 +20,45 @@ SdFat SD;
 // Function called when there's an SWD error
 void error(const char *text) {
   Serial.println(text);
-  while (1);
+  while (1)
+    ;
 }
-
 
 void setup() {
   pinMode(13, OUTPUT);
   Serial.begin(115200);
-  while(!Serial) {
-    delay(1);         // will pause the chip until it opens serial console
+  while (!Serial) {
+    delay(1); // will pause the chip until it opens serial console
   }
 
   dap.begin(SWCLK, SWDIO, SWRST, &error);
-  
-    // see if the card is present and can be initialized:
+
+  // see if the card is present and can be initialized:
   if (!SD.begin(SD_CS)) {
     error("Card failed, or not present");
   }
   Serial.println("Card initialized");
 
-  File32 dataFile = SD.open(FILENAME);
+  FsFile dataFile = SD.open(FILENAME);
 
-  if(!dataFile){
-     error("Couldn't open file");
+  if (!dataFile) {
+    error("Couldn't open file");
   }
-  
+
   Serial.println("Connecting...");
-  if ( !dap.targetConnect() ) {
+  if (!dap.targetConnect()) {
     error(dap.error_message);
   }
 
   char debuggername[100];
   dap.dap_get_debugger_info(debuggername);
-  Serial.print(debuggername); Serial.print("\n\r");
+  Serial.print(debuggername);
+  Serial.print("\n\r");
 
   uint32_t dsu_did;
-  if (! dap.select(&dsu_did)) {
-    Serial.print("Unknown device found 0x"); Serial.print(dsu_did, HEX);
+  if (!dap.select(&dsu_did)) {
+    Serial.print("Unknown device found 0x");
+    Serial.print(dsu_did, HEX);
     error("Unknown device found");
   }
   Serial.print("Found Target: ");
@@ -65,7 +67,8 @@ void setup() {
   Serial.print(dap.target_device.flash_size);
   Serial.print("\tFlash pages: ");
   Serial.println(dap.target_device.n_pages);
-  //Serial.print("Page size: "); Serial.println(dap.target_device.flash_size / dap.target_device.n_pages);
+  // Serial.print("Page size: "); Serial.println(dap.target_device.flash_size /
+  // dap.target_device.n_pages);
 
   /* Example of how to read and set fuses
   Serial.print("Fuses... ");
@@ -78,16 +81,16 @@ void setup() {
   Serial.print("Erasing... ");
   dap.erase();
   Serial.println(" done.");
-  
+
   Serial.print("Programming... ");
   unsigned long t = millis();
   uint32_t addr = dap.program_start();
 
   while (dataFile.available()) {
-      memset(buf, BUFSIZE, 0xFF);  // empty it out
-      dataFile.read(buf, BUFSIZE);
-      dap.programBlock(addr, buf);
-      addr += BUFSIZE;
+    memset(buf, BUFSIZE, 0xFF); // empty it out
+    dataFile.read(buf, BUFSIZE);
+    dap.programBlock(addr, buf);
+    addr += BUFSIZE;
   }
   dataFile.close();
   Serial.println(millis() - t);
@@ -99,9 +102,9 @@ void setup() {
 }
 
 void loop() {
-  //blink led on the host to show we're done
+  // blink led on the host to show we're done
   digitalWrite(13, HIGH);
-  delay(500); 
+  delay(500);
   digitalWrite(13, LOW);
-  delay(500);  
+  delay(500);
 }

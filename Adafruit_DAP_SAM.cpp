@@ -43,38 +43,40 @@
 #define DAP_FLASH_ROW_SIZE 256
 #define DAP_FLASH_PAGE_SIZE 64
 
-#define DHCSR                   0xe000edf0
-#define DEMCR                   0xe000edfc
-#define AIRCR                   0xe000ed0c
+#define DHCSR 0xe000edf0
+#define DEMCR 0xe000edfc
+#define AIRCR 0xe000ed0c
 
-#define DAP_DSU_CTRL_STATUS     0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external debugger
-#define DAP_DSU_DID             0x41002118
-#define DAP_DSU_ADDR            0x41002104
-#define DAP_DSU_DATA            0x4100210C
-#define DAP_DSU_LENGTH          0x41002108
+#define DAP_DSU_CTRL_STATUS                                                    \
+  0x41002100 // Used for accessing both CTRL, STATUSA and STATUSB from external
+             // debugger
+#define DAP_DSU_DID 0x41002118
+#define DAP_DSU_ADDR 0x41002104
+#define DAP_DSU_DATA 0x4100210C
+#define DAP_DSU_LENGTH 0x41002108
 
-#define DAP_DSU_CTRL_CRC        0x00000004
-#define DAP_DSU_STATUSA_DONE    0x00000100
+#define DAP_DSU_CTRL_CRC 0x00000004
+#define DAP_DSU_STATUSA_DONE 0x00000100
 #define DAP_DSU_STATUSA_CRSTEXT 0x00000200
-#define DAP_DSU_STATUSA_BERR    0x00000400
+#define DAP_DSU_STATUSA_BERR 0x00000400
 
-#define NVMCTRL_CTRLA           0x41004000
-#define NVMCTRL_CTRLB           0x41004004
-#define NVMCTRL_PARAM           0x41004008
-#define NVMCTRL_INTFLAG         0x41004014
-#define NVMCTRL_STATUS          0x41004018
-#define NVMCTRL_ADDR            0x4100401c
+#define NVMCTRL_CTRLA 0x41004000
+#define NVMCTRL_CTRLB 0x41004004
+#define NVMCTRL_PARAM 0x41004008
+#define NVMCTRL_INTFLAG 0x41004014
+#define NVMCTRL_STATUS 0x41004018
+#define NVMCTRL_ADDR 0x4100401c
 
-#define NVMCTRL_CMD_ER          0xa502
-#define NVMCTRL_CMD_WP          0xa504
-#define NVMCTRL_CMD_EAR         0xa505
-#define NVMCTRL_CMD_WAP         0xa506
-#define NVMCTRL_CMD_WL          0xa50f
-#define NVMCTRL_CMD_UR          0xa541
-#define NVMCTRL_CMD_PBC         0xa544
-#define NVMCTRL_CMD_SSB         0xa545
+#define NVMCTRL_CMD_ER 0xa502
+#define NVMCTRL_CMD_WP 0xa504
+#define NVMCTRL_CMD_EAR 0xa505
+#define NVMCTRL_CMD_WAP 0xa506
+#define NVMCTRL_CMD_WL 0xa50f
+#define NVMCTRL_CMD_UR 0xa541
+#define NVMCTRL_CMD_PBC 0xa544
+#define NVMCTRL_CMD_SSB 0xa545
 
-#define USER_ROW_ADDR           0x00804000
+#define USER_ROW_ADDR 0x00804000
 
 /*- Variables ---------------------------------------------------------------*/
 device_t Adafruit_DAP_SAM::devices[] = {
@@ -116,13 +118,14 @@ device_t Adafruit_DAP_SAM::devices[] = {
 // API for both SAMD21 and SAMD51
 //--------------------------------------------------------------------+
 
-bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, uint32_t datalen, bool doVerify) {
+bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t *data,
+                                    uint32_t datalen, bool doVerify) {
   size_t const bufSize = pageSize();
 
   Serial.println("\nProgramming...");
   uint32_t startAddr = program_start(flashOffset);
 
-  for(uint32_t count = 0; count < datalen; count += bufSize) {
+  for (uint32_t count = 0; count < datalen; count += bufSize) {
     // Serial.print(" 0x");
     // Serial.print(startAddr + count, HEX);
     programBlock(startAddr + count, data + count, bufSize);
@@ -134,7 +137,7 @@ bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
     bool success = true;
     Serial.println("\nVerifying...");
 
-    for(uint32_t count = 0; count < datalen; count += bufSize) {
+    for (uint32_t count = 0; count < datalen; count += bufSize) {
       Serial.print("Block: 0x");
       Serial.print(startAddr + count, HEX);
       Serial.print(" ");
@@ -143,8 +146,7 @@ bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
 
       if (memcmp(verifyBuf, data + count, bufSize) == 0) {
         Serial.println("OK");
-      }
-      else {
+      } else {
         Serial.println("Failed compare!");
         success = false;
       }
@@ -160,15 +162,14 @@ bool Adafruit_DAP_SAM::programFlash(uint32_t flashOffset, const uint8_t * data, 
   return true;
 }
 
-void Adafruit_DAP_SAM::resetWithExtension(void)
-{
+void Adafruit_DAP_SAM::resetWithExtension(void) {
   Serial.println("Enter Reset with Extension mode... ");
 
   // Enter reset extension mode
   dap_reset_target_hw(0);
   delay(10);
 
-  if ( !targetConnect() ) {
+  if (!targetConnect()) {
     perror_exit(error_message);
     return; // false
   }
@@ -184,10 +185,12 @@ void Adafruit_DAP_SAM::resetWithExtension(void)
 bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
   uint32_t DAP_DSU_did;
 
-  // Stopping the core fails on locked SAM D21/51, when not doing an Extended reset first.
-  // As per the ataradov/edbg source code, for SAMD MCUs which is locked by having the Security Bit set,
-  // one must enter Reset Extension mode before issuing reads through DAP. Write mostly requires the Security Bit
-  // to be cleared by executing a Chip Erase, before entering Reset Extension mode once more, followed by a SWD reconnect.
+  // Stopping the core fails on locked SAM D21/51, when not doing an Extended
+  // reset first. As per the ataradov/edbg source code, for SAMD MCUs which is
+  // locked by having the Security Bit set, one must enter Reset Extension mode
+  // before issuing reads through DAP. Write mostly requires the Security Bit to
+  // be cleared by executing a Chip Erase, before entering Reset Extension mode
+  // once more, followed by a SWD reconnect.
 
   resetWithExtension();
 
@@ -201,8 +204,7 @@ bool Adafruit_DAP_SAM::select(uint32_t *found_id) {
       locked = dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000;
       if (locked) {
         Serial.println("Device is locked, must be unlocked first!");
-      }
-      else {
+      } else {
         // Stop the core
         finishReset();
       }
@@ -223,7 +225,8 @@ void Adafruit_DAP_SAM::finishReset() {
   dap_write_word(DAP_DSU_CTRL_STATUS, DAP_DSU_STATUSA_CRSTEXT);
 }
 
-void Adafruit_DAP_SAM::resetProtectionFuses(bool resetBootloaderProtection, bool resetRegionLocks) {
+void Adafruit_DAP_SAM::resetProtectionFuses(bool resetBootloaderProtection,
+                                            bool resetRegionLocks) {
   bool doFuseWrite = false;
 
   fuseRead();
@@ -271,12 +274,12 @@ void Adafruit_DAP_SAM::lock(void) {
 
 //-----------------------------------------------------------------------------
 uint32_t Adafruit_DAP_SAM::program_start(uint32_t offset, uint32_t size) {
-  (void) size; // not used
+  (void)size; // not used
 
   // DSU.STATUSB.PROT
   if (dap_read_word(DAP_DSU_CTRL_STATUS) & 0x00010000) {
     perror_exit("device is locked, perform a chip erase before programming");
-}
+  }
 
   resetProtectionFuses(true, false);
 
@@ -296,10 +299,12 @@ void Adafruit_DAP_SAM::programBlock(uint32_t addr, const uint8_t *buf,
   while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
   */
 
-  // Even after a chip erase, unlocking flash regions still might be necessary, since region locks is not cleared by Chip Erase.
+  // Even after a chip erase, unlocking flash regions still might be necessary,
+  // since region locks is not cleared by Chip Erase.
   dap_write_word(NVMCTRL_ADDR, addr);
   dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_UR); // Unlock Region temporary
-  while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
+  while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1))
+    ;
 
   dap_write_block(addr, buf, size);
 }
@@ -378,5 +383,3 @@ bool Adafruit_DAP_SAM::unprotectBoot(void) {
 
   return true;
 }
-
-

@@ -42,7 +42,7 @@ static inline void DAP_CONFIG_SWDIO_TMS_clr(void);
 static inline void DAP_CONFIG_SWDIO_TMS_set(void);
 
 #define DAP_CONFIG_ENABLE_SWD
-//#define DAP_CONFIG_ENABLE_JTAG
+// #define DAP_CONFIG_ENABLE_JTAG
 
 #define DAP_CONFIG_DEFAULT_PORT DAP_PORT_SWD
 #define DAP_CONFIG_DEFAULT_CLOCK 50
@@ -85,7 +85,7 @@ extern volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR,
 #define DAP_CONFIG_DEVICE_VENDOR_STR NULL
 #define DAP_CONFIG_DEVICE_NAME_STR NULL
 
-//#define DAP_CONFIG_RESET_TARGET_FN     target_specific_reset_function
+// #define DAP_CONFIG_RESET_TARGET_FN     target_specific_reset_function
 
 // A value at which dap_clock_test() produces 1 kHz output on the SWCLK pin
 #define DAP_CONFIG_DELAY_CONSTANT 4000
@@ -114,13 +114,13 @@ static inline void DAP_CONFIG_SWDIO_TMS_write(int value) {
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_TDO_write(int value) {
-  (void) value;
+  (void)value;
   // DAP_gpio_write(DAP_CONFIG_TDO.ulPort, DAP_CONFIG_TDO.ulPin, value);
 }
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_nTRST_write(int value) {
-  (void) value;
+  (void)value;
   // DAP_gpio_write(DAP_CONFIG_nTRST.ulPort, DAP_CONFIG_nTRST.ulPin, value);
 }
 
@@ -254,10 +254,10 @@ static inline void DAP_CONFIG_SETUP() {
   // pinMode(DAP_CONFIG_TDO_PIN, INPUT);
   // pinMode(DAP_CONFIG_nTRST_PIN, INPUT);
   pinMode(DAP_CONFIG_nRESET_PIN, INPUT);
-  #ifdef LED_BUILTIN
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH);
-  #endif
+#ifdef LED_BUILTIN
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -313,10 +313,10 @@ gpio_outset_bulk(PORTA, (1ul << CONFIG_DAP_nTRST));
 
 //-----------------------------------------------------------------------------
 static inline void DAP_CONFIG_LED(int index, int state) {
-  #ifdef LED_BUILTIN
-    if (0 == index)
-      digitalWrite(LED_BUILTIN, !state);
-  #endif
+#ifdef LED_BUILTIN
+  if (0 == index)
+    digitalWrite(LED_BUILTIN, !state);
+#endif
 }
 
 #endif // _DAP_CONFIG_H_
