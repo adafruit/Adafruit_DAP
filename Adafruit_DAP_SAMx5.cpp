@@ -214,9 +214,10 @@ uint32_t Adafruit_DAP_SAMx5::program_start(uint32_t offset, uint32_t size) {
 void Adafruit_DAP_SAMx5::programBlock(uint32_t addr, const uint8_t *buf,
                                       uint32_t size) {
 
-  // Even after a chip erase with reset, a temporary Unlock region might be necessary
+  // Even after a chip erase with reset, a temporary Unlock region might be
+  // necessary
   dap_write_word(NVMCTRL_ADDR, addr);
-  dap_write_word(NVMCTRL_CTRLA, NVMCTRL_CMD_UR); // Unlock Region temporary
+  dap_write_word(NVMCTRL_CTRLB, NVMCTRL_CMD_UR); // Unlock Region temporary
   while (0 == (dap_read_word(NVMCTRL_INTFLAG) & 1));
 
   uint32_t status = 0;
