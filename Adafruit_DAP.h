@@ -200,6 +200,9 @@ public:
   bool dap_target_prepare(void);
   void dap_set_target(uint8_t target);
   void dap_set_clock(uint32_t clock);
+  // Set a minimum SWD delay-loop count, including internal speed changes.
+  // Call after begin(); zero removes the limit. This value is not in hertz.
+  void dap_set_min_clock_delay(uint16_t cycles);
 
   char *error_message;
   device_t target_device;
