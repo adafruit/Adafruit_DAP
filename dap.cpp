@@ -173,6 +173,7 @@ static int dap_idle_cycles;
 static int dap_retry_count;
 static int dap_match_retry_count;
 static int dap_clock_delay;
+static int dap_min_clock_delay;
 
 static void (*dap_swd_clock)(int);
 static void (*dap_swd_write)(uint32_t, int);
@@ -265,6 +266,9 @@ static uint32_t dap_swd_read_fast(int size) {
 
 //-----------------------------------------------------------------------------
 void dap_setup_clock(int cycles) {
+  if (cycles < dap_min_clock_delay) {
+    cycles = dap_min_clock_delay;
+  }
   dap_clock_delay = cycles;
   if (cycles > 0) {
     // Serial.print("Using delayed clocking: ");
@@ -278,6 +282,12 @@ void dap_setup_clock(int cycles) {
     dap_swd_write = dap_swd_write_fast;
     dap_swd_read = dap_swd_read_fast;
   }
+}
+
+//-----------------------------------------------------------------------------
+void dap_setup_min_clock_delay(int cycles) {
+  dap_min_clock_delay = cycles;
+  dap_setup_clock(dap_clock_delay);
 }
 
 //-----------------------------------------------------------------------------
@@ -345,6 +355,7 @@ static int dap_swd_operation(int req, uint32_t *data) {
 
   else {
     dap_swd_clock(dap_swd_turnaround + 32 + 1);
+    DAP_CONFIG_SWDIO_TMS_out();
   }
 
   DAP_CONFIG_SWDIO_TMS_write(1);
@@ -892,6 +903,7 @@ bool dap_init(int swclk, int swdio, int nreset) {
   dap_swd_data_phase = false;
 #endif
 
+  dap_min_clock_delay = 0;
   dap_setup_clock(DAP_CONFIG_DEFAULT_CLOCK);
 
   DAP_CONFIG_SETUP();

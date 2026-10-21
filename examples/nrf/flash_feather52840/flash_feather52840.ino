@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include <SdFat.h>
+#include "SdFat_Adafruit_Fork.h"
 
 #define SD_CS 10  /* 10 on Atmel M0/M4/32x, 11 on nRF52832 Feather */
 

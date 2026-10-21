@@ -1,5 +1,5 @@
 #include "Adafruit_DAP.h"
-#include <SdFat.h>
+#include "SdFat_Adafruit_Fork.h"
 #include <Adafruit_SPIFlash.h>
 
 #define FILENAME "fw.bin"

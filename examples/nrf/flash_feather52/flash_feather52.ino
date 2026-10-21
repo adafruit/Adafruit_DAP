@@ -1,6 +1,6 @@
 #include "Adafruit_DAP.h"
 #include <SPI.h>
-#include "SdFat.h"
+#include "SdFat_Adafruit_Fork.h"
 
 #define SD_CS 10
 

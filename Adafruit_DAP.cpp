@@ -54,7 +54,8 @@ bool Adafruit_DAP::targetConnect(uint32_t swj_clock) {
   // First disconnect, in case this really is e reconnect
   if (!dap_disconnect()) return false;
   if (!dap_connect()) return false;
-  if (!dap_transfer_configure(0, 128, 128)) return false;
+  // Finish transfers with idle clocks before Arduino code stops SWCLK.
+  if (!dap_transfer_configure(8, 128, 128)) return false;
   if (!dap_swd_configure(0))                return false;
   if (!dap_swj_clock(swj_clock))            return false;
   if (!dap_reset_link())                    return false;
@@ -399,14 +400,21 @@ bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size) {
     buf[2] = (sz / 4) & 0xff;
     buf[3] = ((sz / 4) >> 8) & 0xff;
     buf[4] = SWD_AP_DRW | DAP_TRANSFER_RnW | DAP_TRANSFER_APnDP;
-    dbg_dap_cmd(buf, sizeof(buf), 5);
+    if (!dbg_dap_cmd(buf, sizeof(buf), 5)) {
+      perror_exit(error_message);
+      return false;
+    }
 
-    if (DAP_TRANSFER_OK != buf[2]) {
+    // CMSIS-DAP returns the completed word count as a little-endian uint16.
+    uint16_t completed = buf[0] | ((uint16_t)buf[1] << 8);
+    if (DAP_TRANSFER_OK != buf[2] || completed != sz / 4) {
       // error_exit("invalid response while reading the block at 0x%08x (value =
       // %d)",
       //    addr, buf[2]);
       Serial.println("invalid response while reading the block ");
       Serial.println(buf[2]);
+      perror_exit("SWD block read failed");
+      return false;
     }
 
     memcpy(&data[offs], &buf[3], sz);
@@ -440,14 +448,20 @@ bool Adafruit_DAP::dap_write_block(uint32_t addr, const uint8_t *data,
     buf[3] = ((sz / 4) >> 8) & 0xff;
     buf[4] = SWD_AP_DRW | DAP_TRANSFER_APnDP;
     memcpy(&buf[5], &data[offs], sz);
-    dbg_dap_cmd(buf, 5 + sz, 0);
+    if (!dbg_dap_cmd(buf, 5 + sz, 0)) {
+      perror_exit(error_message);
+      return false;
+    }
 
-    if (DAP_TRANSFER_OK != buf[2]) {
+    uint16_t completed = buf[0] | ((uint16_t)buf[1] << 8);
+    if (DAP_TRANSFER_OK != buf[2] || completed != sz / 4) {
       // error_exit("invalid response while writing the block at 0x%08x (value =
       // %d)",
       //    addr, buf[2]);
       Serial.println("invalid response while writing the block ");
       Serial.println(buf[2]);
+      perror_exit("SWD block write failed");
+      return false;
     }
 
     size -= sz;
@@ -511,6 +525,10 @@ bool Adafruit_DAP::dap_target_prepare(void) {
 }
 
 void Adafruit_DAP::dap_set_clock(uint32_t clock) { dap_setup_clock(clock); }
+
+void Adafruit_DAP::dap_set_min_clock_delay(uint16_t cycles) {
+  dap_setup_min_clock_delay(cycles);
+}
 
 uint32_t Adafruit_DAP::computeFlashCRC32(uint32_t addr, uint32_t size) {
   Adafruit_DAP_CRC32 crc32;
