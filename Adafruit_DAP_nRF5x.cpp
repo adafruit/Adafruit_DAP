@@ -293,31 +293,30 @@ bool Adafruit_DAP_nRF5x::programFlash(uint32_t addr, const uint8_t *buf,
   dap_write_word((uint32_t)&NRF_NVMC->CONFIG, 1); // Write Enable
 
   while (count) {
-    uint8_t data[CHUNK_SIZE];
     uint32_t bytes = min(count, (uint32_t) CHUNK_SIZE);
     bool hasdata = false;
 
-    memset(data, 0xFF, CHUNK_SIZE);
-    memcpy(data, buf, bytes);
-
     /* If data is all 0xff, this chunk is empty. Don't bother writing it since
      * we've already erased the flash memory. */
-    for (uint32_t i = 0; i < CHUNK_SIZE; i++) {
-      if (data[i] != 0xFF) {
+    for (uint32_t i = 0; i < bytes; i++) {
+      if (buf[i] != 0xFF) {
         hasdata = true;
         break;
       }
     }
 
     if (hasdata) {
-      dap_write_block(addr, data, (int)bytes);
+      dap_write_block(addr, buf, (int)bytes);
 
-      /* Optionally verify the written data */
+      /* Optionally verify the written data, in small pieces */
       if (do_verify) {
-        uint8_t read_buf[CHUNK_SIZE] = {0};
-        dap_read_block(addr, read_buf, (int)bytes);
-        if (0 != memcmp(read_buf, data, bytes)) {
-          return false;
+        uint8_t read_buf[256];
+        for (uint32_t done = 0; done < bytes; done += sizeof(read_buf)) {
+          uint32_t n = min(bytes - done, (uint32_t) sizeof(read_buf));
+          dap_read_block(addr + done, read_buf, (int)n);
+          if (0 != memcmp(read_buf, buf + done, n)) {
+            return false;
+          }
         }
       }
     }
