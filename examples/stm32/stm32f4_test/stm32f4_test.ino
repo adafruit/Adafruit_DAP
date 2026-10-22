@@ -1,11 +1,20 @@
 #include "Adafruit_DAP.h"
 
+#if defined(ARDUINO_ARCH_CH32)
+// QT Py CH32V203: SWD on A3/A2, nRESET on A0; 10 KB of RAM; no LED on pin 13
+#define SWDIO A3
+#define SWCLK A2
+#define SWRST A0
+#define BUFSIZE   (2*1024)
+#else
 #define SWDIO 12
 #define SWCLK 11
 #define SWRST 9
 
 // the more the better
 #define BUFSIZE   (16*1024)
+#define LED_PIN 13
+#endif
 
 // buffer should be word algined for STM32
 uint8_t buf[BUFSIZE]  __attribute__ ((aligned(4)));
@@ -19,7 +28,9 @@ Adafruit_DAP_STM32 dap;
 // Function called when there's an SWD error
 void error(const char *text) {
   Serial.println(text);
-  while (1);
+  while (1) {
+    yield(); // keeps USB serial running on cores that service it in yield()
+  }
 }
 
 // dumping stm32 memory for verification
@@ -48,7 +59,9 @@ void print_memory(uint32_t addr, uint8_t* buffer, uint32_t bufsize)
 }
 
 void setup() {
-  pinMode(13, OUTPUT);
+#ifdef LED_PIN
+  pinMode(LED_PIN, OUTPUT);
+#endif
   Serial.begin(115200);
   while(!Serial) {
     delay(1);         // will pause the chip until it opens serial console
@@ -124,8 +137,12 @@ void setup() {
 
 void loop() {
   //blink led on the host to show we're done
-  digitalWrite(13, HIGH);
+#ifdef LED_PIN
+  digitalWrite(LED_PIN, HIGH);
+#endif
   delay(500);
-  digitalWrite(13, LOW);
+#ifdef LED_PIN
+  digitalWrite(LED_PIN, LOW);
+#endif
   delay(500);
 }

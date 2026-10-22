@@ -68,6 +68,9 @@ private:
   void flash_lock(void);
   void flash_clear_errors(void);
   bool flash_check(void);
+#if defined(ARDUINO_ARCH_CH32)
+  void aircr_reset(void);
+#endif
 
   bool _flash_error = false;
 };
