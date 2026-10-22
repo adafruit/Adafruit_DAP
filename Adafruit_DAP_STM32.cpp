@@ -82,6 +82,11 @@
 #define FLASH_SR_BSY_Pos (16U)
 #define FLASH_SR_BSY_Msk (0x1UL << FLASH_SR_BSY_Pos) /*!< 0x00010000 */
 #define FLASH_SR_BSY FLASH_SR_BSY_Msk
+#define FLASH_SR_OPERR FLASH_SR_SOP // STM32F4 name of bit 1
+
+#define FLASH_SR_ERRORS                                                        \
+  (FLASH_SR_OPERR | FLASH_SR_WRPERR | FLASH_SR_PGAERR | FLASH_SR_PGPERR |      \
+   FLASH_SR_PGSERR)
 
 /*******************  Bits definition for FLASH_CR register  ******************/
 #define FLASH_CR_PG_Pos (0U)
@@ -183,12 +188,46 @@ bool Adafruit_DAP_STM32::flash_busy(void) {
   return dap_read_word(FLASH_SR) & FLASH_SR_BSY;
 }
 
+// Error flags are sticky (write 1 to clear): clear them before an operation
+// so a flag left by an earlier failure is not reported for this one.
+void Adafruit_DAP_STM32::flash_clear_errors(void) {
+  dap_write_word(FLASH_SR, FLASH_SR_ERRORS);
+}
+
+// Check (and clear) the error flags after an operation. On error, sets
+// error_message and returns false.
+bool Adafruit_DAP_STM32::flash_check(void) {
+  uint32_t sr = dap_read_word(FLASH_SR);
+
+  if (!(sr & FLASH_SR_ERRORS)) {
+    return true;
+  }
+
+  flash_clear_errors();
+  _flash_error = true;
+
+  if (sr & FLASH_SR_WRPERR) {
+    error_message = (char *)"STM32 flash: write protected (WRPERR)";
+  } else if (sr & FLASH_SR_PGAERR) {
+    error_message = (char *)"STM32 flash: programming alignment error (PGAERR)";
+  } else if (sr & FLASH_SR_PGPERR) {
+    error_message =
+        (char *)"STM32 flash: programming parallelism error (PGPERR)";
+  } else if (sr & FLASH_SR_PGSERR) {
+    error_message = (char *)"STM32 flash: programming sequence error (PGSERR)";
+  } else {
+    error_message = (char *)"STM32 flash: operation error (OPERR)";
+  }
+  return false;
+}
+
 void Adafruit_DAP_STM32::erase(void) {
   flash_unlock();
 
   while (flash_busy()) {
     yield();
   }
+  flash_clear_errors();
 
   // Mass erase with FLASH_VOLTAGE_RANGE_3 (32-bit operation)
   // Set MER bit ( and MER1 if STM32F42xxx and STM32F43xxx)
@@ -200,7 +239,9 @@ void Adafruit_DAP_STM32::erase(void) {
     delay(100);
   }
 
+  bool ok = flash_check();
   flash_lock();
+  check(ok, error_message);
 }
 
 uint32_t Adafruit_DAP_STM32::program_start(uint32_t addr, uint32_t size) {
@@ -239,8 +280,10 @@ uint32_t Adafruit_DAP_STM32::program_start(uint32_t addr, uint32_t size) {
   }
 
   flash_unlock();
+  flash_clear_errors();
 
-  for (uint32_t i = sec_start; i <= sec_end; i++) {
+  bool ok = true;
+  for (uint32_t i = sec_start; i <= sec_end && ok; i++) {
     while (flash_busy()) {
       yield();
     }
@@ -248,13 +291,15 @@ uint32_t Adafruit_DAP_STM32::program_start(uint32_t addr, uint32_t size) {
     // Set SER, Sector Number, and PSize and Start bit
     dap_write_word(FLASH_CR, FLASH_CR_SER | FLASH_CR_STRT |
                                  (i << FLASH_CR_SNB_Pos) | FLASH_CR_PSIZE_WORD);
-  }
 
-  while (flash_busy()) {
-    yield();
+    while (flash_busy()) {
+      yield();
+    }
+    ok = flash_check();
   }
 
   flash_lock();
+  check(ok, error_message);
 
   return addr;
 }
@@ -270,6 +315,7 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf,
   while (flash_busy()) {
     yield();
   }
+  flash_clear_errors();
 
   // Enable programming bit: PG
   dap_write_word(FLASH_CR, FLASH_CR_PG | FLASH_CR_PSIZE_WORD);
@@ -281,7 +327,9 @@ void Adafruit_DAP_STM32::programBlock(uint32_t addr, const uint8_t *buf,
     yield();
   }
 
+  bool ok = flash_check();
   flash_lock();
+  check(ok, error_message);
 }
 
 bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
@@ -306,7 +354,11 @@ bool Adafruit_DAP_STM32::verifyFlash(uint32_t addr, const uint8_t *data,
 }
 
 bool Adafruit_DAP_STM32::programFlash(uint32_t addr, const uint8_t *buf, uint32_t count, bool do_verify) {
+  _flash_error = false;
   programBlock(addr, buf, count);
+  if (_flash_error) {
+    return false; // error_message says why
+  }
 
   if (do_verify) {
     return verifyFlash(addr, buf, count);

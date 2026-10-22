@@ -66,6 +66,10 @@ private:
   bool flash_busy(void);
   void flash_unlock(void);
   void flash_lock(void);
+  void flash_clear_errors(void);
+  bool flash_check(void);
+
+  bool _flash_error = false;
 };
 
 #endif /* ADAFRUIT_DAP_STM32_H_ */
