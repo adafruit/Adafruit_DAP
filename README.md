@@ -7,6 +7,8 @@ Works completely stand-alone, firmware is read from an SD card and uploaded dire
 
 This is mostly a re-mix of Alex Taradovs excellent Free-DAP code @ https://github.com/ataradov/free-dap - we just put both halves into one library and wrapped it up in Arduino compatibility
 
+The WCH CH32V203 also works as host, with the WCH Arduino core: SWD on A3 (SWDIO) / A2 (SWCLK), nRESET on A0, see `examples/stm32/stm32f4_test`. It uses register-level pin access with slow (2 MHz) output edges and 2 idle cycles per SWD transfer.
+
 Right now we only have commands for the ATSAMD, nRF, STM series. We'd be really into having other people add the SWD command magic for other chips, so if you do adapt this code for your favorite Cortex, please submit a pull request!
 
 Other ARM chips should be (easily?) supportable. Copy Adafruit_DAP_SAM to a new file and make changes to support your favorite SWD-programmable chip.

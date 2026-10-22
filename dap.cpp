@@ -57,6 +57,13 @@ volatile uint8_t *SWCLK_PORTMODE, *SWCLK_PORTSET, *SWCLK_PORTCLEAR,
 volatile uint32_t SWDIO_BITMASK, *SWDIO_PORTCONFIG;
 volatile uint8_t *SWDIO_PORTMODE, *SWDIO_PORTSET, *SWDIO_PORTCLEAR,
     *SWDIO_PORT_INPUT_REG;
+#elif defined(ARDUINO_ARCH_CH32)
+GPIO_TypeDef *SWCLK_PORT, *SWDIO_PORT;
+uint32_t SWCLK_PINMASK, SWDIO_PINMASK;
+volatile uint32_t *SWDIO_CFGREG;
+uint32_t SWDIO_CFGSHIFT;
+GPIO_TypeDef *NRESET_PORT;
+uint32_t NRESET_PINMASK;
 #endif
 
 #ifdef DAP_CONFIG_ENABLE_JTAG
@@ -173,7 +180,6 @@ static int dap_idle_cycles;
 static int dap_retry_count;
 static int dap_match_retry_count;
 static int dap_clock_delay;
-static int dap_min_clock_delay;
 
 static void (*dap_swd_clock)(int);
 static void (*dap_swd_write)(uint32_t, int);
@@ -194,6 +200,7 @@ static inline void dap_delay_loop(int delay) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static void dap_swd_clock_slow(int cycles) {
   while (cycles > 0) {
     cycles--;
@@ -205,6 +212,7 @@ static void dap_swd_clock_slow(int cycles) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static void dap_swd_write_slow(uint32_t value, int size) {
   for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWDIO_TMS_write(value & 1);
@@ -217,6 +225,7 @@ static void dap_swd_write_slow(uint32_t value, int size) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static uint32_t dap_swd_read_slow(int size) {
   uint32_t value = 0;
 
@@ -232,6 +241,7 @@ static uint32_t dap_swd_read_slow(int size) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static void dap_swd_clock_fast(int cycles) {
   while (cycles--) {
     DAP_CONFIG_SWCLK_TCK_clr();
@@ -240,6 +250,7 @@ static void dap_swd_clock_fast(int cycles) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static void dap_swd_write_fast(uint32_t value, int size) {
   for (int i = 0; i < size; i++) {
     DAP_CONFIG_SWDIO_TMS_write(value & 1);
@@ -250,6 +261,7 @@ static void dap_swd_write_fast(uint32_t value, int size) {
 }
 
 //-----------------------------------------------------------------------------
+DAP_CONFIG_PERFORMANCE_ATTR
 static uint32_t dap_swd_read_fast(int size) {
   uint32_t value = 0;
   uint32_t bit;
@@ -266,9 +278,6 @@ static uint32_t dap_swd_read_fast(int size) {
 
 //-----------------------------------------------------------------------------
 void dap_setup_clock(int cycles) {
-  if (cycles < dap_min_clock_delay) {
-    cycles = dap_min_clock_delay;
-  }
   dap_clock_delay = cycles;
   if (cycles > 0) {
     // Serial.print("Using delayed clocking: ");
@@ -282,12 +291,6 @@ void dap_setup_clock(int cycles) {
     dap_swd_write = dap_swd_write_fast;
     dap_swd_read = dap_swd_read_fast;
   }
-}
-
-//-----------------------------------------------------------------------------
-void dap_setup_min_clock_delay(int cycles) {
-  dap_min_clock_delay = cycles;
-  dap_setup_clock(dap_clock_delay);
 }
 
 //-----------------------------------------------------------------------------
@@ -355,7 +358,6 @@ static int dap_swd_operation(int req, uint32_t *data) {
 
   else {
     dap_swd_clock(dap_swd_turnaround + 32 + 1);
-    DAP_CONFIG_SWDIO_TMS_out();
   }
 
   DAP_CONFIG_SWDIO_TMS_write(1);
@@ -744,13 +746,20 @@ static void dap_reset_target(uint8_t *req, uint8_t *resp) {
 }
 
 //-----------------------------------------------------------------------------
+static int dap_swj_pins_read(void) {
+  return (DAP_CONFIG_SWCLK_TCK_read() ? DAP_SWJ_SWCLK_TCK : 0) |
+         (DAP_CONFIG_SWDIO_TMS_read() ? DAP_SWJ_SWDIO_TMS : 0) |
+         (DAP_CONFIG_TDI_read() ? DAP_SWJ_TDI : 0) |
+         (DAP_CONFIG_TDO_read() ? DAP_SWJ_TDO : 0) |
+         (DAP_CONFIG_nTRST_read() ? DAP_SWJ_nTRST : 0) |
+         (DAP_CONFIG_nRESET_read() ? DAP_SWJ_nRESET : 0);
+}
+
 static void dap_swj_pins(uint8_t *req, uint8_t *resp) {
   int value = req[0];
   int select = req[1];
-  int wait;
-
-  wait =
-      ((int)req[5] << 24) | ((int)req[4] << 16) | ((int)req[3] << 8) | req[2];
+  uint32_t wait = ((uint32_t)req[5] << 24) | ((uint32_t)req[4] << 16) |
+                  ((uint32_t)req[3] << 8) | req[2];
 
   if (select & DAP_SWJ_SWCLK_TCK)
     DAP_CONFIG_SWCLK_TCK_write(value & DAP_SWJ_SWCLK_TCK);
@@ -767,16 +776,19 @@ static void dap_swj_pins(uint8_t *req, uint8_t *resp) {
   if (select & DAP_SWJ_nRESET)
     DAP_CONFIG_nRESET_write(value & DAP_SWJ_nRESET);
 
-  delayMicroseconds(wait * 1000);
+  // CMSIS-DAP: wait up to 'wait' microseconds (max 3 s) until the selected
+  // pins read back their new values, e.g. an open-drain nRESET rising
+  // through a pull-up. TDI and nTRST are not read back by this engine.
+  int check = select & (DAP_SWJ_SWCLK_TCK | DAP_SWJ_SWDIO_TMS | DAP_SWJ_nRESET);
+  if (wait > 3000000)
+    wait = 3000000;
+  while (wait > 0 && (dap_swj_pins_read() & check) != (value & check)) {
+    uint32_t step = wait < 10 ? wait : 10;
+    delayMicroseconds(step);
+    wait -= step;
+  }
 
-  value = (DAP_CONFIG_SWCLK_TCK_read() ? DAP_SWJ_SWCLK_TCK : 0) |
-          (DAP_CONFIG_SWDIO_TMS_read() ? DAP_SWJ_SWDIO_TMS : 0) |
-          (DAP_CONFIG_TDI_read() ? DAP_SWJ_TDI : 0) |
-          (DAP_CONFIG_TDO_read() ? DAP_SWJ_TDO : 0) |
-          (DAP_CONFIG_nTRST_read() ? DAP_SWJ_nTRST : 0) |
-          (DAP_CONFIG_nRESET_read() ? DAP_SWJ_nRESET : 0);
-
-  resp[0] = value;
+  resp[0] = dap_swj_pins_read();
 }
 
 //-----------------------------------------------------------------------------
@@ -889,6 +901,22 @@ bool dap_init(int swclk, int swdio, int nreset) {
   SWCLK_PORTCONFIG = portConfigRegister(swclk);
   SWCLK_PORTMODE = portModeRegister(swclk);
   SWCLK_PORT_INPUT_REG = portInputRegister(swclk);
+#elif defined(ARDUINO_ARCH_CH32)
+  // Let the core enable the GPIO port clocks and reset the pins, then
+  // drive the registers directly.
+  pinMode(swclk, INPUT);
+  pinMode(swdio, INPUT);
+  if (nreset >= 0)
+    pinMode(nreset, INPUT);
+  SWCLK_PORT = digitalPinToPort(swclk);
+  SWCLK_PINMASK = digitalPinToBitMask(swclk);
+  SWDIO_PORT = digitalPinToPort(swdio);
+  SWDIO_PINMASK = digitalPinToBitMask(swdio);
+  uint32_t swdio_pin = __builtin_ctz(SWDIO_PINMASK);
+  SWDIO_CFGREG = (swdio_pin < 8) ? &SWDIO_PORT->CFGLR : &SWDIO_PORT->CFGHR;
+  SWDIO_CFGSHIFT = (swdio_pin & 7) * 4;
+  NRESET_PORT = (nreset >= 0) ? digitalPinToPort(nreset) : NULL;
+  NRESET_PINMASK = NRESET_PORT ? digitalPinToBitMask(nreset) : 0;
 #endif
 
   dap_port = 0;
@@ -903,7 +931,6 @@ bool dap_init(int swclk, int swdio, int nreset) {
   dap_swd_data_phase = false;
 #endif
 
-  dap_min_clock_delay = 0;
   dap_setup_clock(DAP_CONFIG_DEFAULT_CLOCK);
 
   DAP_CONFIG_SETUP();

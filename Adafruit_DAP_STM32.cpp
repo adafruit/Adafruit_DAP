@@ -51,6 +51,7 @@
 #define STM32_FLASHSIZE 0x1FFF7A22
 
 // Flash Interface Registers
+#undef FLASH_R_BASE // the host's own flash controller on some cores (CH32)
 #define FLASH_R_BASE 0x40023C00UL
 #define FLASH_ACR (FLASH_R_BASE + 0x00)
 #define FLASH_KEYR (FLASH_R_BASE + 0x04)
@@ -157,7 +158,11 @@ bool Adafruit_DAP_STM32::select(uint32_t *found_id) {
   // Stop the core
   dap_write_word(DHCSR, 0xa05f0003);
   dap_write_word(DEMCR, 0x00000001);
+#if defined(ARDUINO_ARCH_CH32)
+  aircr_reset();
+#else
   dap_write_word(AIRCR, 0x05fa0004);
+#endif
 
   target_device.flash_size = (dap_read_word(STM32_FLASHSIZE) >> 16) * 1024;
 
@@ -371,8 +376,32 @@ void Adafruit_DAP_STM32::deselect(void) {
   flash_lock();
 
   dap_write_word(DEMCR, 0x00000000);
+#if defined(ARDUINO_ARCH_CH32)
+  aircr_reset();
+#else
   dap_write_word(AIRCR, 0x05fa0004);
+#endif
 }
+
+#if defined(ARDUINO_ARCH_CH32)
+// Reset the target through AIRCR. With a CH32V203 host the reset can disturb
+// this write's SWD exchange (seen with an STM32F405), so its response is not
+// checked: once the reset has finished, the link is re-synced and all sticky
+// errors are cleared.
+void Adafruit_DAP_STM32::aircr_reset(void) {
+  dap_write_reg(SWD_AP_TAR, AIRCR);
+
+  uint8_t buf[8] = {ID_DAP_TRANSFER, 0x00, 0x01, SWD_AP_DRW,
+                    0x04, 0x00, 0xfa, 0x05}; // 0x05fa0004: SYSRESETREQ
+  dbg_dap_cmd(buf, sizeof(buf), 8);         // response not checked
+
+  delay(10);
+  dap_connect();    // SWDIO back to output
+  dap_reset_link(); // line reset
+  dap_write_reg(SWD_DP_W_ABORT, 0x1e);
+  dap_target_prepare();
+}
+#endif
 
 bool Adafruit_DAP_STM32::protectBoot(void) {
   return true;
