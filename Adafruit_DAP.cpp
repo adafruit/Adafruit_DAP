@@ -39,8 +39,8 @@
 #include <Adafruit_TinyUSB.h>
 #endif
 
-static uint8_t hid_buffer[256];
 #define REPORT_SIZE 64
+static uint8_t hid_buffer[REPORT_SIZE + 1];
 
 bool Adafruit_DAP::begin(int swclk, int swdio, int nreset, ErrorHandler perr) {
   perror_exit = perr;
@@ -80,7 +80,8 @@ bool Adafruit_DAP::dbg_dap_cmd(uint8_t *data, int size, int rsize) {
     return false;
   }
 
-  memcpy(data, &hid_buffer[1], size);
+  // The response is at most one packet: never copy more than that.
+  memcpy(data, &hid_buffer[1], (size < REPORT_SIZE) ? size : REPORT_SIZE);
 
   return true;
 }
@@ -386,7 +387,7 @@ bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size) {
 
   while (size) {
     int align, sz;
-    uint8_t buf[1024];
+    uint8_t buf[REPORT_SIZE]; // request, then response header + data
 
     align = 0x400 - (addr - (addr & ~0x3ff));
     sz = (size > max_size) ? max_size : size;
@@ -428,12 +429,12 @@ bool Adafruit_DAP::dap_read_block(uint32_t addr, uint8_t *data, int size) {
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP::dap_write_block(uint32_t addr, const uint8_t *data,
                                    int size) {
-  int const max_size = (512 - 5) & ~3; // max size is 24
+  uint8_t buf[5 + 256]; // request header + up to 256 data bytes
+  int const max_size = (sizeof(buf) - 5) & ~3; // max_size is 256
   int offs = 0;
 
   while (size) {
     int align, sz;
-    uint8_t buf[1024];
 
     align = 0x400 - (addr - (addr & ~0x3ff));
     sz = (size > max_size) ? max_size : size;
@@ -472,7 +473,7 @@ bool Adafruit_DAP::dap_write_block(uint32_t addr, const uint8_t *data,
 
 //-----------------------------------------------------------------------------
 bool Adafruit_DAP::dap_reset_link(void) {
-  uint8_t buf[128];
+  uint8_t buf[REPORT_SIZE];
 
   //-------------
   buf[0] = ID_DAP_SWJ_SEQUENCE;
@@ -531,7 +532,7 @@ void Adafruit_DAP::dap_set_min_clock_delay(uint16_t cycles) {
 
 uint32_t Adafruit_DAP::computeFlashCRC32(uint32_t addr, uint32_t size) {
   Adafruit_DAP_CRC32 crc32;
-  uint8_t buf[512];
+  uint8_t buf[256];
 
   while(size) {
     uint32_t count = min(size, (uint32_t) sizeof(buf));
