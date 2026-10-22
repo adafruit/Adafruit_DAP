@@ -188,10 +188,14 @@ bool Adafruit_DAP_STM32::flash_busy(void) {
   return dap_read_word(FLASH_SR) & FLASH_SR_BSY;
 }
 
+// Error flags are sticky (write 1 to clear): clear them before an operation
+// so a flag left by an earlier failure is not reported for this one.
 void Adafruit_DAP_STM32::flash_clear_errors(void) {
   dap_write_word(FLASH_SR, FLASH_SR_ERRORS);
 }
 
+// Check (and clear) the error flags after an operation. On error, sets
+// error_message and returns false.
 bool Adafruit_DAP_STM32::flash_check(void) {
   uint32_t sr = dap_read_word(FLASH_SR);
 
