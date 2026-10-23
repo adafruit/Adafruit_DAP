@@ -354,10 +354,20 @@ static int dap_swd_operation(int req, uint32_t *data) {
       DAP_CONFIG_SWDIO_TMS_write(0);
       dap_swd_clock(32 + 1);
     }
+
+    // Idle cycles before the next request (the retry), as after a completed
+    // transfer: an STM32F405 misreads a request that follows an AP access
+    // answered WAIT without them.
+    DAP_CONFIG_SWDIO_TMS_write(0);
+    dap_swd_clock(dap_idle_cycles);
   }
 
   else {
     dap_swd_clock(dap_swd_turnaround + 32 + 1);
+
+    // No reply: drive SWDIO again, as after WAIT/FAULT. Otherwise SWDIO
+    // stays an input and later line resets never reach the target.
+    DAP_CONFIG_SWDIO_TMS_out();
   }
 
   DAP_CONFIG_SWDIO_TMS_write(1);
