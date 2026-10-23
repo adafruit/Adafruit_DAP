@@ -3,17 +3,6 @@
  *
  * TinyUSB class driver for the CMSIS-DAP v2 interface.
  *
- * TinyUSB's vendor class is not used: it buffers data in a byte FIFO (packet
- * boundaries lost) and sends a zero-length packet after a 64-byte response,
- * which hosts read as an empty response to the next command. Here each OUT
- * transfer is one command and each IN transfer one response. The OUT
- * endpoint is re-armed only after a command has run, so the host is NAKed
- * while the probe is busy.
- *
- * Also provides the BOS and Microsoft OS 2.0 descriptors that make Windows
- * bind WinUSB to the interface without a driver install.
- *
- * MIT license.
  */
 
 #if defined(USE_TINYUSB)
@@ -86,7 +75,7 @@ static void dapd_reset(uint8_t rhport) {
 
 static uint16_t dapd_open(uint8_t rhport, tusb_desc_interface_t const *itf,
                           uint16_t max_len) {
-  // Claim only our own interface; other vendor interfaces go to other drivers.
+  // Claim only our own interface
   if (itf->bInterfaceNumber != _itf_num ||
       itf->bInterfaceClass != TUSB_CLASS_VENDOR_SPECIFIC ||
       itf->bNumEndpoints != 2) {

@@ -1,10 +1,9 @@
 /*!
  * @file host_requests.h
  *
- * Runs CMSIS-DAP commands from a PC host (pyOCD, OpenOCD) on Adafruit_DAP's
- * engine, with the adjustments a CH32V203 host needs.
+ * Runs CMSIS-DAP commands from a PC host with the adjustments
+ * a CH32V203 host needs.
  *
- * MIT license
  */
 
 #ifndef HOST_REQUESTS_H

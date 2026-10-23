@@ -2,13 +2,10 @@
  * @file Adafruit_USBD_CMSISDAP.h
  *
  * CMSIS-DAP v2 USB interface: makes the board a debug probe for pyOCD,
- * OpenOCD and other CMSIS-DAP hosts (WinUSB on Windows, no driver install).
+ * OpenOCD and other CMSIS-DAP hosts
  *
- * Requires Tools > USB support > Adafruit TinyUSB with USBD. Not combinable
- * with Adafruit_USBD_WebUSB (both provide the BOS descriptor) or, on the
- * USBD peripheral, with Adafruit_USBD_DragDrop (packet memory).
+ * Requires Tools > USB support > Adafruit TinyUSB with USBD.
  *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_USBD_CMSISDAP_H

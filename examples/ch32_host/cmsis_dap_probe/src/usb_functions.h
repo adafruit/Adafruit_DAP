@@ -3,11 +3,6 @@
  *
  * Shared state of the library's USB functions.
  *
- * On the CH32V203's USBD peripheral (512 bytes of packet memory), the USB
- * serial port fits with one of the CMSIS-DAP interface or the drag-and-drop
- * drive, not both; adding both makes the device fail to enumerate.
- *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_DAP_CH32_USB_FUNCTIONS_H

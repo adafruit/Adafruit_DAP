@@ -1,15 +1,8 @@
 /*!
  * @file dap_uart_ch32.c
  *
- * Non-blocking UART for the USB serial bridge: USART2 on PA2 (TX) / PA3
- * (RX). RX runs DMA1 channel 6 into a circular buffer; TX sends contiguous
- * chunks of a ring with DMA1 channel 7. No interrupts. Configuration after
- * XIVN1987/DAPLink's CH32V203 port (MIT).
+ * Non-blocking UART for the USB serial bridge
  *
- * The core's HardwareSerial is not used: it has no receive buffer and its
- * write() goes to the debug UART.
- *
- * MIT license.
  */
 
 #if defined(CH32V20x)
@@ -163,7 +156,7 @@ void dap_uart_task(void) {
   if (_tx_head == _tx_tail) {
     return; // nothing to send
   }
-  // Largest contiguous run from the tail (stop at the end of the buffer).
+
   uint32_t len =
       (_tx_head > _tx_tail) ? (_tx_head - _tx_tail) : (TX_SIZE - _tx_tail);
   DMA_Cmd(DMA1_Channel7, DISABLE);

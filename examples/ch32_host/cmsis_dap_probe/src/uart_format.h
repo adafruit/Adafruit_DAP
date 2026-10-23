@@ -3,12 +3,6 @@
  *
  * Map a USB CDC line coding onto the CH32V203 USART's frame format.
  *
- * The USART's word length includes the parity bit: 8 data bits + parity
- * need a 9-bit word, 7 data bits + parity an 8-bit word (received bit 7 is
- * masked). 5/6/7 data bits without parity, 16 data bits and mark/space
- * parity fall back to 8N1 and are flagged inexact.
- *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_DAP_CH32_UART_FORMAT_H

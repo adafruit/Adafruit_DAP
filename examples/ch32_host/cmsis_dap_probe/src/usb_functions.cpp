@@ -3,7 +3,6 @@
  *
  * Shared state of the library's USB functions.
  *
- * MIT license.
  */
 
 #include "usb_functions.h"

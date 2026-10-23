@@ -3,7 +3,6 @@
  *
  * CMSIS-DAP v2 USB interface.
  *
- * MIT license.
  */
 
 #include "Adafruit_USBD_CMSISDAP.h"
@@ -31,7 +30,6 @@ bool Adafruit_USBD_CMSISDAP::begin(void) {
 #endif
   // Hosts find the probe by "CMSIS-DAP" in the interface string.
   setStringDescriptor("Adafruit CMSIS-DAP v2");
-  // USB 2.1 makes Windows read the BOS / MS OS 2.0 descriptors.
   TinyUSBDevice.setVersion(0x0210);
   if (!TinyUSBDevice.addInterface(*this)) {
     return false;

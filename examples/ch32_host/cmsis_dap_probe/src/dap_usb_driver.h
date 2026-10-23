@@ -1,10 +1,8 @@
 /*!
  * @file dap_usb_driver.h
  *
- * TinyUSB class driver for the CMSIS-DAP v2 interface (packet based: one
- * USB transfer per command or response, no zero-length packets).
+ * TinyUSB class driver for the CMSIS-DAP v2 interface
  *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_DAP_CH32_DAP_USB_DRIVER_H

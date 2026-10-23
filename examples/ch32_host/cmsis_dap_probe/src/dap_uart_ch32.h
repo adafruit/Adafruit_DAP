@@ -3,7 +3,6 @@
  *
  * Non-blocking DMA UART (USART2) for the USB serial bridge.
  *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_DAP_CH32_DAP_UART_H

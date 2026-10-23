@@ -3,7 +3,6 @@
  *
  * USB serial <-> target UART bridge.
  *
- * MIT license.
  */
 
 #include "Adafruit_CDC_UART_Bridge.h"
@@ -55,7 +54,7 @@ void Adafruit_CDC_UART_Bridge::task(void) {
 
   uint8_t buf[64];
 
-  // Target -> PC. Without a terminal (DTR low) the bytes are dropped.
+  // Target -> PC
   uint32_t n = dap_uart_rx_available();
   if (n) {
     if (_cdc->dtr()) {
@@ -76,7 +75,7 @@ void Adafruit_CDC_UART_Bridge::task(void) {
     }
   }
 
-  // PC -> target, limited by free UART TX space so this never blocks.
+  // PC -> target, limited by free UART TX space
   int avail = _cdc->available();
   if (avail > 0) {
     uint32_t m = (uint32_t)avail;

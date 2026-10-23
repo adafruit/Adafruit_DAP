@@ -6,17 +6,10 @@
  *
  * - DAP_TransferConfigure: idle cycles raised to DAP_HOST_MIN_IDLE_CYCLES
  * - DAP_SWJ_Clock: capped at DAP_HOST_MAX_CLOCK, then converted from Hz
- *   (what hosts send) to the engine's delay count
- * The response is sent at its exact CMSIS-DAP length (the engine fills a
- * whole packet): hosts such as pyOCD read with a larger buffer and wait for
- * a short packet to end each response. DAP_TransferAbort gets no response.
- *
+ *   to the engine's delay count
  * - DAP_Info protocol version: reported as "1.10", the CMSIS-DAP version
- *   whose commands the engine implements. Hosts use newer commands (e.g.
- *   DAP_SWD_Sequence) for 1.2 and later, and pyOCD assumes 2.0 when the
- *   version can't be parsed.
+ *   whose commands the engine implements
  *
- * MIT license
  */
 
 #include "host_requests.h"
@@ -40,7 +33,7 @@ static void put32(uint8_t *p, uint32_t v) {
   p[3] = v >> 24;
 }
 
-// SWCLK in Hz -> engine delay count (0 = fastest, no delay loop)
+// SWCLK in Hz -> engine delay count
 static uint32_t clock_delay(uint32_t hz) {
   if (hz == 0) {
     hz = 1;
@@ -60,8 +53,7 @@ static const uint8_t ID_DAP_INVALID = 0xFF;
 static const uint8_t TRANSFER_RnW = 1 << 1;
 static const uint8_t TRANSFER_MATCH_VALUE = 1 << 4;
 
-// Exact length of the engine's response to a request, from the CMSIS-DAP
-// response formats.
+// Exact length of the engine's response to a request
 static uint32_t response_length(const uint8_t *req, uint16_t len,
                                 const uint8_t *resp) {
   if (resp[0] == ID_DAP_INVALID) {

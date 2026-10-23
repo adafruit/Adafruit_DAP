@@ -1,11 +1,8 @@
 /*!
  * @file Adafruit_CDC_UART_Bridge.h
  *
- * USB serial <-> target UART bridge. The UART (QT Py: TX = PA2, RX = PA3,
- * USART2, DMA driven) follows the terminal's baud rate, data bits, parity
- * and stop bits. Don't use Serial2 at the same time (same USART).
+ * USB serial <-> target UART bridge
  *
- * MIT license.
  */
 
 #ifndef ADAFRUIT_CDC_UART_BRIDGE_H
