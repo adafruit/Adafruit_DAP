@@ -1,21 +1,17 @@
-// CMSIS-DAP debug probe on a CH32V203 host (e.g. Adafruit QT Py CH32V203).
+// CMSIS-DAP debug probe on a CH32V203 host
 //
-// Turns the board into a USB debug probe for SWD targets such as an
-// STM32F405: pyOCD, OpenOCD and other CMSIS-DAP v2 tools find it as
-// "Adafruit CMSIS-DAP v2" (no driver needed). Its USB serial port is a
-// bridge to the target's UART, following the baud rate and format the PC
-// sets.
+// Turns the board into a USB debug probe for SWD targets
+// pyOCD, OpenOCD and other CMSIS-DAP v2 tools find it as
+// "Adafruit CMSIS-DAP v2". Its USB serial port is a
+// bridge to the target's UART
 //
 // Wiring (QT Py CH32V203 -> target):
-//   A3 -> SWDIO, A2 -> SWCLK, A0 -> nRESET (optional)
+//   A3 -> SWDIO, A2 -> SWCLK, A0 -> nRESET
 //   TX -> target RX, RX -> target TX, GND -> GND
 //
 // Tools > USB support: "Adafruit TinyUSB with USBD".
 // NeoPixel: blue = waiting for the PC, green = ready, white flicker = SWD
 // commands, purple flicker = UART traffic.
-//
-// Example: pyocd commander -t stm32f405rg
-//          openocd -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg
 
 // Include NeoPixel first: its timing-critical code must stay in the
 // CH32V203's fast flash (the first 32 KB).
@@ -48,12 +44,11 @@ void setup() {
   pixel.setPixelColor(0, pixel.Color(0, 0, 20));
   pixel.show();
 
-  // "CMSIS-DAP" in the product string helps tools that search for it there.
   TinyUSBDevice.setManufacturerDescriptor("Adafruit");
   TinyUSBDevice.setProductDescriptor("QT Py CH32V203 CMSIS-DAP");
 
-  Serial.begin(115200); // USB serial port: carries the target's UART
-  bridge.begin(Serial); // UART starts at 115200 8N1, then follows the PC
+  Serial.begin(115200); // USB serial port
+  bridge.begin(Serial); // UART starts at 115200 8N1
 
   dap_init(SWCLK, SWDIO, SWRST);
   usb_dap.begin(); // adds the CMSIS-DAP interface and re-enumerates
@@ -63,7 +58,7 @@ void loop() {
   usb_dap.task();
   bridge.task();
 
-  // Status LED, updated at most every 20 ms
+  // Status LED
   static uint32_t last_led = 0;
   uint32_t now = millis();
   if (now - last_led >= 20) {
