@@ -153,10 +153,11 @@ enum {
 
 enum {
   DAP_TYPEID_GENERIC = 0,
-  DAP_TYPEID_SAM, // Adafruit_DAP_SAM
+  DAP_TYPEID_SAM,   // Adafruit_DAP_SAM
   DAP_TYPEID_SAMX5, // SAM D51, E51
   DAP_TYPEID_NRF5X,
-  DAP_TYPEID_STM32
+  DAP_TYPEID_STM32,
+  DAP_TYPEID_CH32
 };
 
 typedef void (*ErrorHandler)(const char *error);
@@ -172,28 +173,28 @@ typedef struct {
 class Adafruit_DAP {
 public:
   // constructors
-  Adafruit_DAP(void){};
-  virtual ~Adafruit_DAP(void){};
-  bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
+  Adafruit_DAP(void) {};
+  virtual ~Adafruit_DAP(void) {};
+  virtual bool begin(int swclk, int swdio, int nreset, ErrorHandler perror);
 
   // High level methods
-  bool targetConnect(uint32_t swj_clock = 50);
+  virtual bool targetConnect(uint32_t swj_clock = 50);
 
   // Low level methods
   bool dap_led(int index, int state);
   bool dap_connect(void);
-  bool dap_disconnect(void);
+  virtual bool dap_disconnect(void);
   bool dap_swj_clock(uint32_t clock);
   bool dap_transfer_configure(uint8_t idle, uint16_t count, uint16_t retry);
   bool dap_swd_configure(uint8_t cfg);
   bool dap_get_debugger_info(char *debuggername);
-  bool dap_reset_target(void);
+  virtual bool dap_reset_target(void);
   bool dap_reset_target_hw(int state);
   uint32_t dap_read_reg(uint8_t reg);
   bool dap_write_reg(uint8_t reg, uint32_t data);
   uint32_t dap_read_word(uint32_t addr);
   bool dap_write_word(uint32_t addr, uint32_t data);
-  bool dap_read_block(uint32_t addr, uint8_t *data, int size);
+  virtual bool dap_read_block(uint32_t addr, uint8_t *data, int size);
   bool dap_write_block(uint32_t addr, const uint8_t *data, int size);
   bool dap_reset_link(void);
   bool dap_read_idcode(uint32_t *id);
@@ -268,7 +269,7 @@ private:
   uint32_t crc;
 };
 
-
+#include "Adafruit_DAP_CH32.h"
 #include "Adafruit_DAP_SAM.h"
 #include "Adafruit_DAP_STM32.h"
 #include "Adafruit_DAP_nRF5x.h"
