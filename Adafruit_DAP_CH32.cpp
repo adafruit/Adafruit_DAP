@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause AND MIT
 // Copyright (c) 2026 Adafruit Industries
-// SWIO waveform derived from Open Embedded Probe v0.0.58 OepSwioPhy.cpp,
+// SWIO waveform and debug-mailbox block reader derived from Open Embedded Probe
+// v0.0.58 OepSwioPhy.cpp and OepCh32Dm.cpp,
 // Copyright (c) 2026 Open Embedded Probe. See license-oep.txt.
 #include "Adafruit_DAP.h"
 
@@ -10,6 +11,9 @@
 #include <hardware/structs/systick.h>
 #include <hardware/sync.h>
 #include <string.h>
+
+constexpr uint32_t Adafruit_DAP_CH32::BLOCK_READER[];
+constexpr uint32_t Adafruit_DAP_CH32::FLASH_WRITER[];
 
 namespace {
 // SysTick is a 24-bit down counter at clk_sys on Arduino-Pico. All waveform
@@ -368,6 +372,30 @@ bool Adafruit_DAP_CH32::writeWord(uint32_t address, uint32_t value) {
   return true;
 }
 
+/** Prepare a checked debug-mailbox program once for a block of memory accesses.
+ * DATA0 carries the data and DATA1 carries the next target address. Autoexec
+ * stays disabled: each word runs only after an explicit execute command.
+ */
+bool Adafruit_DAP_CH32::loadBlock(const uint32_t *program, uint32_t words,
+                                  uint32_t address) {
+  uint32_t info, capabilities;
+  if (!writeDmiChecked(ABSTRACTAUTO, 0) || !readDmi(HARTINFO, info) ||
+      !readDmi(ABSTRACTCS, capabilities))
+    return false;
+  if (((capabilities >> PROGBUF_SIZE_SHIFT) & PROGBUF_SIZE_MASK) < words)
+    return fail("CH32 debug program buffer is too small");
+
+  // WCH maps the debug module's DATA registers into this target address window.
+  uint32_t mailbox = DATA_WINDOW_BASE | (info & DATA_ADDRESS_MASK);
+  if (!writeRegister(REG_A0, mailbox) || !writeRegister(REG_A1, mailbox + 4))
+    return false;
+  for (uint32_t i = 0; i < words; i++) {
+    if (!writeDmiChecked(PROGBUF0 + i, program[i]))
+      return false;
+  }
+  return writeDmiChecked(DATA1, address);
+}
+
 /** Return this driver's common DAP type identifier. */
 uint32_t Adafruit_DAP_CH32::getTypeID() { return DAP_TYPEID_CH32; }
 
@@ -434,16 +462,29 @@ bool Adafruit_DAP_CH32::dap_read_block(uint32_t addr, uint8_t *data, int size) {
   if (!_selected || size < 0 || (!data && size) ||
       (uint32_t)size > UINT32_MAX - addr)
     return fail("Invalid CH32 memory read");
+  if (!size)
+    return true;
+  uint32_t aligned = addr - addr % 4;
+  if (!loadBlock(BLOCK_READER, sizeof(BLOCK_READER) / sizeof(uint32_t),
+                 aligned))
+    return false;
   while (size) {
-    uint32_t word;
-    uint32_t aligned = addr - addr % 4;
-    if (!readWord(aligned, word))
+    wireWrite(COMMAND, COMMAND_EXECUTE);
+    uint32_t next, word;
+    if (!waitAbstract() || !readDmi(DATA1, next))
+      return false;
+    // Confirm the load ran once before accepting its mailbox value. Reading
+    // DATA0 twice does not execute another load or touch the next address.
+    if (next != aligned + 4)
+      return fail("CH32 block read did not advance once");
+    if (!readDmi(DATA0, word))
       return false;
     uint32_t count = min((uint32_t)size, 4 - addr % 4);
     memcpy(data, (uint8_t *)&word + addr % 4, count);
     data += count;
     addr += count;
     size -= count;
+    aligned += 4;
   }
   return true;
 }
@@ -460,13 +501,13 @@ bool Adafruit_DAP_CH32::flashAddress(uint32_t &address, uint32_t size) {
 }
 
 /** Wait for both flash busy bits, then check write-protection errors. */
-bool Adafruit_DAP_CH32::flashWait(uint32_t busyMask) {
+bool Adafruit_DAP_CH32::flashWait() {
   uint32_t started = millis();
   do {
     uint32_t status;
     if (!readWord(FLASH_STATR, status))
       return false;
-    if (!(status & busyMask)) {
+    if (!(status & FLASH_BUSY)) {
       if (status & FLASH_WRITE_ERROR)
         return fail("CH32 flash is write protected");
       return true;
@@ -559,13 +600,27 @@ bool Adafruit_DAP_CH32::programPage(uint32_t address, const uint8_t *data) {
       !writeWord(FLASH_CTLR, _flashSettings | FLASH_PAGE_PROGRAM) ||
       !flashWait())
     return false;
+  // The target routine waits for WR_BSY after each store. It stops after 4096
+  // polls if the page buffer does not become ready; DATA1 then stays unchanged.
+  // Verify its status pointer and exclusive page end before executing it.
+  if (!writeRegister(REG_A2, FLASH_STATR) ||
+      !writeRegister(REG_A3, address + PAGESIZE) ||
+      !loadBlock(FLASH_WRITER, sizeof(FLASH_WRITER) / sizeof(uint32_t),
+                 address))
+    return false;
   for (uint32_t offset = 0; offset < PAGESIZE; offset += 4) {
     uint32_t word;
     memcpy(&word, data + offset, sizeof(word));
-    // During page loading BSY can remain asserted until PG_STRT. WCH's
-    // FLASH_ProgramPage_Fast waits only for WR_BSY between the 64 words.
-    if (!writeWord(address + offset, word) || !flashWait(FLASH_BUFFER_BUSY))
+    if (!writeDmiChecked(DATA0, word))
       return false;
+    wireWrite(COMMAND, COMMAND_EXECUTE);
+    uint32_t next;
+    if (!waitAbstract() || !readDmi(DATA1, next))
+      return false;
+    // Never continue a stream after a missed/duplicated store or buffer
+    // timeout.
+    if (next != address + offset + 4)
+      return fail("CH32 page load did not advance once");
   }
   return writeWord(FLASH_CTLR,
                    _flashSettings | FLASH_PAGE_PROGRAM | FLASH_PROGRAM_START) &&
@@ -626,7 +681,7 @@ bool Adafruit_DAP_CH32::verifyFlash(uint32_t addr, const uint8_t *buf,
                                     uint32_t size) {
   if (!flashAddress(addr, size) || !buf)
     return false;
-  uint8_t back[32];
+  uint8_t back[PAGESIZE];
   for (uint32_t offset = 0; offset < size; offset += sizeof(back)) {
     uint32_t count = min((uint32_t)sizeof(back), size - offset);
     if (!dap_read_block(addr + offset, back, count))
@@ -646,7 +701,7 @@ uint32_t Adafruit_DAP_CH32::computeFlashCRC32(uint32_t addr, uint32_t size) {
   if (!flashAddress(addr, size))
     return 0;
   Adafruit_DAP_CRC32 crc;
-  uint8_t buffer[32];
+  uint8_t buffer[PAGESIZE];
   while (size) {
     uint32_t count = min(size, (uint32_t)sizeof(buffer));
     if (!dap_read_block(addr, buffer, count))

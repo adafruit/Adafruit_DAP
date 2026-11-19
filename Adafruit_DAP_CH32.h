@@ -45,8 +45,10 @@ private:
   // addresses.
   enum : uint8_t {
     DATA0 = 0x04,
+    DATA1 = 0x05,
     DMCONTROL = 0x10,
     DMSTATUS = 0x11,
+    HARTINFO = 0x12,
     ABSTRACTCS = 0x16,
     COMMAND = 0x17,
     ABSTRACTAUTO = 0x18,
@@ -71,6 +73,14 @@ private:
     COMMAND_EXECUTE = 0x00240000,
     REG_S0 = 0x1008,
     REG_S1 = 0x1009,
+    REG_A0 = 0x100a,
+    REG_A1 = 0x100b,
+    REG_A2 = 0x100c,
+    REG_A3 = 0x100d,
+    DATA_WINDOW_BASE = 0xe0000000,
+    DATA_ADDRESS_MASK = 0x7ff,
+    PROGBUF_SIZE_SHIFT = 24,
+    PROGBUF_SIZE_MASK = 0x1f,
     // RISC-V instructions: lw s1,0(s0); sw s1,0(s0); ebreak.
     LOAD_WORD = 0x00042483,
     STORE_WORD = 0x00942023,
@@ -89,7 +99,6 @@ private:
     FLASH_KEY1 = 0x45670123,
     FLASH_KEY2 = 0xcdef89ab,
     FLASH_BUSY = 3,
-    FLASH_BUFFER_BUSY = 2,
     FLASH_WRITE_ERROR = 0x10,
     FLASH_EOP = 0x20,
     FLASH_LOCK = 0x80,
@@ -107,6 +116,16 @@ private:
   struct Timing {
     uint32_t shortLow, longLow, high, half, recharge, zero, riseTimeout;
   };
+  // RV32IC source and register contract: extras/ch32_swio_programs.S.
+  // The reader performs exactly one load, then publishes DATA0 and next DATA1.
+  static constexpr uint32_t BLOCK_READER[] = {0x40044180, 0xc1040411,
+                                              0x9002c180};
+  // One page-buffer store, bounded WR_BSY polling, then DATA1 advancement.
+  // a3 guards the page end; a timeout leaves DATA1 unchanged and aborts the
+  // page.
+  static constexpr uint32_t FLASH_WRITER[] = {
+      0x7d634180, 0x410400d4, 0x6705c004, 0x88894204,
+      0x177dc481, 0x9002ff65, 0xc1800411, 0x00019002};
   uint16_t _swio = 0;
   int16_t _reset = -1;
   uint32_t _mask = 0;
@@ -133,7 +152,8 @@ private:
   bool writeRegister(uint16_t reg, uint32_t value);
   bool readWord(uint32_t address, uint32_t &value);
   bool writeWord(uint32_t address, uint32_t value);
-  bool flashWait(uint32_t busyMask = FLASH_BUSY);
+  bool loadBlock(const uint32_t *program, uint32_t words, uint32_t address);
+  bool flashWait();
   bool flashUnlock();
   bool flashLock();
   bool eraseRange(uint32_t address, uint32_t size);
