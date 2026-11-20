@@ -11,6 +11,7 @@
 /** Standalone CH32V407/CH32V467 programmer using WCH single-wire debug.
  * Connecting resets and halts the target. This is a flash programmer, not a
  * transparent debugger: deselect resets it again to start its firmware.
+ * The RAM loader reserves target SRAM 0x20000000..0x20001fff.
  */
 class Adafruit_DAP_CH32 : public Adafruit_DAP {
 public:
@@ -45,8 +46,10 @@ private:
   // addresses.
   enum : uint8_t {
     DATA0 = 0x04,
+    DATA1 = 0x05,
     DMCONTROL = 0x10,
     DMSTATUS = 0x11,
+    HARTINFO = 0x12,
     ABSTRACTCS = 0x16,
     COMMAND = 0x17,
     ABSTRACTAUTO = 0x18,
@@ -71,6 +74,23 @@ private:
     COMMAND_EXECUTE = 0x00240000,
     REG_S0 = 0x1008,
     REG_S1 = 0x1009,
+    REG_A0 = 0x100a,
+    REG_A1 = 0x100b,
+    REG_A2 = 0x100c,
+    REG_A3 = 0x100d,
+    REG_A4 = 0x100e,
+    REG_SP = 0x1002,
+    LOADER_BASE = 0x20000000,
+    LOADER_BUFFER = 0x20001000,
+    LOADER_STACK = 0x20002000,
+    LOADER_DONE = 0x43524332,
+    LOADER_TIMEOUT_MS = 5000,
+    CALL_A4 = 0x000700e7, // jalr ra,0(a4)
+    FENCE_I = 0x0000100f,
+    DATA_WINDOW_BASE = 0xe0000000,
+    DATA_ADDRESS_MASK = 0x7ff,
+    PROGBUF_SIZE_SHIFT = 24,
+    PROGBUF_SIZE_MASK = 0x1f,
     // RISC-V instructions: lw s1,0(s0); sw s1,0(s0); ebreak.
     LOAD_WORD = 0x00042483,
     STORE_WORD = 0x00942023,
@@ -89,7 +109,6 @@ private:
     FLASH_KEY1 = 0x45670123,
     FLASH_KEY2 = 0xcdef89ab,
     FLASH_BUSY = 3,
-    FLASH_BUFFER_BUSY = 2,
     FLASH_WRITE_ERROR = 0x10,
     FLASH_EOP = 0x20,
     FLASH_LOCK = 0x80,
@@ -107,10 +126,17 @@ private:
   struct Timing {
     uint32_t shortLow, longLow, high, half, recharge, zero, riseTimeout;
   };
+  // RV32IC source and register contract: extras/ch32_swio_programs.S.
+  // The reader performs exactly one load, then publishes DATA0 and next DATA1.
+  static constexpr uint32_t BLOCK_READER[] = {0x40044180, 0xc1040411,
+                                              0x9002c180};
   uint16_t _swio = 0;
   int16_t _reset = -1;
   uint32_t _mask = 0;
   Timing _timing = {};
+  static constexpr uint32_t RAM_WRITER[] = {0x76634180, 0x410400d4, 0x0411c004,
+                                            0x9002c180};
+  bool _loaderReady = false;
   bool _begun = false;
   bool _connected = false;
   bool _selected = false;
@@ -128,12 +154,17 @@ private:
   static int readBit(uint32_t mask, const Timing &timing, uint32_t &riseLeft);
   bool readDmi(uint8_t reg, uint32_t &value);
   bool writeDmiChecked(uint8_t reg, uint32_t value);
-  bool waitAbstract();
+  bool waitAbstract(uint32_t timeout = DEBUG_TIMEOUT_MS);
   bool readRegister(uint16_t reg, uint32_t &value);
   bool writeRegister(uint16_t reg, uint32_t value);
   bool readWord(uint32_t address, uint32_t &value);
   bool writeWord(uint32_t address, uint32_t value);
-  bool flashWait(uint32_t busyMask = FLASH_BUSY);
+  bool loadBlock(const uint32_t *program, uint32_t words, uint32_t address);
+  bool writeRAM(uint32_t address, const uint8_t *data, uint32_t size);
+  bool prepareLoader();
+  bool runLoader(uint32_t operation, uint32_t address, uint32_t size,
+                 uint32_t expected, uint32_t &result);
+  bool flashWait();
   bool flashUnlock();
   bool flashLock();
   bool eraseRange(uint32_t address, uint32_t size);

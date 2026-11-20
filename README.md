@@ -33,8 +33,16 @@ Flash starts at `0x08000000`; zero-based addresses are also accepted. Images mus
 start on a 4 KiB sector boundary. `program_start()` erases the entire final sector,
 including any bytes beyond the image. Write consecutive 256-byte pages, with a
 partial final page padded to `0xff`. A failed write invalidates the prepared
-range; start a new programming operation before retrying. Verification compares
-all bytes, including padding. Option-byte and protection changes are unsupported.
+range; start a new programming operation before retrying. The RAM helper checks
+IEEE CRC32 before programming each received page and again from flash, including
+padding. By default, `programFlash()` also reads back and compares every byte.
+Pass `false` for its `do_verify` argument to use the faster CRC-only path;
+`computeFlashCRC32()` computes a whole-image CRC on the target. CRC32 detects
+accidental corruption; it is not a cryptographic authenticity check.
+
+The helper uses target SRAM `0x20000000..0x20001fff` and is fully read back before
+execution. This programmer does not preserve a running application's RAM or core
+registers. Option-byte and protection changes are unsupported.
 
 The [embedded-image example](examples/ch32/flash_from_header) installs the saved
 Metro CH32V407 Rev A TinyUF2 image from Pico flash. The
