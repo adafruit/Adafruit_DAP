@@ -2,12 +2,13 @@
 // PicoBrains GP2 = SWIO, GP27 = RESET; common GND. Resets the target.
 #include <Adafruit_DAP.h>
 #include <Adafruit_TinyUSB.h>
+#include <examples/ch32/flash_from_header/tinyuf2_metro407.h>
 
 Adafruit_DAP_CH32 programmer;
 bool passed = false;
 const char *stage = "Starting";
-const uint32_t imageSize = 17448;
-const uint32_t expectedCRC = 0x71988cf7;
+const uint32_t imageSize = sizeof(firmware);
+const uint32_t expectedCRC = firmware_crc32;
 
 void setup() {
   Serial.begin(115200);
@@ -44,8 +45,7 @@ void setup() {
     fail("unaligned byte read");
     return;
   }
-  const uint8_t expected[] = {0x30, 0x90, 0x6a, 0, 0, 0, 0, 0xa6};
-  if (memcmp(bytes, expected, sizeof(bytes))) {
+  if (memcmp(bytes, firmware + 1, sizeof(bytes))) {
     fail("byte read mismatch");
     return;
   }

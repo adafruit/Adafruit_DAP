@@ -2,14 +2,15 @@ Licenses for the embedded Metro CH32V407 TinyUF2 binary
 =====================================================
 
 This file applies to tinyuf2_metro407.h's firmware bytes, not the programmer.
-The image is the saved November 9, 2026 Metro Rev A build (dc2f6f8-dirty),
-with the CH32V4x7 port subsequently submitted as adafruit/tinyuf2#639.
-It is included unchanged, not described as a rebuild of current upstream.
+The image is the November 19, 2026 Metro Rev A build with NeoPixel status.
+TinyUF2 source: 392752474001bbb99e9714ca8599a06faa77a999 (clean tree).
+TinyUSB source: 2e6b3111dc5ff05c56f9b212515ba91896065946.
+The original CH32V4x7 port was merged as adafruit/tinyuf2#639.
 
 TinyUF2: https://github.com/adafruit/tinyuf2
 TinyUSB: https://github.com/hathach/tinyusb
-WCH SDK: https://github.com/openwch/ch32v4x7
-SDK snapshot: afee2d144b184176e5ca21202714ca9add1dd46f
+WCH SDK: https://github.com/openwch/ch32v407_ch32v467
+SDK snapshot: 17394a1f9aa484c9b2ca0c9fdfe5730ec31c06c7
 Toolchain: xPack RISC-V GCC 14.3.0-1, Newlib 4.5.0.20241231
 
 The WCH SDK portions have the following device-use restriction:

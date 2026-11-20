@@ -11,8 +11,8 @@ Adafruit_DAP_CH32 programmer;
 SdFat SD;
 File32 image;
 uint8_t buffer[Adafruit_DAP_CH32::PAGESIZE];
-const uint32_t imageSize = 17448;
-const uint32_t imageCRC32 = 0x71988cf7;
+const uint32_t imageSize = 18584;
+const uint32_t imageCRC32 = 0x609ef709;
 bool programmed = false;
 const char *result = "Starting";
 
