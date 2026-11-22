@@ -32,17 +32,6 @@ void setup() {
     finish("FAIL: expected CH32V407RET");
     return;
   }
-  // Compare target CRC with host CRC for unaligned and partial-word ranges.
-  const uint32_t lengths[] = {1, 3, 4, 55, 56, 63, 64, 255, 256, 257};
-  for (uint32_t length : lengths) {
-    Adafruit_DAP_CRC32 crc;
-    crc.add(firmware + 1, length);
-    if (programmer.computeFlashCRC32(1, length) != crc.get()) {
-      finish("FAIL: target CRC boundary");
-      return;
-    }
-  }
-  Serial.print("PASS: target CRC boundary lengths match host CRC\n\r");
   uint32_t started = millis();
   if (programmer.program_start(0, sizeof(firmware)) == UINT32_MAX) {
     finish("FAIL: erase");
@@ -67,6 +56,19 @@ void setup() {
     return;
   }
   readTime = millis() - started;
+
+  // Program the expected image before checking unaligned and partial-word CRCs.
+  // Keep these checks outside the measured programming and verification times.
+  const uint32_t lengths[] = {1, 3, 4, 55, 56, 63, 64, 255, 256, 257};
+  for (uint32_t length : lengths) {
+    Adafruit_DAP_CRC32 crc;
+    crc.add(firmware + 1, length);
+    if (programmer.computeFlashCRC32(1, length) != crc.get()) {
+      finish("FAIL: target CRC boundary");
+      return;
+    }
+  }
+  Serial.print("PASS: target CRC boundary lengths match host CRC\n\r");
 
   uint8_t wrong[4];
   memcpy(wrong, firmware, sizeof(wrong));
