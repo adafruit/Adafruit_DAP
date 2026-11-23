@@ -1,6 +1,9 @@
 name: Build
 
-on: [pull_request, push, repository_dispatch]
+on:
+  pull_request:
+  push:
+    branches: [master]
 
 jobs:
   build:
