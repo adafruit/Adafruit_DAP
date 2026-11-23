@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause AND MIT
 // Copyright (c) 2026 Adafruit Industries
-// SWIO waveform derived from Open Embedded Probe v0.0.58 OepSwioPhy.cpp,
+// SWIO waveform and debug-mailbox block reader derived from Open Embedded Probe
+// v0.0.58 OepSwioPhy.cpp and OepCh32Dm.cpp,
 // Copyright (c) 2026 Open Embedded Probe. See license-oep.txt.
 #include "Adafruit_DAP.h"
 
 #if defined(ARDUINO_ARCH_RP2040) && !defined(__riscv)
+#include "Adafruit_DAP_CH32_loader.h"
 #include <hardware/gpio.h>
 #include <hardware/structs/sio.h>
 #include <hardware/structs/systick.h>
 #include <hardware/sync.h>
 #include <string.h>
+
+constexpr uint32_t Adafruit_DAP_CH32::BLOCK_READER[];
+constexpr uint32_t Adafruit_DAP_CH32::RAM_WRITER[];
 
 namespace {
 // SysTick is a 24-bit down counter at clk_sys on Arduino-Pico. All waveform
@@ -48,7 +53,7 @@ bool Adafruit_DAP_CH32::begin(uint16_t swio, int16_t nreset,
                               ErrorHandler handler) {
   if (_begun)
     releasePins();
-  _begun = _connected = _selected = _prepared = false;
+  _begun = _connected = _selected = _prepared = _loaderReady = false;
   perror_exit = handler;
   error_message = nullptr;
   if (swio > 29 || nreset < 0 || nreset > 29 || swio == nreset)
@@ -103,7 +108,7 @@ void Adafruit_DAP_CH32::releasePins() {
 /** Record a failure and notify the optional callback. */
 bool Adafruit_DAP_CH32::fail(const char *message) {
   error_message = (char *)message;
-  _prepared = false;
+  _prepared = _loaderReady = false;
   if (perror_exit)
     perror_exit(message);
   return false;
@@ -242,7 +247,7 @@ bool Adafruit_DAP_CH32::writeDmiChecked(uint8_t reg, uint32_t value) {
 bool Adafruit_DAP_CH32::targetConnect(uint32_t unused_clock) {
   (void)unused_clock;
   error_message = nullptr;
-  _connected = _selected = _prepared = false;
+  _connected = _selected = _prepared = _loaderReady = false;
   target_device = {};
   if (!_begun)
     return fail("Call begin before connecting");
@@ -283,7 +288,7 @@ bool Adafruit_DAP_CH32::targetConnect(uint32_t unused_clock) {
 }
 
 /** Wait for an abstract command, failing on a sticky error or timeout. */
-bool Adafruit_DAP_CH32::waitAbstract() {
+bool Adafruit_DAP_CH32::waitAbstract(uint32_t timeout) {
   uint32_t started = millis();
   do {
     uint32_t status;
@@ -295,7 +300,7 @@ bool Adafruit_DAP_CH32::waitAbstract() {
       wireWrite(ABSTRACTCS, ABSTRACT_ERROR);
       return fail("RISC-V abstract command failed");
     }
-  } while (millis() - started < DEBUG_TIMEOUT_MS);
+  } while (millis() - started < timeout);
   return fail("RISC-V abstract command timed out");
 }
 
@@ -368,6 +373,30 @@ bool Adafruit_DAP_CH32::writeWord(uint32_t address, uint32_t value) {
   return true;
 }
 
+/** Prepare a checked debug-mailbox program once for a block of memory accesses.
+ * DATA0 carries the data and DATA1 carries the next target address. Autoexec
+ * stays disabled: each word runs only after an explicit execute command.
+ */
+bool Adafruit_DAP_CH32::loadBlock(const uint32_t *program, uint32_t words,
+                                  uint32_t address) {
+  uint32_t info, capabilities;
+  if (!writeDmiChecked(ABSTRACTAUTO, 0) || !readDmi(HARTINFO, info) ||
+      !readDmi(ABSTRACTCS, capabilities))
+    return false;
+  if (((capabilities >> PROGBUF_SIZE_SHIFT) & PROGBUF_SIZE_MASK) < words)
+    return fail("CH32 debug program buffer is too small");
+
+  // WCH maps the debug module's DATA registers into this target address window.
+  uint32_t mailbox = DATA_WINDOW_BASE | (info & DATA_ADDRESS_MASK);
+  if (!writeRegister(REG_A0, mailbox) || !writeRegister(REG_A1, mailbox + 4))
+    return false;
+  for (uint32_t i = 0; i < words; i++) {
+    if (!writeDmiChecked(PROGBUF0 + i, program[i]))
+      return false;
+  }
+  return writeDmiChecked(DATA1, address);
+}
+
 /** Return this driver's common DAP type identifier. */
 uint32_t Adafruit_DAP_CH32::getTypeID() { return DAP_TYPEID_CH32; }
 
@@ -401,7 +430,7 @@ bool Adafruit_DAP_CH32::select(uint32_t *id) {
 bool Adafruit_DAP_CH32::dap_reset_target() {
   if (!_begun)
     return fail("Call begin before resetting");
-  _connected = _selected = _prepared = false;
+  _connected = _selected = _prepared = _loaderReady = false;
   // Clear halt request before the physical reset; reset also relocks flash.
   wireWrite(ABSTRACTAUTO, 0);
   wireWrite(DMCONTROL, DM_ACTIVE);
@@ -420,7 +449,7 @@ void Adafruit_DAP_CH32::deselect() { dap_reset_target(); }
 bool Adafruit_DAP_CH32::dap_disconnect() {
   if (_begun)
     releasePins();
-  _connected = _selected = _prepared = false;
+  _connected = _selected = _prepared = _loaderReady = false;
   return true;
 }
 
@@ -434,16 +463,29 @@ bool Adafruit_DAP_CH32::dap_read_block(uint32_t addr, uint8_t *data, int size) {
   if (!_selected || size < 0 || (!data && size) ||
       (uint32_t)size > UINT32_MAX - addr)
     return fail("Invalid CH32 memory read");
+  if (!size)
+    return true;
+  uint32_t aligned = addr - addr % 4;
+  if (!loadBlock(BLOCK_READER, sizeof(BLOCK_READER) / sizeof(uint32_t),
+                 aligned))
+    return false;
   while (size) {
-    uint32_t word;
-    uint32_t aligned = addr - addr % 4;
-    if (!readWord(aligned, word))
+    wireWrite(COMMAND, COMMAND_EXECUTE);
+    uint32_t next, word;
+    if (!waitAbstract() || !readDmi(DATA1, next))
+      return false;
+    // Confirm the load ran once before accepting its mailbox value. Reading
+    // DATA0 twice does not execute another load or touch the next address.
+    if (next != aligned + 4)
+      return fail("CH32 block read did not advance once");
+    if (!readDmi(DATA0, word))
       return false;
     uint32_t count = min((uint32_t)size, 4 - addr % 4);
     memcpy(data, (uint8_t *)&word + addr % 4, count);
     data += count;
     addr += count;
     size -= count;
+    aligned += 4;
   }
   return true;
 }
@@ -460,13 +502,13 @@ bool Adafruit_DAP_CH32::flashAddress(uint32_t &address, uint32_t size) {
 }
 
 /** Wait for both flash busy bits, then check write-protection errors. */
-bool Adafruit_DAP_CH32::flashWait(uint32_t busyMask) {
+bool Adafruit_DAP_CH32::flashWait() {
   uint32_t started = millis();
   do {
     uint32_t status;
     if (!readWord(FLASH_STATR, status))
       return false;
-    if (!(status & busyMask)) {
+    if (!(status & FLASH_BUSY)) {
       if (status & FLASH_WRITE_ERROR)
         return fail("CH32 flash is write protected");
       return true;
@@ -553,26 +595,96 @@ uint32_t Adafruit_DAP_CH32::program_start(uint32_t addr, uint32_t size) {
   return addr;
 }
 
-/** Program one 256-byte page using WCH's PAGE_PG / PG_STRT sequence. */
-bool Adafruit_DAP_CH32::programPage(uint32_t address, const uint8_t *data) {
-  if (!flashWait() ||
-      !writeWord(FLASH_CTLR, _flashSettings | FLASH_PAGE_PROGRAM) ||
-      !flashWait())
+/** Stage words in reserved target SRAM. Never use this stream for MMIO/flash.
+ * The caller must verify staged data before executing it or programming flash.
+ */
+bool Adafruit_DAP_CH32::writeRAM(uint32_t address, const uint8_t *data,
+                                 uint32_t size) {
+  if (!size || size % 4 || address % 4 || address < LOADER_BASE ||
+      address >= LOADER_BUFFER + PAGESIZE ||
+      size > LOADER_BUFFER + PAGESIZE - address)
+    return fail("Invalid loader SRAM range");
+  if (!writeRegister(REG_A3, address + size) ||
+      !loadBlock(RAM_WRITER, sizeof(RAM_WRITER) / 4, address))
     return false;
-  for (uint32_t offset = 0; offset < PAGESIZE; offset += 4) {
+  for (uint32_t offset = 0; offset < size; offset += 4) {
     uint32_t word;
-    memcpy(&word, data + offset, sizeof(word));
-    // During page loading BSY can remain asserted until PG_STRT. WCH's
-    // FLASH_ProgramPage_Fast waits only for WR_BSY between the 64 words.
-    if (!writeWord(address + offset, word) || !flashWait(FLASH_BUFFER_BUSY))
-      return false;
+    memcpy(&word, data + offset, 4);
+    wireWrite(DATA0, word);
+    wireWrite(COMMAND, COMMAND_EXECUTE);
   }
-  return writeWord(FLASH_CTLR,
-                   _flashSettings | FLASH_PAGE_PROGRAM | FLASH_PROGRAM_START) &&
-         flashWait() && writeWord(FLASH_CTLR, _flashSettings);
+  uint32_t next;
+  if (!waitAbstract() || !readDmi(DATA1, next))
+    return false;
+  if (next != address + size)
+    return fail("CH32 SRAM stream did not finish");
+  return true;
 }
 
-/** Program consecutive pages after program_start(), optionally read them back.
+/** Install the RAM helper once per connection and verify every instruction. */
+bool Adafruit_DAP_CH32::prepareLoader() {
+  if (_loaderReady)
+    return true;
+  static_assert(sizeof(ch32_loader) <= LOADER_BUFFER - LOADER_BASE,
+                "CH32 loader overlaps its data buffer");
+  if (!writeRAM(LOADER_BASE, (const uint8_t *)ch32_loader, sizeof(ch32_loader)))
+    return false;
+  uint8_t back[PAGESIZE];
+  for (uint32_t offset = 0; offset < sizeof(ch32_loader);
+       offset += sizeof(back)) {
+    uint32_t count = min((uint32_t)sizeof(back), sizeof(ch32_loader) - offset);
+    if (!dap_read_block(LOADER_BASE + offset, back, count))
+      return false;
+    if (memcmp(back, (const uint8_t *)ch32_loader + offset, count))
+      return fail("CH32 RAM loader did not verify");
+  }
+  _loaderReady = true;
+  return true;
+}
+
+/** Execute a verified RAM helper; the return cookie detects a lost command. */
+bool Adafruit_DAP_CH32::runLoader(uint32_t operation, uint32_t address,
+                                  uint32_t size, uint32_t expected,
+                                  uint32_t &result) {
+  if (!prepareLoader() || !writeRegister(REG_SP, LOADER_STACK) ||
+      !writeRegister(REG_A0, operation) || !writeRegister(REG_A1, address) ||
+      !writeRegister(REG_A2, size) || !writeRegister(REG_A3, expected) ||
+      !writeRegister(REG_A4, LOADER_BASE) ||
+      !writeDmiChecked(PROGBUF0, FENCE_I) ||
+      !writeDmiChecked(PROGBUF1, CALL_A4) ||
+      !writeDmiChecked(PROGBUF2, BREAKPOINT))
+    return false;
+  wireWrite(COMMAND, COMMAND_EXECUTE);
+  uint32_t done;
+  if (!waitAbstract(LOADER_TIMEOUT_MS) || !readRegister(REG_A1, done) ||
+      !readRegister(REG_A0, result))
+    return false;
+  if (done != LOADER_DONE)
+    return fail("CH32 RAM loader did not complete");
+  return true;
+}
+
+/** Program a page from checked SRAM and verify its CRC on the target. */
+bool Adafruit_DAP_CH32::programPage(uint32_t address, const uint8_t *data) {
+  if (!prepareLoader() || !writeRAM(LOADER_BUFFER, data, PAGESIZE))
+    return false;
+  Adafruit_DAP_CRC32 crc;
+  crc.add(data, PAGESIZE);
+  uint32_t result;
+  if (!runLoader(1, address, PAGESIZE, crc.get(), result))
+    return false;
+  if (result == 2)
+    return fail("CH32 SRAM page CRC mismatch");
+  if (result == 3)
+    return fail("CH32 RAM flash operation failed or timed out");
+  if (result == 4)
+    return fail("CH32 flash CRC mismatch");
+  if (result)
+    return fail("CH32 RAM loader rejected the page");
+  return true;
+}
+
+/** Program consecutive pages with target-side CRC, optionally read them back.
  * @param addr Next address in the prepared image range.
  * @param buf Source bytes; memory-mapped Pico flash arrays are supported.
  * @param size Byte count. Only the final page may be partial (padded with
@@ -626,7 +738,7 @@ bool Adafruit_DAP_CH32::verifyFlash(uint32_t addr, const uint8_t *buf,
                                     uint32_t size) {
   if (!flashAddress(addr, size) || !buf)
     return false;
-  uint8_t back[32];
+  uint8_t back[PAGESIZE];
   for (uint32_t offset = 0; offset < size; offset += sizeof(back)) {
     uint32_t count = min((uint32_t)sizeof(back), size - offset);
     if (!dap_read_block(addr + offset, back, count))
@@ -637,7 +749,7 @@ bool Adafruit_DAP_CH32::verifyFlash(uint32_t addr, const uint8_t *buf,
   return true;
 }
 
-/** Compute IEEE CRC32 of code flash, stopping immediately on a read error.
+/** Compute IEEE CRC32 on the target without streaming flash over SWIO.
  * @param addr Code-flash address.
  * @param size Number of bytes.
  * @return CRC32 on success; zero on error (see error_message).
@@ -645,17 +757,10 @@ bool Adafruit_DAP_CH32::verifyFlash(uint32_t addr, const uint8_t *buf,
 uint32_t Adafruit_DAP_CH32::computeFlashCRC32(uint32_t addr, uint32_t size) {
   if (!flashAddress(addr, size))
     return 0;
-  Adafruit_DAP_CRC32 crc;
-  uint8_t buffer[32];
-  while (size) {
-    uint32_t count = min(size, (uint32_t)sizeof(buffer));
-    if (!dap_read_block(addr, buffer, count))
-      return 0;
-    crc.add(buffer, count);
-    addr += count;
-    size -= count;
-  }
-  return crc.get();
+  uint32_t result;
+  if (!runLoader(0, addr, size, 0, result))
+    return 0;
+  return result;
 }
 
 /** Option-byte changes are intentionally unsupported. */
