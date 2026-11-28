@@ -11,9 +11,12 @@
 #include <hardware/sync.h>
 #include <string.h>
 
+#define SWIO_FUNC(f) __not_in_flash_func(f)
+
 namespace {
 // SysTick is a 24-bit down counter at clk_sys on Arduino-Pico. All waveform
 // helpers MUST be forced inline into the RAM functions: XIP stalls break SWIO.
+const uint32_t TICK_MASK = 0xffffff;
 __force_inline uint32_t ticks() { return (0u - systick_hw->cvr) & 0xffffff; }
 __force_inline void waitUntil(uint32_t deadline) {
   while ((int32_t)((ticks() - deadline) << 8) < 0) {
@@ -26,11 +29,143 @@ __force_inline void release(uint32_t mask) { sio_hw->gpio_oe_clr = mask; }
 __force_inline bool sample(uint32_t mask) {
   return (sio_hw->gpio_in & mask) != 0;
 }
+__force_inline uint32_t irqSave() { return save_and_disable_interrupts(); }
+__force_inline void irqRestore(uint32_t saved) { restore_interrupts(saved); }
+__force_inline void frameBegin() {}
 uint32_t nanosecondsToTicks(uint32_t ns) {
   return ((uint64_t)ns * rp2040.f_cpu() + 999999999) / 1000000000;
 }
+void pinsInit(int swio, int nreset) {
+  gpio_init(swio);
+  gpio_set_drive_strength(swio, GPIO_DRIVE_STRENGTH_2MA);
+  gpio_init(nreset);
+}
+void pinsRelease(int swio, int nreset) {
+  gpio_set_dir(swio, GPIO_IN);
+  gpio_disable_pulls(swio);
+  if (nreset >= 0) {
+    gpio_set_dir(nreset, GPIO_IN);
+    gpio_disable_pulls(nreset);
+  }
+}
+void resetAssert(int nreset) {
+  gpio_put(nreset, 0);
+  gpio_set_dir(nreset, GPIO_OUT);
+}
+void resetRelease(int nreset) { gpio_set_dir(nreset, GPIO_IN); }
+bool swioPullUpRead(int swio) {
+  gpio_pull_up(swio);
+  delay(2);
+  return gpio_get(swio);
+}
 } // namespace
 
+#elif defined(ARDUINO_ARCH_CH32) && defined(CH32V20x)
+#include "dap_config.h"
+#include <string.h>
+
+#define SWIO_FUNC(f) DAP_CONFIG_PERFORMANCE_ATTR __attribute__((noinline)) f
+#ifndef __force_inline
+#define __force_inline inline __attribute__((always_inline))
+#endif
+
+namespace {
+// TIM4 is a free-running 16-bit up counter at the APB1 timer clock, reserved
+// for SWIO timing.
+const uint32_t TICK_MASK = 0xffff;
+// SWIO is driven push-pull with 50 MHz edges, or released to input with the
+// internal pull-up. drive() and release() rewrite the pin's whole CFGxR word,
+// so frameBegin() captures the other pins' bits before each frame.
+const uint32_t CFG_OUT_PP_50MHZ = 0x3;
+GPIO_TypeDef *swioPort = nullptr, *resetPort = nullptr;
+uint32_t resetMask = 0;
+volatile uint32_t *swioConfig = nullptr;
+uint32_t swioShift = 0;
+uint32_t configDrive = 0, configRelease = 0;
+uint32_t riseThreshold = 0; // timer ticks, see setRiseThreshold()
+
+__force_inline uint32_t ticks() { return TIM4->CNT; }
+__force_inline void waitUntil(uint32_t deadline) {
+  while ((int32_t)((ticks() - deadline) << 16) < 0) {
+  }
+}
+__force_inline void low(uint32_t mask) { swioPort->BCR = mask; }
+__force_inline void high(uint32_t mask) { swioPort->BSHR = mask; }
+__force_inline void drive(uint32_t) { *swioConfig = configDrive; }
+__force_inline void release(uint32_t) { *swioConfig = configRelease; }
+__force_inline bool sample(uint32_t mask) {
+  return (swioPort->INDR & mask) != 0;
+}
+// QingKe V4: the global interrupt enables live in CSR 0x800 (gintenr).
+__force_inline uint32_t irqSave() {
+  uint32_t saved;
+  __asm volatile("csrrc %0, 0x800, %1" : "=r"(saved) : "r"(0x88));
+  return saved;
+}
+__force_inline void irqRestore(uint32_t saved) {
+  __asm volatile("csrs 0x800, %0" : : "r"(saved & 0x88));
+}
+__force_inline void frameBegin() {
+  uint32_t others = *swioConfig & ~(0xfu << swioShift);
+  configDrive = others | (CFG_OUT_PP_50MHZ << swioShift);
+  configRelease = others | (DAP_CH32_CFG_IN_PULL << swioShift);
+}
+uint32_t nanosecondsToTicks(uint32_t ns) {
+  RCC_ClocksTypeDef clocks;
+  RCC_GetClocksFreq(&clocks);
+  uint64_t hz = clocks.PCLK1_Frequency;
+  if (RCC->CFGR0 & RCC_PPRE1) // APB1 prescaled: the timer clock is doubled
+    hz *= 2;
+  return (ns * hz + 999999999) / 1000000000;
+}
+bool validPin(int pin) {
+  // Analog aliases (A0 = 0xC0...) are valid too, so ask the core.
+  return pin >= 0 && digitalPinToPinName(pin) != NC;
+}
+void timerInit() {
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+  TIM4->CTLR1 = 0;
+  TIM4->PSC = 0;
+  TIM4->ATRLR = 0xffff;
+  TIM4->SWEVGR = TIM_UG;
+  TIM4->CTLR1 = TIM_CEN;
+}
+void pinsInit(int swio, int nreset) {
+  pinMode(swio, INPUT); // enables the port clock
+  pinMode(nreset, INPUT);
+  swioPort = digitalPinToPort(swio);
+  uint32_t pin = __builtin_ctz(digitalPinToBitMask(swio));
+  swioConfig = (pin < 8) ? &swioPort->CFGLR : &swioPort->CFGHR;
+  swioShift = (pin & 7) * 4;
+  resetPort = digitalPinToPort(nreset);
+  resetMask = digitalPinToBitMask(nreset);
+}
+void pinsRelease(int swio, int nreset) {
+  if (swioPort)
+    DAP_CONFIG_CH32_mode(swioPort, digitalPinToBitMask(swio),
+                         DAP_CH32_CFG_IN_FLOAT);
+  if (resetPort && nreset >= 0)
+    DAP_CONFIG_CH32_mode(resetPort, resetMask, DAP_CH32_CFG_IN_FLOAT);
+}
+void resetAssert(int) {
+  resetPort->BCR = resetMask;
+  DAP_CONFIG_CH32_mode(resetPort, resetMask, DAP_CH32_CFG_OUT_OD);
+}
+void resetRelease(int) {
+  DAP_CONFIG_CH32_mode(resetPort, resetMask, DAP_CH32_CFG_IN_FLOAT);
+}
+bool swioPullUpRead(int swio) {
+  uint32_t mask = digitalPinToBitMask(swio);
+  swioPort->BSHR = mask; // OUTDR high selects the pull-up
+  DAP_CONFIG_CH32_mode(swioPort, mask, DAP_CH32_CFG_IN_PULL);
+  delay(2);
+  return (swioPort->INDR & mask) != 0;
+}
+} // namespace
+#endif
+
+#if (defined(ARDUINO_ARCH_RP2040) && !defined(__riscv)) ||                     \
+    (defined(ARDUINO_ARCH_CH32) && defined(CH32V20x))
 /** Create a disconnected CH32 programmer. */
 Adafruit_DAP_CH32::Adafruit_DAP_CH32() {
   error_message = nullptr;
@@ -39,8 +174,10 @@ Adafruit_DAP_CH32::Adafruit_DAP_CH32() {
 }
 
 /** Initialize SWIO and an open-drain reset pin; both start released.
- * @param swio RP2040 GPIO connected to target PA13/SWIO (0..29).
- * @param nreset RP2040 GPIO connected to NRST (0..29, different from swio).
+ * On a CH32V20x host this also takes over TIM4 for SWIO timing.
+ * @param swio Host pin connected to target PA13/SWIO (RP2040: GPIO 0..29).
+ * @param nreset Host pin connected to NRST (RP2040: GPIO 0..29), different
+ * from swio.
  * @param handler Optional error notification; methods still return failure.
  * @return True when both pins are valid.
  */
@@ -51,22 +188,30 @@ bool Adafruit_DAP_CH32::begin(uint16_t swio, int16_t nreset,
   _begun = _connected = _selected = _prepared = false;
   perror_exit = handler;
   error_message = nullptr;
+#if defined(ARDUINO_ARCH_CH32)
+  if (!validPin(swio) || !validPin(nreset) || swio == nreset)
+    return fail("CH32 requires separate SWIO and RESET pins");
+  timerInit();
+  _mask = digitalPinToBitMask(swio);
+#else
   if (swio > 29 || nreset < 0 || nreset > 29 || swio == nreset)
     return fail("CH32 requires separate SWIO and RESET GPIOs 0..29");
   if (systick_hw->rvr != SYSTICK_RELOAD ||
       (systick_hw->csr & SYSTICK_ENABLED_CPU_CLOCK) !=
           SYSTICK_ENABLED_CPU_CLOCK)
     return fail("SWIO requires Arduino-Pico's CPU-clock SysTick timer");
+  _mask = 1u << swio;
+#endif
   _swio = swio;
   _reset = nreset;
-  _mask = 1u << swio;
   _timing = {nanosecondsToTicks(262),   nanosecondsToTicks(862),
              nanosecondsToTicks(262),   nanosecondsToTicks(131),
              nanosecondsToTicks(30),    nanosecondsToTicks(524),
              nanosecondsToTicks(100000)};
-  gpio_init(_swio);
-  gpio_set_drive_strength(_swio, GPIO_DRIVE_STRENGTH_2MA);
-  gpio_init(_reset);
+#if defined(ARDUINO_ARCH_CH32)
+  riseThreshold = nanosecondsToTicks(_riseNanoseconds);
+#endif
+  pinsInit(_swio, _reset);
   releasePins();
   _begun = true;
   return true;
@@ -82,23 +227,39 @@ bool Adafruit_DAP_CH32::begin(uint16_t swio, int16_t nreset,
 bool Adafruit_DAP_CH32::begin(int swclk, int swdio, int nreset,
                               ErrorHandler handler) {
   (void)swclk;
+#if defined(ARDUINO_ARCH_CH32)
+  if (!validPin(swdio) || !validPin(nreset)) {
+    // begin() rejects a negative reset pin, and validPin() any SWIO pin
+    // number the core does not know.
+    return begin((uint16_t)UINT16_MAX, (int16_t)-1, handler);
+  }
+#else
   if (swdio < 0 || swdio > 29 || nreset < 0 || nreset > 29) {
     // Route invalid inputs through begin() too, to discard any prior session
     // and report the error consistently without truncating the pin numbers.
     return begin((uint16_t)30, (int16_t)-1, handler);
   }
+#endif
   return begin((uint16_t)swdio, (int16_t)nreset, handler);
 }
 
-/** Release the programmer pins without ever driving RESET high. */
-void Adafruit_DAP_CH32::releasePins() {
-  gpio_set_dir(_swio, GPIO_IN);
-  gpio_disable_pulls(_swio);
-  if (_reset >= 0) {
-    gpio_set_dir(_reset, GPIO_IN);
-    gpio_disable_pulls(_reset);
-  }
+#if defined(ARDUINO_ARCH_CH32)
+/** Set the SWIO read threshold. The host releases the line after its falling
+ * edge and times the rise through its internal pull-up: a bit that reads high
+ * again sooner than this is a 1. The default, 1140 ns, is the middle of the
+ * 960..1320 ns range that read a Metro CH32V407 correctly over a 15 cm ribbon
+ * with no external pull-up.
+ * @param ns Threshold in nanoseconds.
+ */
+void Adafruit_DAP_CH32::setRiseThreshold(uint32_t ns) {
+  _riseNanoseconds = ns;
+  if (_begun)
+    riseThreshold = nanosecondsToTicks(ns);
 }
+#endif
+
+/** Release the programmer pins without ever driving RESET high. */
+void Adafruit_DAP_CH32::releasePins() { pinsRelease(_swio, _reset); }
 
 /** Record a failure and notify the optional callback. */
 bool Adafruit_DAP_CH32::fail(const char *message) {
@@ -114,95 +275,132 @@ __force_inline uint32_t Adafruit_DAP_CH32::sendBits(uint32_t mask,
                                                     const Timing &timing,
                                                     uint64_t bits, int count,
                                                     uint32_t deadline) {
+#if defined(ARDUINO_ARCH_CH32)
+  // Every edge is chained from the previous deadline, so code time between a
+  // pin write and a timer read does not stretch the phases. The chain starts
+  // one idle-high period after the caller's timer read.
+  deadline = (deadline + timing.high) & TICK_MASK;
+#endif
   for (uint64_t bit = (uint64_t)1 << (count - 1); bit; bit >>= 1) {
     uint32_t width = timing.longLow;
     if (bits & bit)
       width = timing.shortLow;
     waitUntil(deadline);
     low(mask);
-    uint32_t fell = ticks();
-    waitUntil((fell + width) & 0xffffff);
+#if defined(ARDUINO_ARCH_CH32)
+    waitUntil(deadline = (deadline + width) & TICK_MASK);
     high(mask);
-    deadline = (ticks() + timing.high) & 0xffffff;
+    deadline = (deadline + timing.high) & TICK_MASK;
+#else
+    uint32_t fell = ticks();
+    waitUntil((fell + width) & TICK_MASK);
+    high(mask);
+    deadline = (ticks() + timing.high) & TICK_MASK;
+#endif
   }
   return deadline;
 }
 
+#if defined(ARDUINO_ARCH_CH32)
+// A CH32 output overpowers a target holding the line low, so the recharge
+// pulse used on the RP2040 would corrupt zeros. Instead the line is released
+// to the internal pull-up and the bit is decoded from how long it takes to
+// read high: a 1 rises early, a 0 is held low by the target first.
+__force_inline int Adafruit_DAP_CH32::readBit(uint32_t mask,
+                                              const Timing &timing,
+                                              uint32_t &riseLeft) {
+  uint32_t fell = ticks();
+  low(mask);
+  waitUntil((fell + timing.shortLow) & TICK_MASK);
+  release(mask);
+  high(mask); // input with pull-up
+  while (!sample(mask)) {
+    if (((ticks() - fell) & TICK_MASK) >= riseLeft)
+      return 2;
+  }
+  uint32_t rise = (ticks() - fell) & TICK_MASK;
+  drive(mask); // hold the line high until the next bit
+  riseLeft = rise < riseLeft ? riseLeft - rise : 0;
+  waitUntil((ticks() + timing.half) & TICK_MASK);
+  return rise < riseThreshold;
+}
+#else
 // Read turnaround includes a brief weak-drive recharge pulse, as in OEP.
 __force_inline int Adafruit_DAP_CH32::readBit(uint32_t mask,
                                               const Timing &timing,
                                               uint32_t &riseLeft) {
   uint32_t deadline = ticks();
   low(mask);
-  waitUntil(deadline = (deadline + timing.shortLow) & 0xffffff);
+  waitUntil(deadline = (deadline + timing.shortLow) & TICK_MASK);
   release(mask);
   high(mask);
-  waitUntil(deadline = (deadline + timing.half) & 0xffffff);
+  waitUntil(deadline = (deadline + timing.half) & TICK_MASK);
   drive(mask);
-  waitUntil(deadline = (deadline + timing.recharge) & 0xffffff);
+  waitUntil(deadline = (deadline + timing.recharge) & TICK_MASK);
   release(mask);
-  waitUntil(deadline = (deadline + timing.half) & 0xffffff);
+  waitUntil(deadline = (deadline + timing.half) & TICK_MASK);
   int value = sample(mask);
   if (!value) {
-    waitUntil(deadline = (deadline + timing.zero) & 0xffffff);
+    waitUntil(deadline = (deadline + timing.zero) & TICK_MASK);
     drive(mask);
-    waitUntil(deadline = (deadline + timing.recharge) & 0xffffff);
+    waitUntil(deadline = (deadline + timing.recharge) & TICK_MASK);
     release(mask);
   }
   uint32_t started = ticks();
   do {
     if (sample(mask)) {
       drive(mask);
-      uint32_t elapsed = (ticks() - started) & 0xffffff;
+      uint32_t elapsed = (ticks() - started) & TICK_MASK;
       if (elapsed < riseLeft)
         riseLeft -= elapsed;
       else
         riseLeft = 0;
-      waitUntil((ticks() + timing.half) & 0xffffff);
+      waitUntil((ticks() + timing.half) & TICK_MASK);
       return value;
     }
-  } while (((ticks() - started) & 0xffffff) < riseLeft);
+  } while (((ticks() - started) & TICK_MASK) < riseLeft);
   return 2;
 }
+#endif
 
 /** Send one WCH DMI register write from RAM with interrupts masked. */
-void __not_in_flash_func(Adafruit_DAP_CH32::wireWrite)(uint8_t reg,
-                                                       uint32_t value) {
+void SWIO_FUNC(Adafruit_DAP_CH32::wireWrite)(uint8_t reg, uint32_t value) {
   const uint32_t mask = _mask;
   const Timing timing = _timing;
+  frameBegin();
   high(mask);
   drive(mask);
   uint64_t frame = ((uint64_t)1 << 40) | ((uint64_t)(reg & 0x7f) << 33) |
                    ((uint64_t)1 << 32) | value;
-  uint32_t saved = save_and_disable_interrupts();
+  uint32_t saved = irqSave();
   waitUntil(sendBits(mask, timing, frame, 41, ticks()));
-  restore_interrupts(saved);
+  irqRestore(saved);
   delayMicroseconds(8);
 }
 
 /** Read one WCH DMI register; SWIO has no parity, so callers confirm reads. */
-bool __not_in_flash_func(Adafruit_DAP_CH32::wireRead)(uint8_t reg,
-                                                      uint32_t &value) {
+bool SWIO_FUNC(Adafruit_DAP_CH32::wireRead)(uint8_t reg, uint32_t &value) {
   const uint32_t mask = _mask;
   const Timing timing = _timing;
+  frameBegin();
   high(mask);
   drive(mask);
   uint32_t result = 0;
   uint32_t riseLeft = _timing.riseTimeout;
-  uint32_t saved = save_and_disable_interrupts();
+  uint32_t saved = irqSave();
   waitUntil(
       sendBits(mask, timing, (1u << 8) | ((reg & 0x7f) << 1), 9, ticks()));
   for (int bit = 0; bit < 32; bit++) {
     int decoded = readBit(mask, timing, riseLeft);
     if (decoded == 2) {
       release(_mask);
-      restore_interrupts(saved);
+      irqRestore(saved);
       delayMicroseconds(8);
       return false;
     }
     result = (result << 1) | decoded;
   }
-  restore_interrupts(saved);
+  irqRestore(saved);
   delayMicroseconds(8);
   value = result;
   return true;
@@ -246,13 +444,10 @@ bool Adafruit_DAP_CH32::targetConnect(uint32_t unused_clock) {
   target_device = {};
   if (!_begun)
     return fail("Call begin before connecting");
-  gpio_put(_reset, 0);
-  gpio_set_dir(_reset, GPIO_OUT);
+  resetAssert(_reset);
   delay(20);
-  gpio_set_dir(_reset, GPIO_IN);
-  gpio_pull_up(_swio);
-  delay(2);
-  if (!gpio_get(_swio))
+  resetRelease(_reset);
+  if (!swioPullUpRead(_swio))
     return fail("SWIO is held low");
   wireWrite(DMSHADOWCFGR, SWIO_CONFIG);
   wireWrite(DMCFGR, SWIO_CONFIG);
@@ -405,8 +600,7 @@ bool Adafruit_DAP_CH32::dap_reset_target() {
   // Clear halt request before the physical reset; reset also relocks flash.
   wireWrite(ABSTRACTAUTO, 0);
   wireWrite(DMCONTROL, DM_ACTIVE);
-  gpio_put(_reset, 0);
-  gpio_set_dir(_reset, GPIO_OUT);
+  resetAssert(_reset);
   delay(20);
   releasePins();
   return true;

@@ -5,8 +5,14 @@
 
 #include "Adafruit_DAP.h"
 
-// The nanosecond SWIO transport currently requires the Arduino-Pico core.
-#if defined(ARDUINO_ARCH_RP2040) && !defined(__riscv)
+// The nanosecond SWIO transport runs on the Arduino-Pico core (RP2040) and on
+// the WCH core's CH32V20x (e.g. QT Py CH32V203).
+#if (defined(ARDUINO_ARCH_RP2040) && !defined(__riscv)) ||                     \
+    (defined(ARDUINO_ARCH_CH32) && defined(CH32V20x))
+
+// The WCH core's ch32v20x.h defines FLASH_BASE (same 0x08000000) as a macro.
+#pragma push_macro("FLASH_BASE")
+#undef FLASH_BASE
 
 /** Standalone CH32V407/CH32V467 programmer using WCH single-wire debug.
  * Connecting resets and halts the target. This is a flash programmer, not a
@@ -24,6 +30,9 @@ public:
   bool begin(uint16_t swio, int16_t nreset, ErrorHandler handler = nullptr);
   bool begin(int swclk, int swdio, int nreset, ErrorHandler handler) override;
   bool targetConnect(uint32_t unused_clock = 50) override;
+#if defined(ARDUINO_ARCH_CH32)
+  void setRiseThreshold(uint32_t ns);
+#endif
   uint32_t getTypeID() override;
   bool select(uint32_t *id) override;
   void deselect() override;
@@ -118,6 +127,9 @@ private:
   uint32_t _next = 0;
   uint32_t _end = 0;
   uint32_t _flashSettings = 0;
+#if defined(ARDUINO_ARCH_CH32)
+  uint32_t _riseNanoseconds = 1140;
+#endif
 
   bool fail(const char *message);
   void releasePins();
@@ -140,5 +152,6 @@ private:
   bool programPage(uint32_t address, const uint8_t *data);
   bool flashAddress(uint32_t &address, uint32_t size);
 };
+#pragma pop_macro("FLASH_BASE")
 #endif
 #endif
