@@ -22,6 +22,13 @@ RP2040 running Arduino-Pico. It uses WCH SWIO, which is different from ARM SWD;
 SWCLK is unused. The transport runs from RAM and requires Arduino-Pico's normal
 CPU-clock SysTick timer (profiling/FreeRTOS timer configurations are rejected).
 
+A CH32V20x on the WCH Arduino core (e.g. QT Py CH32V203, with **Adafruit
+TinyUSB with USBD**) can also be the host. It reserves TIM4 for SWIO timing and
+needs no external pull-up: each bit is read from how long the released line
+takes to rise through the internal pull-up. `setRiseThreshold(ns)` sets the
+cutoff (default 1140 ns). Tested on a QT Py CH32V203 with SWIO on A3 and RESET
+on A0, programming a Metro CH32V407 over a 15 cm ribbon.
+
 The common programming sequence is `begin(swio, reset)`, `targetConnect()`,
 `select(&id)`, `program_start(address, length)`, `programFlash(...)`, and
 `deselect()`. Check every returned status; `program_start()` returns `UINT32_MAX`
